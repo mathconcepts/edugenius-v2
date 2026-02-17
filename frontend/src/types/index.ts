@@ -1,0 +1,181 @@
+// User roles
+export type UserRole = 'ceo' | 'admin' | 'teacher' | 'student';
+
+// Agent types
+export type AgentType = 'scout' | 'atlas' | 'sage' | 'mentor' | 'herald' | 'forge' | 'oracle';
+
+export interface Agent {
+  id: AgentType;
+  name: string;
+  emoji: string;
+  status: 'active' | 'idle' | 'busy' | 'offline';
+  description: string;
+  subAgents: SubAgent[];
+  metrics: AgentMetrics;
+}
+
+export interface SubAgent {
+  id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'idle' | 'busy';
+}
+
+export interface AgentMetrics {
+  tasksCompleted: number;
+  tokensUsed: number;
+  avgResponseTime: number;
+  successRate: number;
+}
+
+// Student data
+export interface Student {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  grade: string;
+  subjects: string[];
+  progress: StudentProgress;
+  streak: number;
+  badges: Badge[];
+  createdAt: Date;
+}
+
+export interface StudentProgress {
+  overallScore: number;
+  topicsCompleted: number;
+  totalTopics: number;
+  hoursLearned: number;
+  questionsAnswered: number;
+  accuracy: number;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  earnedAt: Date;
+}
+
+// Learning content
+export interface Topic {
+  id: string;
+  title: string;
+  subject: string;
+  description: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  duration: number; // minutes
+  lessons: Lesson[];
+  prerequisites: string[];
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  type: 'video' | 'reading' | 'interactive' | 'quiz';
+  content: string;
+  duration: number;
+  completed?: boolean;
+}
+
+// Chat/Tutor
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  agent?: AgentType;
+  metadata?: {
+    thinking?: string;
+    sources?: string[];
+    confidence?: number;
+  };
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  agent: AgentType;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Analytics
+export interface AnalyticsData {
+  period: 'day' | 'week' | 'month' | 'year';
+  students: {
+    total: number;
+    active: number;
+    new: number;
+  };
+  engagement: {
+    sessions: number;
+    avgDuration: number;
+    questionsAsked: number;
+  };
+  performance: {
+    avgScore: number;
+    completionRate: number;
+    improvement: number;
+  };
+  agents: {
+    tasksCompleted: number;
+    tokensUsed: number;
+    costSavings: number;
+  };
+}
+
+export interface ChartDataPoint {
+  date: string;
+  value: number;
+  label?: string;
+}
+
+// Content creation
+export interface ContentItem {
+  id: string;
+  type: 'question' | 'explanation' | 'quiz' | 'worksheet' | 'video-script';
+  title: string;
+  content: string;
+  subject: string;
+  topic: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  status: 'draft' | 'review' | 'published';
+  createdBy: AgentType | 'human';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Notifications
+export interface Notification {
+  id: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  title: string;
+  message: string;
+  read: boolean;
+  timestamp: Date;
+  action?: {
+    label: string;
+    href: string;
+  };
+}
+
+// Events
+export interface SystemEvent {
+  id: string;
+  type: string;
+  agent: AgentType;
+  payload: Record<string, unknown>;
+  timestamp: Date;
+}
+
+// Playground
+export interface PlaygroundConfig {
+  role: UserRole;
+  agent?: AgentType;
+  mockData: boolean;
+  showDebug: boolean;
+}
