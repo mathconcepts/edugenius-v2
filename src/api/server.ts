@@ -6,6 +6,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
 import { EduGeniusOrchestrator, getOrchestrator } from '../orchestrator';
+import { contentRoutes } from './content-routes';
 
 // ============================================================================
 // Types
@@ -307,6 +308,11 @@ export class APIServer {
     this.registerRoute('GET', '/analytics/funnel', this.handleGetFunnel.bind(this));
     this.registerRoute('GET', '/analytics/cohorts', this.handleGetCohorts.bind(this));
     this.registerRoute('POST', '/analytics/metrics', this.handleRecordMetric.bind(this));
+
+    // Content Delivery Routes (prompts, blogs, vlogs, landing pages, deployments, exams)
+    for (const route of contentRoutes) {
+      this.registerRoute(route.method, route.path, route.handler);
+    }
   }
 
   // -------------------------------------------------------------------------
