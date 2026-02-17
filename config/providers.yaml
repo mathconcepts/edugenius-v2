@@ -1,0 +1,136 @@
+# EduGenius LLM Provider Registry
+# Hot-swappable provider configuration
+
+version: "2.0"
+default_provider: gemini
+
+providers:
+  gemini:
+    enabled: true
+    models:
+      flash:
+        id: "gemini-2.0-flash"
+        context_window: 1000000
+        max_output: 8192
+        cost_per_1k_input: 0.000075
+        cost_per_1k_output: 0.0003
+        tier: routine
+      pro:
+        id: "gemini-2.0-pro"
+        context_window: 2000000
+        max_output: 8192
+        cost_per_1k_input: 0.00125
+        cost_per_1k_output: 0.005
+        tier: quality
+    fallback_order: [flash, pro]
+    health_check:
+      endpoint: /health
+      interval_seconds: 60
+      timeout_ms: 5000
+
+  anthropic:
+    enabled: true
+    models:
+      sonnet:
+        id: "claude-sonnet-4-20250514"
+        context_window: 200000
+        max_output: 8192
+        cost_per_1k_input: 0.003
+        cost_per_1k_output: 0.015
+        tier: quality
+      haiku:
+        id: "claude-haiku"
+        context_window: 200000
+        max_output: 4096
+        cost_per_1k_input: 0.00025
+        cost_per_1k_output: 0.00125
+        tier: routine
+    fallback_order: [haiku, sonnet]
+
+  openai:
+    enabled: true
+    models:
+      gpt4o:
+        id: "gpt-4o"
+        context_window: 128000
+        max_output: 4096
+        cost_per_1k_input: 0.005
+        cost_per_1k_output: 0.015
+        tier: quality
+      gpt4o_mini:
+        id: "gpt-4o-mini"
+        context_window: 128000
+        max_output: 4096
+        cost_per_1k_input: 0.00015
+        cost_per_1k_output: 0.0006
+        tier: routine
+    fallback_order: [gpt4o_mini, gpt4o]
+
+  ollama:
+    enabled: false
+    base_url: "http://localhost:11434"
+    models:
+      llama:
+        id: "llama3.2"
+        context_window: 8192
+        max_output: 4096
+        cost_per_1k_input: 0
+        cost_per_1k_output: 0
+        tier: local
+    fallback_order: [llama]
+
+  learnlm:
+    enabled: true
+    models:
+      tutor:
+        id: "learnlm-2.0-flash-experimental"
+        context_window: 32000
+        max_output: 8192
+        cost_per_1k_input: 0
+        cost_per_1k_output: 0
+        tier: pedagogical
+        specialization: tutoring
+    fallback_order: [tutor]
+
+# Task-to-tier routing
+task_routing:
+  quality_critical:
+    - content_generation
+    - lesson_creation
+    - assessment_creation
+    - blog_writing
+  routine:
+    - summarization
+    - classification
+    - extraction
+    - simple_qa
+  pedagogical:
+    - tutoring
+    - doubt_resolution
+    - socratic_dialogue
+    - learning_assessment
+
+# Fallback strategy
+fallback:
+  strategy: waterfall
+  max_retries: 3
+  retry_delay_ms: 1000
+  degradation_levels:
+    - name: primary
+      providers: [gemini, anthropic]
+    - name: fallback
+      providers: [openai, ollama]
+    - name: emergency
+      providers: [ollama]
+      alert: true
+
+# Budget controls
+budget:
+  daily_limit_usd: 100
+  warning_threshold: 0.8
+  per_agent_limits:
+    sage: 50
+    atlas: 30
+    herald: 10
+    scout: 5
+    oracle: 5
