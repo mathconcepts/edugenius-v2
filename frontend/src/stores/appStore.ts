@@ -15,6 +15,10 @@ interface AppState {
   user: User | null;
   setUser: (user: User | null) => void;
   
+  // User Role (for preview switching)
+  userRole: UserRole;
+  setUserRole: (role: UserRole) => void;
+  
   // Theme
   theme: 'light' | 'dark';
   toggleTheme: () => void;
@@ -167,6 +171,10 @@ export const useAppStore = create<AppState>()(
       user: null,
       setUser: (user) => set({ user }),
       
+      // User Role
+      userRole: 'ceo',
+      setUserRole: (role) => set({ userRole: role }),
+      
       // Theme
       theme: 'dark',
       toggleTheme: () => set((state) => ({ 
@@ -224,6 +232,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         theme: state.theme,
         sidebarOpen: state.sidebarOpen,
+        userRole: state.userRole,
         playgroundMode: state.playgroundMode,
         playgroundConfig: state.playgroundConfig,
       }),

@@ -17,10 +17,18 @@ import {
 import { useAppStore } from '@/stores/appStore';
 import { clsx } from 'clsx';
 
+const roleConfig = {
+  ceo: { icon: '👔', label: 'CEO', color: 'from-purple-500 to-pink-500' },
+  admin: { icon: '⚙️', label: 'Admin', color: 'from-blue-500 to-cyan-500' },
+  teacher: { icon: '👩‍🏫', label: 'Teacher', color: 'from-green-500 to-emerald-500' },
+  student: { icon: '🎓', label: 'Student', color: 'from-orange-500 to-red-500' },
+};
+
 export function Header() {
-  const { theme, toggleTheme, notifications, markNotificationRead, sidebarOpen } = useAppStore();
+  const { theme, toggleTheme, notifications, markNotificationRead, sidebarOpen, userRole, setUserRole } = useAppStore();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -62,6 +70,58 @@ export function Header() {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {/* Role Switcher */}
+        <div className="relative">
+          <button
+            onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r ${roleConfig[userRole].color} text-white text-sm font-medium hover:opacity-90 transition-opacity`}
+          >
+            <span>{roleConfig[userRole].icon}</span>
+            <span>{roleConfig[userRole].label}</span>
+            <ChevronDown className="w-4 h-4" />
+          </button>
+
+          <AnimatePresence>
+            {showRoleSwitcher && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowRoleSwitcher(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 top-full mt-2 w-48 glass rounded-xl shadow-xl z-50 overflow-hidden"
+                >
+                  <div className="p-2 border-b border-surface-700/50">
+                    <p className="text-xs text-surface-400 px-2">Preview as:</p>
+                  </div>
+                  <div className="p-2">
+                    {(Object.keys(roleConfig) as Array<keyof typeof roleConfig>).map((role) => (
+                      <button
+                        key={role}
+                        onClick={() => {
+                          setUserRole(role);
+                          setShowRoleSwitcher(false);
+                        }}
+                        className={clsx(
+                          'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left',
+                          userRole === role ? 'bg-primary-500/20 text-primary-400' : 'hover:bg-surface-800'
+                        )}
+                      >
+                        <span>{roleConfig[role].icon}</span>
+                        <span className="text-sm">{roleConfig[role].label}</span>
+                        {userRole === role && <Check className="w-4 h-4 ml-auto" />}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
