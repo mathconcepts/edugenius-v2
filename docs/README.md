@@ -20,8 +20,9 @@
 | 08 | [Testing Guide](./08-testing-guide.md) | Test structure, running tests | 11 KB |
 | 09 | [Deployment](./09-deployment.md) | Production deployment guide | 9 KB |
 | 10 | [Configuration](./10-configuration.md) | All configuration options | 10 KB |
+| 11 | [Multi-Agent Setup](./11-multi-agent-setup.md) | OpenClaw + MissionControlHQ integration | 6 KB |
 
-**Total Documentation:** ~105 KB
+**Total Documentation:** ~111 KB
 
 ---
 
