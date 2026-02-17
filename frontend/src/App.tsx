@@ -12,6 +12,12 @@ import {
   Students,
   RolePreview,
 } from '@/pages';
+import { 
+  WebsiteHome, 
+  WebsitePricing, 
+  WebsiteBlog, 
+  WebsiteExamPage 
+} from '@/pages/website';
 
 // Placeholder components for routes
 const Users = () => (
@@ -38,6 +44,19 @@ const Settings = () => (
 export default function App() {
   return (
     <Routes>
+      {/* ==================== PUBLIC WEBSITE ==================== */}
+      <Route path="/website" element={<WebsiteHome />} />
+      <Route path="/website/pricing" element={<WebsitePricing />} />
+      <Route path="/website/blog" element={<WebsiteBlog />} />
+      <Route path="/website/blog/:slug" element={<WebsiteBlog />} />
+      <Route path="/website/exams/:examCode" element={<WebsiteExamPage />} />
+      <Route path="/website/features" element={<WebsiteHome />} />
+      <Route path="/website/about" element={<WebsiteHome />} />
+      <Route path="/website/demo" element={<WebsiteHome />} />
+      <Route path="/website/signup" element={<WebsiteHome />} />
+      <Route path="/website/contact" element={<WebsiteHome />} />
+      
+      {/* ==================== PORTAL (APP) ==================== */}
       {/* Role Preview - Standalone page */}
       <Route path="/preview" element={<RolePreview />} />
       
