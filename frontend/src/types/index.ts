@@ -179,3 +179,7 @@ export interface PlaygroundConfig {
   mockData: boolean;
   showDebug: boolean;
 }
+
+// Re-export notebook and teaching types
+export * from './notebook';
+export * from './teaching';
