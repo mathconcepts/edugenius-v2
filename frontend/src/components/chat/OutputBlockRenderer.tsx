@@ -1,7 +1,10 @@
 /**
  * OutputBlockRenderer — renders multimodal AI response blocks
+ * Uses KaTeX for proper equation rendering ($...$ inline, $$...$$ block)
  */
-import ReactMarkdown from 'react-markdown';
+import { MathMarkdown } from './MathMarkdown';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import type { OutputBlock } from '@/types';
 
 interface Props {
@@ -10,10 +13,27 @@ interface Props {
 }
 
 function EquationBlock({ content }: { content: string }) {
+  let rendered = content;
+  let renderError = false;
+  try {
+    rendered = katex.renderToString(content, { displayMode: true, throwOnError: false });
+  } catch {
+    renderError = true;
+  }
+
+  if (renderError) {
+    return (
+      <div className="my-3 px-4 py-3 bg-surface-900 border border-primary-500/20 rounded-lg font-mono text-center">
+        <span className="text-primary-300 text-lg">{content}</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="my-3 px-4 py-3 bg-surface-900 border border-primary-500/20 rounded-lg font-mono text-center">
-      <span className="text-primary-300 text-lg">{content}</span>
-    </div>
+    <div
+      className="my-4 px-4 py-4 bg-surface-900 border border-primary-500/20 rounded-xl overflow-x-auto text-center"
+      dangerouslySetInnerHTML={{ __html: rendered }}
+    />
   );
 }
 
@@ -81,18 +101,7 @@ function CardBlock({ block }: { block: OutputBlock }) {
 
 export function OutputBlockRenderer({ blocks, fallback }: Props) {
   if (!blocks || blocks.length === 0) {
-    return (
-      <ReactMarkdown className="prose prose-invert prose-sm max-w-none
-        prose-headings:text-white prose-headings:font-semibold
-        prose-p:text-surface-300 prose-p:leading-relaxed
-        prose-strong:text-white
-        prose-code:text-accent-300 prose-code:bg-surface-900 prose-code:px-1 prose-code:rounded
-        prose-pre:bg-surface-900 prose-pre:border prose-pre:border-surface-700
-        prose-blockquote:border-primary-500 prose-blockquote:text-surface-400
-        prose-li:text-surface-300 prose-li:marker:text-primary-400">
-        {fallback}
-      </ReactMarkdown>
-    );
+    return <MathMarkdown>{fallback}</MathMarkdown>;
   }
 
   return (
@@ -120,18 +129,7 @@ export function OutputBlockRenderer({ blocks, fallback }: Props) {
               </div>
             );
           default:
-            return (
-              <ReactMarkdown key={i} className="prose prose-invert prose-sm max-w-none
-                prose-headings:text-white prose-headings:font-semibold
-                prose-p:text-surface-300 prose-p:leading-relaxed
-                prose-strong:text-white
-                prose-code:text-accent-300 prose-code:bg-surface-900 prose-code:px-1 prose-code:rounded
-                prose-pre:bg-surface-900 prose-pre:border prose-pre:border-surface-700
-                prose-blockquote:border-primary-500 prose-blockquote:text-surface-400
-                prose-li:text-surface-300 prose-li:marker:text-primary-400">
-                {block.content}
-              </ReactMarkdown>
-            );
+            return <MathMarkdown key={i}>{block.content}</MathMarkdown>;
         }
       })}
     </div>

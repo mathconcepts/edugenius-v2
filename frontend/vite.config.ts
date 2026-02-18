@@ -18,4 +18,24 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React runtime
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // Animation
+          'motion': ['framer-motion'],
+          // Charts (heavy — isolated)
+          'charts': ['recharts'],
+          // Math rendering (KaTeX — isolated, only loaded for chat)
+          'math': ['katex', 'remark-math', 'rehype-katex'],
+          // Markdown
+          'markdown': ['react-markdown', 'react-syntax-highlighter'],
+        },
+      },
+    },
+    // Raise warning threshold a bit since recharts + katex are legitimately large
+    chunkSizeWarningLimit: 600,
+  },
 });
