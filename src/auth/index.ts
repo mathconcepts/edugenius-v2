@@ -72,3 +72,41 @@ export {
   getConfiguredProviders,
   decodeAppleIdToken
 } from './oauth';
+
+// WebAuthn / Passkeys
+export {
+  configureWebAuthn,
+  setWebAuthnEventBus,
+  generateRegistrationOptions,
+  verifyRegistration,
+  generateAuthenticationOptions,
+  verifyAuthentication,
+  getUserCredentials,
+  renameCredential,
+  deleteCredential,
+  userHasPasskeys,
+  getUserPasskeyCount,
+  webAuthnRoutes,
+  generateChallenge,
+  toBase64URL,
+  fromBase64URL,
+  parseAuthenticatorData,
+  parseClientData,
+  formatAAGUID,
+  getAuthenticatorName,
+  getDeviceType
+} from './webauthn';
+
+export type {
+  PasskeyCredential,
+  RegistrationOptions,
+  AuthenticationOptions,
+  RegistrationResponse,
+  AuthenticationResponse,
+  VerificationResult,
+  WebAuthnConfig,
+  AuthenticatorTransport,
+  AttestationConveyancePreference,
+  UserVerificationRequirement,
+  COSEAlgorithmIdentifier
+} from './webauthn';
