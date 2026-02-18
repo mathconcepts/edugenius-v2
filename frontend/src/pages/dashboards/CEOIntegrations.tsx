@@ -554,6 +554,180 @@ const integrations: IntegrationConfig[] = [
     ],
     fallbackStrategy: 'Internal Oracle analytics only',
     docsUrl: 'https://mixpanel.com/'
+  },
+
+  // Content Verification
+  {
+    id: 'wolfram',
+    name: 'Wolfram Alpha',
+    description: 'Math & science verification - validates all generated solutions',
+    category: 'Content Verification',
+    required: true,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'WOLFRAM_APP_ID',
+        label: 'App ID',
+        type: 'password',
+        placeholder: 'Your Wolfram App ID',
+        required: true,
+        hint: 'Get from Wolfram Developer Portal'
+      }
+    ],
+    fallbackStrategy: 'Uses LLM consensus + SymPy for verification',
+    docsUrl: 'https://developer.wolframalpha.com/'
+  },
+  {
+    id: 'sympy',
+    name: 'SymPy Cloud',
+    description: 'Symbolic math verification using Python SymPy',
+    category: 'Content Verification',
+    required: false,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'SYMPY_ENDPOINT',
+        label: 'Cloud Endpoint',
+        type: 'url',
+        placeholder: 'https://your-sympy-function.run.app',
+        required: true,
+        hint: 'Cloud function endpoint for SymPy'
+      },
+      {
+        key: 'SYMPY_API_KEY',
+        label: 'API Key',
+        type: 'password',
+        placeholder: 'Optional API key',
+        required: false
+      }
+    ],
+    fallbackStrategy: 'Falls back to Wolfram Alpha'
+  },
+
+  // Additional LLM Providers (modular)
+  {
+    id: 'groq',
+    name: 'Groq',
+    description: 'Ultra-fast inference for Llama models',
+    category: 'AI Providers',
+    required: false,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'GROQ_API_KEY',
+        label: 'API Key',
+        type: 'password',
+        placeholder: 'gsk_...',
+        required: true,
+        hint: 'Fast inference provider'
+      }
+    ],
+    fallbackStrategy: 'Alternative to Gemini Flash',
+    docsUrl: 'https://console.groq.com/'
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    description: 'Cost-effective reasoning models (R1, V3)',
+    category: 'AI Providers',
+    required: false,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'DEEPSEEK_API_KEY',
+        label: 'API Key',
+        type: 'password',
+        placeholder: 'Your DeepSeek API key',
+        required: true
+      }
+    ],
+    fallbackStrategy: 'Alternative reasoning model',
+    docsUrl: 'https://platform.deepseek.com/'
+  },
+  {
+    id: 'mistral',
+    name: 'Mistral AI',
+    description: 'European AI provider with code specialization',
+    category: 'AI Providers',
+    required: false,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'MISTRAL_API_KEY',
+        label: 'API Key',
+        type: 'password',
+        placeholder: 'Your Mistral API key',
+        required: true
+      }
+    ],
+    fallbackStrategy: 'Alternative to OpenAI/Anthropic',
+    docsUrl: 'https://console.mistral.ai/'
+  },
+  {
+    id: 'together',
+    name: 'Together AI',
+    description: 'Open-source model hosting (Llama, Qwen, DeepSeek)',
+    category: 'AI Providers',
+    required: false,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'TOGETHER_API_KEY',
+        label: 'API Key',
+        type: 'password',
+        placeholder: 'Your Together API key',
+        required: true
+      }
+    ],
+    fallbackStrategy: 'Alternative open-source provider',
+    docsUrl: 'https://www.together.ai/'
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: 'Unified API for 100+ models from all providers',
+    category: 'AI Providers',
+    required: false,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'OPENROUTER_API_KEY',
+        label: 'API Key',
+        type: 'password',
+        placeholder: 'sk-or-...',
+        required: true
+      },
+      {
+        key: 'OPENROUTER_SITE_URL',
+        label: 'Site URL',
+        type: 'url',
+        placeholder: 'https://edugenius.in',
+        required: false,
+        hint: 'For rankings and rate limits'
+      }
+    ],
+    fallbackStrategy: 'Universal fallback - access all providers',
+    docsUrl: 'https://openrouter.ai/'
+  },
+  {
+    id: 'learnlm',
+    name: 'LearnLM (Educational)',
+    description: 'Google\'s pedagogically-optimized model',
+    category: 'AI Providers',
+    required: false,
+    status: 'inactive',
+    fields: [
+      {
+        key: 'LEARNLM_API_KEY',
+        label: 'API Key (uses Gemini)',
+        type: 'password',
+        placeholder: 'Same as Gemini API key',
+        required: true,
+        hint: 'LearnLM uses Gemini API authentication'
+      }
+    ],
+    fallbackStrategy: 'Specialized for education - falls back to standard models',
+    docsUrl: 'https://ai.google.dev/gemini-api/docs/learnlm'
   }
 ];
 
@@ -786,7 +960,8 @@ const categoryIcons: Record<string, string> = {
   'Authentication': '🔐',
   'Chat Channels': '💬',
   'Vector Store': '🔍',
-  'Analytics': '📊'
+  'Analytics': '📊',
+  'Content Verification': '✅'
 };
 
 // Main component
