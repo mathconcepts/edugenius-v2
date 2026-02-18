@@ -1,0 +1,447 @@
+/**
+ * Exam Insights Page
+ * Best practices, lessons learned, and topper tips
+ */
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  BookOpen, 
+  AlertTriangle, 
+  Trophy, 
+  Clock, 
+  Target,
+  Brain,
+  Lightbulb,
+  Star,
+  ChevronRight,
+  ThumbsUp,
+  Calendar,
+  Users,
+} from 'lucide-react';
+import { clsx } from 'clsx';
+
+// ============================================
+// TYPES
+// ============================================
+
+type ExamType = 'JEE_MAIN' | 'JEE_ADVANCED' | 'NEET' | 'CBSE_10' | 'CBSE_12' | 'CAT' | 'UPSC' | 'GATE';
+
+interface BestPractices {
+  overview: string;
+  keyStrategies: string[];
+  subjectPriorities: { subject: string; priority: string; reason: string }[];
+  commonMistakes: string[];
+  timelineRecommendation: { months: number; phase: string; focus: string }[];
+  scoringTips: string[];
+  lastWeekStrategy: string[];
+  examDayTips: string[];
+}
+
+interface TopperStory {
+  id: string;
+  name: string;
+  rank: number;
+  year: number;
+  score?: number;
+  topTips: string[];
+  turningPoint: string;
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+export default function ExamInsights() {
+  const [selectedExam, setSelectedExam] = useState<ExamType>('JEE_MAIN');
+  const [activeTab, setActiveTab] = useState<'strategies' | 'mistakes' | 'toppers' | 'timeline'>('strategies');
+  const [bestPractices, setBestPractices] = useState<BestPractices | null>(null);
+  const [topperStories, setTopperStories] = useState<TopperStory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [daysToExam, setDaysToExam] = useState(90);
+
+  const exams: { id: ExamType; name: string; icon: string }[] = [
+    { id: 'JEE_MAIN', name: 'JEE Main', icon: '🎯' },
+    { id: 'JEE_ADVANCED', name: 'JEE Advanced', icon: '🏆' },
+    { id: 'NEET', name: 'NEET', icon: '🩺' },
+    { id: 'CBSE_10', name: 'CBSE 10', icon: '📝' },
+    { id: 'CBSE_12', name: 'CBSE 12', icon: '📚' },
+    { id: 'CAT', name: 'CAT', icon: '💼' },
+    { id: 'UPSC', name: 'UPSC', icon: '🏛️' },
+    { id: 'GATE', name: 'GATE', icon: '⚙️' },
+  ];
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [practicesRes, toppersRes] = await Promise.all([
+          fetch(`/api/best-practices/${selectedExam}`),
+          fetch(`/api/exams/${selectedExam}/toppers?limit=3`),
+        ]);
+
+        if (practicesRes.ok) {
+          setBestPractices(await practicesRes.json());
+        }
+        if (toppersRes.ok) {
+          setTopperStories(await toppersRes.json());
+        }
+      } catch (error) {
+        console.error('Failed to fetch insights:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [selectedExam]);
+
+  const getPhaseLabel = () => {
+    if (daysToExam <= 1) return { label: 'Exam Day', color: 'text-red-400', bg: 'bg-red-500/20' };
+    if (daysToExam <= 7) return { label: 'Last Week', color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
+    if (daysToExam <= 30) return { label: 'Revision', color: 'text-blue-400', bg: 'bg-blue-500/20' };
+    return { label: 'Preparation', color: 'text-green-400', bg: 'bg-green-500/20' };
+  };
+
+  const phase = getPhaseLabel();
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-3">
+            <BookOpen className="w-7 h-7 text-primary-400" />
+            Exam Insights & Best Practices
+          </h1>
+          <p className="text-surface-400 mt-1">
+            Learn from toppers, avoid common mistakes, ace your exam
+          </p>
+        </div>
+
+        {/* Days to Exam Selector */}
+        <div className={clsx('px-4 py-2 rounded-lg flex items-center gap-3', phase.bg)}>
+          <Calendar className={clsx('w-5 h-5', phase.color)} />
+          <div>
+            <div className="text-sm text-surface-400">Days to Exam</div>
+            <input
+              type="number"
+              value={daysToExam}
+              onChange={(e) => setDaysToExam(Math.max(0, parseInt(e.target.value) || 0))}
+              className="w-16 bg-transparent text-white font-bold text-lg focus:outline-none"
+            />
+          </div>
+          <span className={clsx('text-sm font-medium px-2 py-1 rounded', phase.bg, phase.color)}>
+            {phase.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Exam Selector */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {exams.map((exam) => (
+          <button
+            key={exam.id}
+            onClick={() => setSelectedExam(exam.id)}
+            className={clsx(
+              'px-4 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap transition-all',
+              selectedExam === exam.id
+                ? 'bg-primary-500 text-white'
+                : 'bg-surface-800 text-surface-300 hover:bg-surface-700'
+            )}
+          >
+            <span>{exam.icon}</span>
+            {exam.name}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+        </div>
+      ) : bestPractices ? (
+        <>
+          {/* Overview Card */}
+          <div className="card bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/20">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-primary-500/20 rounded-full flex items-center justify-center">
+                <Brain className="w-6 h-6 text-primary-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">Overview</h3>
+                <p className="text-surface-300">{bestPractices.overview}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 border-b border-surface-700">
+            {[
+              { id: 'strategies', label: 'Key Strategies', icon: Target },
+              { id: 'mistakes', label: 'Common Mistakes', icon: AlertTriangle },
+              { id: 'toppers', label: 'Topper Tips', icon: Trophy },
+              { id: 'timeline', label: 'Timeline', icon: Clock },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={clsx(
+                  'px-4 py-3 flex items-center gap-2 border-b-2 transition-all',
+                  activeTab === tab.id
+                    ? 'border-primary-500 text-white'
+                    : 'border-transparent text-surface-400 hover:text-white'
+                )}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <AnimatePresence mode="wait">
+            {activeTab === 'strategies' && (
+              <motion.div
+                key="strategies"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                {/* Key Strategies */}
+                <div className="card">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary-400" />
+                    Key Strategies
+                  </h3>
+                  <div className="space-y-3">
+                    {bestPractices.keyStrategies.map((strategy, i) => (
+                      <div key={i} className="flex gap-3 items-start">
+                        <span className="w-6 h-6 bg-primary-500/20 rounded-full flex items-center justify-center text-primary-400 text-sm font-bold">
+                          {i + 1}
+                        </span>
+                        <p className="text-surface-300">{strategy}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scoring Tips */}
+                <div className="card">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-yellow-400" />
+                    Scoring Tips
+                  </h3>
+                  <div className="space-y-3">
+                    {bestPractices.scoringTips.map((tip, i) => (
+                      <div key={i} className="flex gap-3 items-start">
+                        <Lightbulb className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-surface-300">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subject Priorities */}
+                <div className="card md:col-span-2">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-green-400" />
+                    Subject Priorities
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {bestPractices.subjectPriorities.map((subj, i) => (
+                      <div
+                        key={i}
+                        className={clsx(
+                          'p-4 rounded-lg border',
+                          subj.priority === 'high' && 'bg-green-500/10 border-green-500/30',
+                          subj.priority === 'medium' && 'bg-yellow-500/10 border-yellow-500/30',
+                          subj.priority === 'low' && 'bg-surface-800 border-surface-700'
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-white">{subj.subject}</span>
+                          <span className={clsx(
+                            'text-xs px-2 py-1 rounded',
+                            subj.priority === 'high' && 'bg-green-500/20 text-green-400',
+                            subj.priority === 'medium' && 'bg-yellow-500/20 text-yellow-400',
+                            subj.priority === 'low' && 'bg-surface-700 text-surface-400'
+                          )}>
+                            {subj.priority}
+                          </span>
+                        </div>
+                        <p className="text-sm text-surface-400">{subj.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'mistakes' && (
+              <motion.div
+                key="mistakes"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-4"
+              >
+                <div className="card bg-red-500/5 border border-red-500/20">
+                  <h3 className="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Common Mistakes to Avoid
+                  </h3>
+                  <div className="space-y-4">
+                    {bestPractices.commonMistakes.map((mistake, i) => (
+                      <div key={i} className="flex gap-4 items-start p-3 bg-surface-800 rounded-lg">
+                        <span className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center text-red-400 font-bold flex-shrink-0">
+                          ✗
+                        </span>
+                        <div>
+                          <p className="text-surface-200">{mistake}</p>
+                          <button className="text-sm text-primary-400 hover:underline mt-1">
+                            Learn how to avoid this →
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Phase-specific tips */}
+                {daysToExam <= 7 && (
+                  <div className="card bg-yellow-500/5 border border-yellow-500/20">
+                    <h3 className="text-lg font-semibold text-yellow-400 mb-4 flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Last Week Strategy
+                    </h3>
+                    <div className="space-y-3">
+                      {bestPractices.lastWeekStrategy.map((tip, i) => (
+                        <div key={i} className="flex gap-3 items-center">
+                          <ChevronRight className="w-4 h-4 text-yellow-400" />
+                          <span className="text-surface-300">{tip}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {daysToExam <= 1 && (
+                  <div className="card bg-purple-500/5 border border-purple-500/20">
+                    <h3 className="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+                      <Star className="w-5 h-5" />
+                      Exam Day Tips
+                    </h3>
+                    <div className="space-y-3">
+                      {bestPractices.examDayTips.map((tip, i) => (
+                        <div key={i} className="flex gap-3 items-center">
+                          <ChevronRight className="w-4 h-4 text-purple-400" />
+                          <span className="text-surface-300">{tip}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'toppers' && (
+              <motion.div
+                key="toppers"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-4"
+              >
+                {topperStories.length > 0 ? (
+                  topperStories.map((topper) => (
+                    <div key={topper.id} className="card">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                          #{topper.rank}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-white">{topper.name}</h3>
+                            <span className="text-sm text-surface-400">
+                              Rank {topper.rank} • {topper.year}
+                              {topper.score && ` • ${topper.score} marks`}
+                            </span>
+                          </div>
+                          <p className="text-surface-400 mt-2 italic">"{topper.turningPoint}"</p>
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-surface-300 mb-2">Top Tips:</h4>
+                            <div className="space-y-2">
+                              {topper.topTips.slice(0, 3).map((tip, i) => (
+                                <div key={i} className="flex gap-2 items-start">
+                                  <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                                  <span className="text-surface-300 text-sm">{tip}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="card text-center py-8">
+                    <Users className="w-12 h-12 text-surface-600 mx-auto mb-4" />
+                    <p className="text-surface-400">Topper stories coming soon!</p>
+                    <p className="text-surface-500 text-sm mt-1">We're collecting insights from top rankers</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'timeline' && (
+              <motion.div
+                key="timeline"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <div className="card">
+                  <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-primary-400" />
+                    Recommended Preparation Timeline
+                  </h3>
+                  <div className="relative">
+                    {/* Timeline line */}
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-surface-700" />
+                    
+                    <div className="space-y-6">
+                      {bestPractices.timelineRecommendation.map((phase, i) => (
+                        <div key={i} className="relative flex gap-6 items-start">
+                          <div className={clsx(
+                            'w-8 h-8 rounded-full flex items-center justify-center z-10',
+                            i === 0 ? 'bg-primary-500' : 'bg-surface-700'
+                          )}>
+                            <span className="text-white text-sm font-bold">{i + 1}</span>
+                          </div>
+                          <div className="flex-1 pb-6">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="font-medium text-white">{phase.phase}</h4>
+                              <span className="text-sm px-2 py-0.5 rounded bg-surface-800 text-surface-400">
+                                {phase.months} months before
+                              </span>
+                            </div>
+                            <p className="text-surface-400">{phase.focus}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      ) : (
+        <div className="card text-center py-12">
+          <p className="text-surface-400">Failed to load insights. Please try again.</p>
+        </div>
+      )}
+    </div>
+  );
+}

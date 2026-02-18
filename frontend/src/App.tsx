@@ -27,6 +27,9 @@ const WebsiteExamPage = lazy(() => import('@/pages/website/ExamPage'));
 // Lazy load onboarding
 const Onboarding = lazy(() => import('@/pages/onboarding'));
 
+// Lazy load exam insights
+const ExamInsights = lazy(() => import('@/pages/ExamInsights'));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -99,6 +102,7 @@ export default function App() {
           <Route path="learn/:subjectId" element={<Learn />} />
           <Route path="notebook" element={<Notebook />} />
           <Route path="progress" element={<Progress />} />
+          <Route path="insights" element={<ExamInsights />} />
           
           {/* Teacher routes */}
           <Route path="students" element={<Students />} />
