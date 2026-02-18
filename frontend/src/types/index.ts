@@ -81,16 +81,57 @@ export interface Lesson {
 }
 
 // Chat/Tutor
+// ─── Multimodal Types ──────────────────────────────────────────────────────────
+
+export type InputModality = 'text' | 'image' | 'audio' | 'file' | 'drawing';
+export type OutputModality = 'text' | 'image_description' | 'equation' | 'diagram' | 'card' | 'audio_url' | 'table' | 'steps';
+
+export interface MediaAttachment {
+  id: string;
+  type: InputModality;
+  name: string;
+  url: string;          // object URL or base64 data URL
+  mimeType: string;
+  size?: number;
+  transcript?: string;  // for audio: STT result
+  analysis?: string;    // for images: AI description
+  thumbnail?: string;   // for images: preview
+}
+
+export interface OutputBlock {
+  type: OutputModality;
+  content: string;
+  label?: string;
+  items?: string[];     // for steps/lists
+  rows?: string[][];    // for tables
+  headers?: string[];   // for tables
+}
+
+export interface IntentResult {
+  intent: string;        // e.g. 'solve_math', 'explain_concept', 'generate_content', 'analyze_image'
+  confidence: number;    // 0–1
+  targetAgent: AgentType;
+  suggestedMode?: string; // learning mode suggestion
+  reasoning?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
   agent?: AgentType;
+
+  // Multimodal
+  attachments?: MediaAttachment[];
+  outputBlocks?: OutputBlock[];
+  intent?: IntentResult;
+
   metadata?: {
     thinking?: string;
     sources?: string[];
     confidence?: number;
+    processingMs?: number;
   };
 }
 
