@@ -1,505 +1,85 @@
 /**
- * Enhanced Smart Notebook - Comprehensive Learning Hub
- * 
- * Features:
- * - All practice problems with timestamps and sources
- * - Chat interactions from all channels (WhatsApp, Telegram, Web)
- * - Topic mastery tracking with revision scheduling
- * - Learning plans with daily targets
- * - Personal notes with AI processing
- * - Interactive resources integration
- * - Analytics and insights
+ * Smart Notebook - AI-powered equation writing and solving
+ * Integrates with Sage agent for explanations
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { useNotebookStore } from '@/stores/notebookStore';
-import type { 
-  PracticeProblem, 
-  TopicProgress, 
-  NotebookEntry,
-  ProblemStatus,
-  TopicStatus,
-  ProblemDifficulty,
-} from '@/types/notebook';
 
-// ============================================
-// TAB NAVIGATION
-// ============================================
+interface NotebookEntry {
+  id: string;
+  type: 'equation' | 'text' | 'drawing' | 'ai-response';
+  content: string;
+  latex?: string;
+  timestamp: number;
+  aiProcessed?: boolean;
+}
 
-type TabType = 'all' | 'problems' | 'topics' | 'notes' | 'plans' | 'revision' | 'chat' | 'analytics';
-
-const tabs: { id: TabType; label: string; icon: string }[] = [
-  { id: 'all', label: 'Overview', icon: '📊' },
-  { id: 'problems', label: 'Problems', icon: '📝' },
-  { id: 'topics', label: 'Topic Mastery', icon: '🎯' },
-  { id: 'notes', label: 'Notes', icon: '📓' },
-  { id: 'plans', label: 'Learning Plan', icon: '📅' },
-  { id: 'revision', label: 'Revision', icon: '🔄' },
-  { id: 'chat', label: 'Chat History', icon: '💬' },
-  { id: 'analytics', label: 'Insights', icon: '📈' },
-];
-
-// ============================================
-// MAIN NOTEBOOK COMPONENT
-// ============================================
+interface AIExplanation {
+  steps: string[];
+  hints: string[];
+  relatedTopics: string[];
+}
 
 export default function Notebook() {
-  const [activeTab, setActiveTab] = useState<TabType>('all');
-  const store = useNotebookStore();
-
-  return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
-      {/* Tab Navigation */}
-      <div className="flex items-center gap-2 p-4 border-b border-surface-700 overflow-x-auto">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
-              activeTab === tab.id
-                ? 'bg-primary-600 text-white'
-                : 'bg-surface-800 text-surface-300 hover:bg-surface-700'
-            }`}
-          >
-            <span>{tab.icon}</span>
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div className="flex-1 overflow-hidden">
-        {activeTab === 'all' && <OverviewTab />}
-        {activeTab === 'problems' && <ProblemsTab />}
-        {activeTab === 'topics' && <TopicMasteryTab />}
-        {activeTab === 'notes' && <NotesTab />}
-        {activeTab === 'plans' && <LearningPlanTab />}
-        {activeTab === 'revision' && <RevisionTab />}
-        {activeTab === 'chat' && <ChatHistoryTab />}
-        {activeTab === 'analytics' && <AnalyticsTab />}
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// OVERVIEW TAB
-// ============================================
-
-function OverviewTab() {
-  const store = useNotebookStore();
-  const analytics = store.getAnalytics();
-  const pendingReviews = store.getPendingReviews();
-  const weakTopics = store.getWeakTopics();
-  const todaySchedule = store.getTodaySchedule();
-
-  return (
-    <div className="h-full overflow-y-auto p-6 space-y-6">
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
-          icon="📝"
-          label="Problems Solved"
-          value={analytics.totalSolved}
-          subtext={`of ${analytics.totalProblems} total`}
-          color="primary"
-        />
-        <StatCard
-          icon="🎯"
-          label="Accuracy"
-          value={`${analytics.overallAccuracy.toFixed(1)}%`}
-          subtext="overall performance"
-          color="green"
-        />
-        <StatCard
-          icon="⏱️"
-          label="Time Spent"
-          value={`${Math.round(analytics.totalTimeMinutes / 60)}h`}
-          subtext={`${analytics.totalTimeMinutes} minutes`}
-          color="blue"
-        />
-        <StatCard
-          icon="🔥"
-          label="Current Streak"
-          value={analytics.currentStreak}
-          subtext="days"
-          color="orange"
-        />
-      </div>
-
-      {/* Today's Schedule */}
-      <div className="card p-4">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span>📅</span> Today's Schedule
-        </h3>
-        {todaySchedule.length > 0 ? (
-          <div className="space-y-3">
-            {todaySchedule.map((topic) => (
-              <div
-                key={topic.id}
-                className={`p-3 rounded-lg border ${
-                  topic.status === 'completed'
-                    ? 'bg-green-900/20 border-green-500/30'
-                    : topic.status === 'in_progress'
-                    ? 'bg-primary-900/20 border-primary-500/30'
-                    : 'bg-surface-800 border-surface-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-white">{topic.topicName}</p>
-                    <p className="text-sm text-surface-400">{topic.subject} • {topic.estimatedMinutes} min</p>
-                  </div>
-                  <StatusBadge status={topic.status} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon="📅"
-            title="No schedule for today"
-            description="Create a learning plan to get personalized daily schedules"
-          />
-        )}
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Pending Reviews */}
-        <div className="card p-4">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <span>🔄</span> Due for Review ({pendingReviews.length})
-          </h3>
-          {pendingReviews.length > 0 ? (
-            <div className="space-y-2">
-              {pendingReviews.slice(0, 5).map((problem) => (
-                <ProblemMiniCard key={problem.id} problem={problem} />
-              ))}
-              {pendingReviews.length > 5 && (
-                <button className="text-primary-400 text-sm hover:underline">
-                  View all {pendingReviews.length} reviews →
-                </button>
-              )}
-            </div>
-          ) : (
-            <EmptyState
-              icon="✅"
-              title="All caught up!"
-              description="No problems due for review right now"
-            />
-          )}
-        </div>
-
-        {/* Weak Areas */}
-        <div className="card p-4">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <span>⚠️</span> Focus Areas ({weakTopics.length})
-          </h3>
-          {weakTopics.length > 0 ? (
-            <div className="space-y-3">
-              {weakTopics.slice(0, 5).map((topic) => (
-                <TopicMiniCard key={topic.id} topic={topic} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon="💪"
-              title="Great progress!"
-              description="You're performing well across all topics"
-            />
-          )}
-        </div>
-      </div>
-
-      {/* AI Recommendations */}
-      <div className="card p-4 bg-gradient-to-r from-primary-900/30 to-purple-900/30 border-primary-500/30">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span>🤖</span> Sage's Recommendations
-        </h3>
-        <div className="space-y-2">
-          {analytics.nextSteps.map((step, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 bg-surface-900/50 rounded-lg">
-              <span className="text-primary-400 font-bold">{i + 1}.</span>
-              <p className="text-surface-200">{step}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// PROBLEMS TAB
-// ============================================
-
-function ProblemsTab() {
-  const store = useNotebookStore();
-  const [filterSubject, setFilterSubject] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
-  const [filterSource, setFilterSource] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'timestamp' | 'difficulty' | 'topic'>('timestamp');
-
-  const problems = store.problems;
-  const subjects = [...new Set(problems.map((p) => p.subject))];
-
-  // Apply filters
-  let filtered = [...problems];
-  if (filterSubject !== 'all') filtered = filtered.filter((p) => p.subject === filterSubject);
-  if (filterStatus !== 'all') filtered = filtered.filter((p) => p.status === filterStatus);
-  if (filterDifficulty !== 'all') filtered = filtered.filter((p) => p.difficulty === filterDifficulty);
-  if (filterSource !== 'all') filtered = filtered.filter((p) => p.source === filterSource);
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(
-      (p) => p.question.toLowerCase().includes(q) || p.topic.toLowerCase().includes(q)
-    );
-  }
-
-  // Sort
-  filtered.sort((a, b) => {
-    if (sortBy === 'timestamp') return new Date(b.lastAttemptedAt).getTime() - new Date(a.lastAttemptedAt).getTime();
-    if (sortBy === 'difficulty') {
-      const order = { easy: 1, medium: 2, hard: 3, olympiad: 4 };
-      return order[a.difficulty] - order[b.difficulty];
-    }
-    return a.topic.localeCompare(b.topic);
-  });
-
-  return (
-    <div className="h-full flex flex-col">
-      {/* Filters */}
-      <div className="p-4 border-b border-surface-700 flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Search problems..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 min-w-[200px] bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-white placeholder-surface-400 focus:outline-none focus:border-primary-500"
-        />
-        <select
-          value={filterSubject}
-          onChange={(e) => setFilterSubject(e.target.value)}
-          className="bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-white"
-        >
-          <option value="all">All Subjects</option>
-          {subjects.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-white"
-        >
-          <option value="all">All Status</option>
-          <option value="solved">✅ Solved</option>
-          <option value="incorrect">❌ Incorrect</option>
-          <option value="attempted">🔄 Attempted</option>
-          <option value="needs_review">📌 Needs Review</option>
-          <option value="skipped">⏭️ Skipped</option>
-        </select>
-        <select
-          value={filterDifficulty}
-          onChange={(e) => setFilterDifficulty(e.target.value)}
-          className="bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-white"
-        >
-          <option value="all">All Difficulty</option>
-          <option value="easy">🟢 Easy</option>
-          <option value="medium">🟡 Medium</option>
-          <option value="hard">🔴 Hard</option>
-          <option value="olympiad">💎 Olympiad</option>
-        </select>
-        <select
-          value={filterSource}
-          onChange={(e) => setFilterSource(e.target.value)}
-          className="bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-white"
-        >
-          <option value="all">All Sources</option>
-          <option value="ai_tutor">🤖 AI Tutor</option>
-          <option value="chatbot">💬 Chatbot</option>
-          <option value="practice">📚 Practice</option>
-          <option value="assessment">📋 Assessment</option>
-          <option value="revision">🔄 Revision</option>
-        </select>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          className="bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-white"
-        >
-          <option value="timestamp">Sort: Recent</option>
-          <option value="difficulty">Sort: Difficulty</option>
-          <option value="topic">Sort: Topic</option>
-        </select>
-      </div>
-
-      {/* Problem List */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {filtered.length > 0 ? (
-          <div className="space-y-3">
-            {filtered.map((problem) => (
-              <ProblemCard key={problem.id} problem={problem} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon="📝"
-            title="No problems found"
-            description={problems.length === 0 
-              ? "Start practicing to see your problems here" 
-              : "Try adjusting your filters"}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// TOPIC MASTERY TAB
-// ============================================
-
-function TopicMasteryTab() {
-  const store = useNotebookStore();
-  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
-
-  const topicProgress = store.topicProgress;
-  const subjects = [...new Set(topicProgress.map((t) => t.subject))];
-
-  const getTopicsBySubject = (subject: string) => 
-    topicProgress.filter((t) => t.subject === subject);
-
-  return (
-    <div className="h-full overflow-y-auto p-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <MasteryStatCard
-          icon="🎯"
-          label="Mastered"
-          count={topicProgress.filter((t) => t.status === 'mastered').length}
-          color="green"
-        />
-        <MasteryStatCard
-          icon="📖"
-          label="In Progress"
-          count={topicProgress.filter((t) => t.status === 'in_progress').length}
-          color="blue"
-        />
-        <MasteryStatCard
-          icon="⚠️"
-          label="Needs Practice"
-          count={topicProgress.filter((t) => t.status === 'needs_practice').length}
-          color="yellow"
-        />
-        <MasteryStatCard
-          icon="🔄"
-          label="Pending Revision"
-          count={topicProgress.filter((t) => t.status === 'pending_revision').length}
-          color="purple"
-        />
-        <MasteryStatCard
-          icon="⬜"
-          label="Not Started"
-          count={topicProgress.filter((t) => t.status === 'not_started').length}
-          color="gray"
-        />
-      </div>
-
-      {/* Topic Tree */}
-      {subjects.length > 0 ? (
-        <div className="space-y-4">
-          {subjects.map((subject) => (
-            <div key={subject} className="card overflow-hidden">
-              <button
-                onClick={() => setExpandedSubject(expandedSubject === subject ? null : subject)}
-                className="w-full p-4 flex items-center justify-between hover:bg-surface-800/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{getSubjectEmoji(subject)}</span>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-white">{subject}</h3>
-                    <p className="text-sm text-surface-400">
-                      {getTopicsBySubject(subject).length} topics
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <SubjectProgressBar topics={getTopicsBySubject(subject)} />
-                  <span className={`transform transition-transform ${expandedSubject === subject ? 'rotate-180' : ''}`}>
-                    ▼
-                  </span>
-                </div>
-              </button>
-
-              {expandedSubject === subject && (
-                <div className="border-t border-surface-700 p-4 space-y-3">
-                  {getTopicsBySubject(subject).map((topic) => (
-                    <TopicProgressCard key={topic.id} topic={topic} />
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon="🎯"
-          title="No topic data yet"
-          description="Practice problems to see your topic mastery tracking"
-        />
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// NOTES TAB
-// ============================================
-
-function NotesTab() {
-  const store = useNotebookStore();
-  const [inputMode, setInputMode] = useState<'equation' | 'text' | 'draw'>('equation');
+  const [entries, setEntries] = useState<NotebookEntry[]>([]);
   const [currentInput, setCurrentInput] = useState('');
+  const [inputMode, setInputMode] = useState<'text' | 'equation' | 'draw'>('equation');
+  const [aiThinking, setAiThinking] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<AIExplanation | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [aiThinking, setAiThinking] = useState(false);
 
   const handleSubmit = async () => {
     if (!currentInput.trim()) return;
 
-    store.addEntry({
+    const newEntry: NotebookEntry = {
+      id: Date.now().toString(),
       type: inputMode === 'equation' ? 'equation' : 'text',
       content: currentInput,
-      tags: [],
-    });
+      timestamp: Date.now(),
+    };
 
-    // Simulate AI processing for equations
+    setEntries([...entries, newEntry]);
+    setCurrentInput('');
+
+    // Simulate AI processing
     if (inputMode === 'equation') {
       setAiThinking(true);
       setTimeout(() => {
-        store.addEntry({
-          type: 'ai_response',
+        const aiResponse: NotebookEntry = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai-response',
           content: generateAIResponse(currentInput),
+          timestamp: Date.now(),
           aiProcessed: true,
-          tags: [],
+        };
+        setEntries(prev => [...prev, aiResponse]);
+        setAiExplanation({
+          steps: [
+            'Step 1: Identify the type of equation',
+            'Step 2: Apply the appropriate formula',
+            'Step 3: Simplify and solve',
+          ],
+          hints: [
+            'Remember to check for domain restrictions',
+            'This is a common JEE pattern',
+          ],
+          relatedTopics: ['Quadratic Equations', 'Polynomial Functions'],
         });
         setAiThinking(false);
       }, 1500);
     }
-
-    setCurrentInput('');
   };
 
   const generateAIResponse = (input: string): string => {
+    // Mock AI response
     if (input.includes('x^2') || input.includes('x²')) {
-      return `**Solution:**\n\nThis is a quadratic equation. Using the quadratic formula:\n\nx = (-b ± √(b²-4ac)) / 2a\n\n**Interactive Resource:** Open the Quadratic Explorer to visualize this!`;
+      return `**Solution:**\n\nThis is a quadratic equation. Using the quadratic formula:\n\nx = (-b ± √(b²-4ac)) / 2a\n\nThe solutions are x = 2 and x = -3`;
     }
     if (input.includes('integrate') || input.includes('∫')) {
-      return `**Integration:**\n\nUsing integration by parts:\n\n∫u dv = uv - ∫v du\n\n**Interactive Resource:** Try the Definite Integral Visualizer!`;
+      return `**Integration:**\n\nUsing integration by parts:\n\n∫u dv = uv - ∫v du\n\nResult: x²/2 + C`;
     }
-    return `**Analysis:**\n\nI'll help you solve this step by step.\n\n**Tip:** Check the Interactive Resources tab for visualizations!`;
+    return `**Analysis:**\n\nI'll help you solve this step by step. This expression involves:\n- Mathematical operations\n- Variable manipulation\n\nLet me break it down...`;
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -525,6 +105,10 @@ function NotesTab() {
     ctx.stroke();
   };
 
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -533,9 +117,27 @@ function NotesTab() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  const recognizeDrawing = async () => {
+    setAiThinking(true);
+    // Simulate handwriting recognition
+    setTimeout(() => {
+      const recognized: NotebookEntry = {
+        id: Date.now().toString(),
+        type: 'equation',
+        content: '∫ x² dx = x³/3 + C',
+        latex: '\\int x^2 dx = \\frac{x^3}{3} + C',
+        timestamp: Date.now(),
+        aiProcessed: true,
+      };
+      setEntries(prev => [...prev, recognized]);
+      clearCanvas();
+      setAiThinking(false);
+    }, 2000);
+  };
+
   return (
-    <div className="h-full flex gap-6 p-6">
-      {/* Main Notes Area */}
+    <div className="h-[calc(100vh-8rem)] flex gap-6">
+      {/* Main Notebook Area */}
       <div className="flex-1 flex flex-col">
         <div className="card flex-1 flex flex-col overflow-hidden">
           {/* Toolbar */}
@@ -564,28 +166,56 @@ function NotesTab() {
               <button className="btn btn-sm bg-surface-700 hover:bg-surface-600">
                 📥 Export PDF
               </button>
+              <button className="btn btn-sm bg-surface-700 hover:bg-surface-600">
+                🔗 Share
+              </button>
             </div>
           </div>
 
-          {/* Notes Content */}
+          {/* Notebook Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-900/50">
-            {store.entries.length === 0 && (
-              <EmptyState
-                icon="📓"
-                title="Start writing"
-                description="Write equations, notes, or draw diagrams. Sage AI will help!"
-              />
+            {entries.length === 0 && (
+              <div className="text-center py-12 text-surface-400">
+                <span className="text-4xl mb-4 block">📓</span>
+                <p>Start writing equations or notes.</p>
+                <p className="text-sm mt-2">Sage AI will help you solve and understand.</p>
+              </div>
             )}
 
-            {store.entries.map((entry) => (
-              <NotebookEntryCard key={entry.id} entry={entry} />
+            {entries.map(entry => (
+              <div
+                key={entry.id}
+                className={`p-4 rounded-xl ${
+                  entry.type === 'ai-response'
+                    ? 'bg-primary-900/30 border border-primary-500/30'
+                    : 'bg-surface-800'
+                }`}
+              >
+                {entry.type === 'ai-response' && (
+                  <div className="flex items-center gap-2 mb-2 text-primary-400 text-sm">
+                    <span>🤖</span>
+                    <span>Sage AI</span>
+                  </div>
+                )}
+                {entry.type === 'equation' && !entry.aiProcessed && (
+                  <div className="font-mono text-lg text-white">{entry.content}</div>
+                )}
+                {entry.type === 'text' && (
+                  <div className="text-surface-200">{entry.content}</div>
+                )}
+                {(entry.type === 'ai-response' || entry.aiProcessed) && (
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans">{entry.content}</pre>
+                  </div>
+                )}
+              </div>
             ))}
 
             {aiThinking && (
               <div className="p-4 rounded-xl bg-primary-900/30 border border-primary-500/30">
                 <div className="flex items-center gap-2 text-primary-400">
                   <span className="animate-spin">⚡</span>
-                  <span>Sage AI is analyzing...</span>
+                  <span>Sage AI is thinking...</span>
                 </div>
               </div>
             )}
@@ -602,14 +232,14 @@ function NotesTab() {
                   className="w-full bg-surface-900 rounded-xl border border-surface-700 cursor-crosshair"
                   onMouseDown={startDrawing}
                   onMouseMove={draw}
-                  onMouseUp={() => setIsDrawing(false)}
-                  onMouseLeave={() => setIsDrawing(false)}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
                 />
                 <div className="flex justify-between">
                   <button onClick={clearCanvas} className="btn btn-sm bg-surface-700">
                     🗑️ Clear
                   </button>
-                  <button className="btn btn-sm btn-primary">
+                  <button onClick={recognizeDrawing} className="btn btn-sm btn-primary">
                     🔍 Recognize & Solve
                   </button>
                 </div>
@@ -633,107 +263,63 @@ function NotesTab() {
         </div>
       </div>
 
-      {/* Interactive Resources Panel */}
-      <InteractiveResourcesPanel />
-    </div>
-  );
-}
-
-// ============================================
-// LEARNING PLAN TAB
-// ============================================
-
-function LearningPlanTab() {
-  const store = useNotebookStore();
-  const activePlan = store.activeLearningPlan;
-  const todaySchedule = store.getTodaySchedule();
-
-  return (
-    <div className="h-full overflow-y-auto p-6">
-      {activePlan ? (
-        <div className="space-y-6">
-          {/* Plan Overview */}
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-white">{activePlan.name}</h2>
-                <p className="text-surface-400">
-                  {new Date(activePlan.startDate).toLocaleDateString()} - {new Date(activePlan.endDate).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-primary-400">{activePlan.progressPercent.toFixed(0)}%</p>
-                <p className="text-sm text-surface-400">Complete</p>
-              </div>
-            </div>
-            <div className="w-full bg-surface-700 rounded-full h-3">
-              <div
-                className="bg-gradient-to-r from-primary-600 to-purple-600 h-3 rounded-full transition-all"
-                style={{ width: `${activePlan.progressPercent}%` }}
-              />
-            </div>
-            <div className="mt-4 flex gap-4 text-sm">
-              <span className="text-surface-400">
-                🎯 Daily target: <span className="text-white">{activePlan.dailyTargetMinutes} min</span>
-              </span>
-              <span className="text-surface-400">
-                🔥 Streak: <span className="text-orange-400">{activePlan.streakDays} days</span>
-              </span>
-              <span className="text-surface-400">
-                📅 Days left: <span className="text-white">{activePlan.totalDays - activePlan.daysCompleted}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Today's Schedule */}
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">📅 Today's Topics</h3>
-            {todaySchedule.length > 0 ? (
-              <div className="space-y-3">
-                {todaySchedule.map((topic) => (
-                  <ScheduledTopicCard key={topic.id} topic={topic} />
+      {/* AI Assistant Panel */}
+      <div className="w-80 card flex flex-col">
+        <div className="p-4 border-b border-surface-700">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <span>🤖</span> Sage Assistant
+          </h3>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {aiExplanation ? (
+            <>
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-primary-400">Step-by-Step</h4>
+                {aiExplanation.steps.map((step, i) => (
+                  <div key={i} className="flex gap-2 text-sm text-surface-300">
+                    <span className="text-primary-400">{i + 1}.</span>
+                    <span>{step}</span>
+                  </div>
                 ))}
               </div>
-            ) : (
-              <EmptyState
-                icon="✅"
-                title="All done for today!"
-                description="Great job completing your daily targets"
-              />
-            )}
-          </div>
 
-          {/* Goals */}
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">🎯 Goals</h3>
-            <div className="space-y-4">
-              {activePlan.goals.map((goal) => (
-                <GoalCard key={goal.id} goal={goal} />
-              ))}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-yellow-400">💡 Hints</h4>
+                {aiExplanation.hints.map((hint, i) => (
+                  <div key={i} className="text-sm text-surface-300 bg-yellow-900/20 p-2 rounded-lg">
+                    {hint}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-green-400">📚 Related Topics</h4>
+                <div className="flex flex-wrap gap-2">
+                  {aiExplanation.relatedTopics.map((topic, i) => (
+                    <span key={i} className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full">
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-surface-400">
+              <span className="text-3xl mb-3 block">✨</span>
+              <p className="text-sm">Write an equation and I'll help you solve it step by step.</p>
             </div>
-          </div>
+          )}
         </div>
-      ) : (
-        <div className="h-full flex items-center justify-center">
-          <div className="text-center">
-            <span className="text-6xl mb-4 block">📅</span>
-            <h2 className="text-xl font-bold text-white mb-2">No Active Learning Plan</h2>
-            <p className="text-surface-400 mb-6">Create a personalized learning plan to track your progress</p>
-            <button className="btn btn-primary">
-              ✨ Create AI-Powered Plan
-            </button>
-          </div>
+
+        <div className="p-4 border-t border-surface-700 space-y-2">
+          <button className="btn btn-sm w-full bg-surface-700 hover:bg-surface-600">
+            📖 Show Similar Problems
+          </button>
+          <button className="btn btn-sm w-full bg-surface-700 hover:bg-surface-600">
+            🎥 Watch Video Explanation
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
-
-// ============================================
-// REVISION TAB
-// ============================================
-
-function RevisionTab() {
-  const store = useNotebookStore();
-  const pendingReviews = store.getPendingReviews();
-  const activeSession = store.activeRevisionSession;
