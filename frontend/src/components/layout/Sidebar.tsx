@@ -19,6 +19,7 @@ import {
   BookMarked,
   Plug,
   Target,
+  PenTool,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -29,6 +30,7 @@ const roleNavItems = {
     { to: '/agents', icon: Bot, label: 'Agents' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
+    { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/events', icon: Zap, label: 'Events' },
     { to: '/integrations', icon: Plug, label: 'Integrations' },
@@ -38,6 +40,7 @@ const roleNavItems = {
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/content', icon: FileText, label: 'Content' },
+    { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/analytics', icon: BarChart3, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],

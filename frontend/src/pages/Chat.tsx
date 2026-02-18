@@ -14,11 +14,14 @@ import {
   Check,
   RefreshCw,
   ChevronDown,
+  Settings2,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useChatStore } from '@/stores/chatStore';
 import { useAppStore } from '@/stores/appStore';
 import type { AgentType, Message } from '@/types';
+import type { LearningMode } from '@/types/personalization';
+import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { clsx } from 'clsx';
 
 const agentOptions: { id: AgentType; name: string; emoji: string; description: string }[] = [
@@ -147,6 +150,8 @@ export function Chat() {
   const [selectedAgent, setSelectedAgent] = useState<AgentType>(defaultAgent);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [learningMode, setLearningMode] = useState<LearningMode>('deep_learning');
+  const [showModeSelector, setShowModeSelector] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -322,6 +327,45 @@ export function Chat() {
               )}
             </AnimatePresence>
           </div>
+
+          {/* Learning Mode Toggle - only for Sage */}
+          {selectedAgent === 'sage' && (
+            <div className="relative">
+              <button 
+                onClick={() => setShowModeSelector(!showModeSelector)}
+                className="flex items-center gap-2 px-3 py-2 bg-surface-800 hover:bg-surface-700 rounded-lg transition-colors"
+              >
+                <Settings2 className="w-4 h-4 text-surface-400" />
+                <span className="text-sm text-surface-300">Mode</span>
+              </button>
+              
+              <AnimatePresence>
+                {showModeSelector && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowModeSelector(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute top-full right-0 mt-2 w-80 glass rounded-xl shadow-xl z-50 p-4"
+                    >
+                      <LearningModeSelector
+                        currentMode={learningMode}
+                        onModeChange={(mode) => {
+                          setLearningMode(mode);
+                          setShowModeSelector(false);
+                        }}
+                        compact={false}
+                      />
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           <button className="p-2 hover:bg-surface-800 rounded-lg transition-colors">
             <MoreVertical className="w-5 h-5 text-surface-400" />

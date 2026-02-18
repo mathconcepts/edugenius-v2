@@ -6,12 +6,12 @@
 
 import type {
   TeachingStrategy,
-  TeachingPhase,
   EnhancedContent,
   InteractiveResource,
   WowElement,
   ResourceRecommendation,
   VisualizedStep,
+  RealWorldExample,
 } from '@/types/teaching';
 import type { PracticeProblem } from '@/types/notebook';
 
@@ -584,10 +584,11 @@ function calculateResourceRelevance(problem: PracticeProblem, resource: Interact
   }
 
   // Difficulty match
-  const diffOrder = { easy: 1, medium: 2, hard: 3, olympiad: 4 };
-  const problemDiff = diffOrder[problem.difficulty];
-  const resourceMinDiff = diffOrder[resource.difficultyRange.min];
-  const resourceMaxDiff = diffOrder[resource.difficultyRange.max];
+  const diffOrderProblem: Record<string, number> = { easy: 1, medium: 2, hard: 3, olympiad: 4 };
+  const diffOrderResource: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3, olympiad: 4 };
+  const problemDiff = diffOrderProblem[problem.difficulty] || 2;
+  const resourceMinDiff = diffOrderResource[resource.difficultyRange.min] || 1;
+  const resourceMaxDiff = diffOrderResource[resource.difficultyRange.max] || 4;
   if (problemDiff >= resourceMinDiff && problemDiff <= resourceMaxDiff) {
     score += 20;
   }
@@ -668,16 +669,16 @@ function generateVisualizedSteps(
   ];
 }
 
-function generateRealWorldExamples(problem: PracticeProblem) {
+function generateRealWorldExamples(problem: PracticeProblem): RealWorldExample[] {
   // Mock implementation - would be AI-generated
-  const examples: Record<string, Array<{ title: string; description: string; industry: string }>> = {
+  const examples: Record<string, Array<{ title: string; description: string; industry: string; difficultyContext: string }>> = {
     'Projectile Motion': [
-      { title: 'Sports Analytics', description: 'How basketball players optimize their shot arc', industry: 'sports' },
-      { title: 'Artillery Calculation', description: 'Historical military applications', industry: 'defense' },
+      { title: 'Sports Analytics', description: 'How basketball players optimize their shot arc', industry: 'sports', difficultyContext: 'Basic physics principles apply to trajectory analysis' },
+      { title: 'Artillery Calculation', description: 'Historical military applications', industry: 'defense', difficultyContext: 'Advanced applications involve air resistance and varying gravity' },
     ],
     'Quadratic Equations': [
-      { title: 'Bridge Design', description: 'Parabolic arches in architecture', industry: 'engineering' },
-      { title: 'Profit Optimization', description: 'Business pricing models', industry: 'finance' },
+      { title: 'Bridge Design', description: 'Parabolic arches in architecture', industry: 'engineering', difficultyContext: 'Structural optimization uses quadratic functions' },
+      { title: 'Profit Optimization', description: 'Business pricing models', industry: 'finance', difficultyContext: 'Revenue maximization involves finding quadratic vertices' },
     ],
   };
   return (examples[problem.topic] || []).map((e, i) => ({ ...e, id: `${problem.id}-rw-${i}` }));

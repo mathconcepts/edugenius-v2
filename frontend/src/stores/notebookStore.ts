@@ -740,6 +740,7 @@ export const useNotebookStore = create<NotebookState>()(
                 timestamp: msg.timestamp,
                 responseTimeMs: 0,
                 followUpAsked: false,
+                extractedProblems: [],
               });
             }
           }

@@ -1,10 +1,12 @@
 /**
- * Public Website - Blog Page
+ * Blog Page
  * Content from Atlas agent, SEO-optimized
+ * Supports both public website and admin portal modes
  */
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus, Edit, Trash2, Eye, BarChart2 } from 'lucide-react';
 
 interface BlogPost {
   id: string;
@@ -92,7 +94,11 @@ const posts: BlogPost[] = [
   },
 ];
 
-export default function Blog() {
+interface BlogProps {
+  adminMode?: boolean;
+}
+
+export default function Blog({ adminMode = false }: BlogProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -105,6 +111,143 @@ export default function Blog() {
 
   const featuredPosts = posts.filter(p => p.featured);
 
+  // Admin mode - integrated into portal layout
+  if (adminMode) {
+    return (
+      <div className="space-y-6">
+        {/* Admin Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Blog Manager</h1>
+            <p className="text-surface-400">Create and manage blog content via Atlas AI</p>
+          </div>
+          <button className="btn-primary flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            New Post
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: 'Total Posts', value: posts.length, icon: '📝', color: 'text-blue-400' },
+            { label: 'Published', value: posts.length - 1, icon: '✅', color: 'text-green-400' },
+            { label: 'Drafts', value: 1, icon: '📋', color: 'text-yellow-400' },
+            { label: 'This Month', value: 6, icon: '📊', color: 'text-purple-400' },
+          ].map((stat, i) => (
+            <div key={i} className="card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-2xl">{stat.icon}</span>
+                <span className={`text-2xl font-bold ${stat.color}`}>{stat.value}</span>
+              </div>
+              <p className="text-sm text-surface-400 mt-2">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  selectedCategory === cat
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-surface-800 text-surface-400 hover:bg-surface-700'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search posts..."
+            className="input w-64 ml-auto"
+          />
+        </div>
+
+        {/* Posts Table */}
+        <div className="card overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-surface-800">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-surface-400">Title</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-surface-400">Category</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-surface-400">Author</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-surface-400">Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-surface-400">Status</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-surface-400">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-700">
+              {filteredPosts.map(post => (
+                <tr key={post.id} className="hover:bg-surface-800/50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{post.image}</span>
+                      <div>
+                        <p className="font-medium text-white">{post.title}</p>
+                        <p className="text-xs text-surface-500">{post.readTime} min read</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 bg-primary-500/10 text-primary-400 text-xs rounded">
+                      {post.category}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-surface-400 text-sm">{post.author}</td>
+                  <td className="px-4 py-3 text-surface-400 text-sm">{post.date}</td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded">
+                      Published
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <button className="p-1.5 hover:bg-surface-700 rounded transition-colors">
+                        <Eye className="w-4 h-4 text-surface-400" />
+                      </button>
+                      <button className="p-1.5 hover:bg-surface-700 rounded transition-colors">
+                        <BarChart2 className="w-4 h-4 text-surface-400" />
+                      </button>
+                      <button className="p-1.5 hover:bg-surface-700 rounded transition-colors">
+                        <Edit className="w-4 h-4 text-surface-400" />
+                      </button>
+                      <button className="p-1.5 hover:bg-red-500/10 rounded transition-colors">
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* AI Generation Panel */}
+        <div className="card bg-gradient-to-r from-primary-900/30 to-accent-900/30 border-primary-500/30">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-primary-500/20 rounded-xl">
+              <span className="text-2xl">📚</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-white">Generate Content with Atlas AI</h3>
+              <p className="text-sm text-surface-400">Auto-generate SEO-optimized blog posts for any topic</p>
+            </div>
+            <button className="btn-primary">Generate Post</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Public website mode
   return (
     <div className="min-h-screen bg-surface-900">
       {/* Navigation */}

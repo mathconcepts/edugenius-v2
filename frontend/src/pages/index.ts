@@ -2,9 +2,9 @@
  * Page exports
  */
 
-export { default as Dashboard } from './Dashboard';
-export { default as Agents } from './Agents';
-export { default as Chat } from './Chat';
+export { Dashboard } from './Dashboard';
+export { Agents } from './Agents';
+export { Chat } from './Chat';
 export { default as Learn } from './Learn';
 export { default as Notebook } from './Notebook';
 export { default as Progress } from './Progress';

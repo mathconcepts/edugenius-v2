@@ -46,3 +46,6 @@ npm-debug.log*
 tmp/
 temp/
 *.tmp
+
+# Local Netlify folder
+.netlify

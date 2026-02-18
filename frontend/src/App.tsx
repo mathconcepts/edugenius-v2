@@ -1,24 +1,35 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/layout';
-import { 
-  Dashboard, 
-  Agents, 
-  Chat, 
-  Learn, 
-  Notebook, 
-  Progress, 
-  Content, 
-  Analytics, 
-  Students,
-  RolePreview,
-} from '@/pages';
-import { CEOIntegrations, CEOStrategy } from '@/pages/dashboards';
-import { 
-  WebsiteHome, 
-  WebsitePricing, 
-  WebsiteBlog, 
-  WebsiteExamPage 
-} from '@/pages/website';
+
+// Eager load core pages
+import { Dashboard } from '@/pages';
+
+// Lazy load feature pages for code splitting
+const Agents = lazy(() => import('@/pages/Agents').then(m => ({ default: m.Agents })));
+const Chat = lazy(() => import('@/pages/Chat').then(m => ({ default: m.Chat })));
+const Learn = lazy(() => import('@/pages/Learn'));
+const Notebook = lazy(() => import('@/pages/Notebook'));
+const Progress = lazy(() => import('@/pages/Progress'));
+const Content = lazy(() => import('@/pages/Content'));
+const Analytics = lazy(() => import('@/pages/Analytics'));
+const Students = lazy(() => import('@/pages/Students'));
+const RolePreview = lazy(() => import('@/pages/RolePreview'));
+const CEOIntegrations = lazy(() => import('@/pages/dashboards/CEOIntegrations').then(m => ({ default: m.CEOIntegrations })));
+const CEOStrategy = lazy(() => import('@/pages/dashboards/CEOStrategy').then(m => ({ default: m.CEOStrategy })));
+
+// Lazy load website pages
+const WebsiteHome = lazy(() => import('@/pages/website/Home'));
+const WebsitePricing = lazy(() => import('@/pages/website/Pricing'));
+const WebsiteBlog = lazy(() => import('@/pages/website/Blog'));
+const WebsiteExamPage = lazy(() => import('@/pages/website/ExamPage'));
+
+// Loading fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+  </div>
+);
 
 // Placeholder components for routes
 const Users = () => (
@@ -44,49 +55,52 @@ const Settings = () => (
 
 export default function App() {
   return (
-    <Routes>
-      {/* ==================== PUBLIC WEBSITE ==================== */}
-      <Route path="/website" element={<WebsiteHome />} />
-      <Route path="/website/pricing" element={<WebsitePricing />} />
-      <Route path="/website/blog" element={<WebsiteBlog />} />
-      <Route path="/website/blog/:slug" element={<WebsiteBlog />} />
-      <Route path="/website/exams/:examCode" element={<WebsiteExamPage />} />
-      <Route path="/website/features" element={<WebsiteHome />} />
-      <Route path="/website/about" element={<WebsiteHome />} />
-      <Route path="/website/demo" element={<WebsiteHome />} />
-      <Route path="/website/signup" element={<WebsiteHome />} />
-      <Route path="/website/contact" element={<WebsiteHome />} />
-      
-      {/* ==================== PORTAL (APP) ==================== */}
-      {/* Role Preview - Standalone page */}
-      <Route path="/preview" element={<RolePreview />} />
-      
-      {/* Main App with Layout */}
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="agents" element={<Agents />} />
-        <Route path="agents/:agentId" element={<Agents />} />
-        <Route path="chat" element={<Chat />} />
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="content" element={<Content />} />
-        <Route path="users" element={<Users />} />
-        <Route path="events" element={<Events />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="integrations" element={<CEOIntegrations />} />
-        <Route path="strategy" element={<CEOStrategy />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* ==================== PUBLIC WEBSITE ==================== */}
+        <Route path="/website" element={<WebsiteHome />} />
+        <Route path="/website/pricing" element={<WebsitePricing />} />
+        <Route path="/website/blog" element={<WebsiteBlog />} />
+        <Route path="/website/blog/:slug" element={<WebsiteBlog />} />
+        <Route path="/website/exams/:examCode" element={<WebsiteExamPage />} />
+        <Route path="/website/features" element={<WebsiteHome />} />
+        <Route path="/website/about" element={<WebsiteHome />} />
+        <Route path="/website/demo" element={<WebsiteHome />} />
+        <Route path="/website/signup" element={<WebsiteHome />} />
+        <Route path="/website/contact" element={<WebsiteHome />} />
         
-        {/* Student routes */}
-        <Route path="learn" element={<Learn />} />
-        <Route path="learn/:subjectId" element={<Learn />} />
-        <Route path="notebook" element={<Notebook />} />
-        <Route path="progress" element={<Progress />} />
+        {/* ==================== PORTAL (APP) ==================== */}
+        {/* Role Preview - Standalone page */}
+        <Route path="/preview" element={<RolePreview />} />
         
-        {/* Teacher routes */}
-        <Route path="students" element={<Students />} />
-        
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+        {/* Main App with Layout */}
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="agents" element={<Agents />} />
+          <Route path="agents/:agentId" element={<Agents />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="content" element={<Content />} />
+          <Route path="users" element={<Users />} />
+          <Route path="events" element={<Events />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="integrations" element={<CEOIntegrations />} />
+          <Route path="strategy" element={<CEOStrategy />} />
+          <Route path="blog" element={<WebsiteBlog adminMode />} />
+          
+          {/* Student routes */}
+          <Route path="learn" element={<Learn />} />
+          <Route path="learn/:subjectId" element={<Learn />} />
+          <Route path="notebook" element={<Notebook />} />
+          <Route path="progress" element={<Progress />} />
+          
+          {/* Teacher routes */}
+          <Route path="students" element={<Students />} />
+          
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }
