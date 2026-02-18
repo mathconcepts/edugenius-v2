@@ -24,6 +24,9 @@ const WebsitePricing = lazy(() => import('@/pages/website/Pricing'));
 const WebsiteBlog = lazy(() => import('@/pages/website/Blog'));
 const WebsiteExamPage = lazy(() => import('@/pages/website/ExamPage'));
 
+// Lazy load onboarding
+const Onboarding = lazy(() => import('@/pages/onboarding'));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -68,6 +71,9 @@ export default function App() {
         <Route path="/website/demo" element={<WebsiteHome />} />
         <Route path="/website/signup" element={<WebsiteHome />} />
         <Route path="/website/contact" element={<WebsiteHome />} />
+        
+        {/* ==================== ONBOARDING ==================== */}
+        <Route path="/onboarding" element={<Onboarding />} />
         
         {/* ==================== PORTAL (APP) ==================== */}
         {/* Role Preview - Standalone page */}
