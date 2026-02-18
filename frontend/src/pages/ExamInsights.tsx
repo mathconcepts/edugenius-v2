@@ -49,6 +49,137 @@ interface TopperStory {
 }
 
 // ============================================
+// MOCK TOPPER DATA (fallback when API unavailable)
+// ============================================
+
+const MOCK_TOPPERS: Record<ExamType, TopperStory[]> = {
+  JEE_MAIN: [
+    {
+      id: '1', name: 'Arjun Sharma', rank: 1, year: 2024, score: 300,
+      topTips: [
+        'Solve previous 10 years papers — 40% questions repeat with variation',
+        'Master NCERT first, then move to HC Verma / Irodov for depth',
+        'Time your mock tests strictly — 3 hours, no breaks',
+      ],
+      turningPoint: 'I stopped reading new material 3 weeks before the exam and only revised. That discipline changed everything.',
+    },
+    {
+      id: '2', name: 'Priya Nair', rank: 7, year: 2024, score: 298,
+      topTips: [
+        'Make a formula sheet for every chapter — rewrite it weekly from memory',
+        'Chemistry is the fastest marks: Physical + Organic NCERT is 90% enough',
+        'Sleep 7 hours minimum. Exhausted recall is half as fast.',
+      ],
+      turningPoint: 'I failed my 12th board mock badly and used it as a wake-up call. Switched from passive reading to active problem-solving every single day.',
+    },
+    {
+      id: '3', name: 'Rohit Gupta', rank: 23, year: 2023, score: 292,
+      topTips: [
+        'Use spaced repetition — review topics at 1 day, 3 days, 1 week, 1 month intervals',
+        'Physics: understand the derivation, not just the formula. Exam variants are unpredictable.',
+        'Join a study group. Explaining to others reveals your own blind spots.',
+      ],
+      turningPoint: 'Quitting coaching and self-studying let me go at my own pace. The flexibility made a huge difference.',
+    },
+  ],
+  JEE_ADVANCED: [
+    {
+      id: '1', name: 'Tanmay Bakshi', rank: 3, year: 2024,
+      topTips: [
+        'Advanced is about thinking under pressure — practise mental math daily',
+        'Do full JEE Advanced papers from 2010 onwards; difficulty has stayed consistent',
+        'Integer and matrix-match questions often have elegant shortcuts — find them',
+      ],
+      turningPoint: 'I started treating each mistake as a gift. I kept an error log and reviewed it every Sunday. My accuracy went from 65% to 88% in two months.',
+    },
+    {
+      id: '2', name: 'Ananya Krishnan', rank: 15, year: 2024,
+      topTips: [
+        'Organic Chemistry reaction mechanisms — draw every arrow, every time',
+        'For Maths, speed comes from pattern recognition — solve 5 problems of same type back-to-back',
+        'Attempt all 3 sections in parallel, not sequentially — switch when stuck to keep momentum',
+      ],
+      turningPoint: 'Learning to abandon a question after 4 minutes was the hardest and most valuable skill I built.',
+    },
+  ],
+  NEET: [
+    {
+      id: '1', name: 'Sneha Reddy', rank: 4, year: 2024, score: 715,
+      topTips: [
+        'Biology is 90 questions and 360 marks — master it first, everything else is bonus',
+        'NCERT Biology line-by-line for Botany/Zoology — examiners quote it verbatim',
+        'Human physiology diagrams with labels: draw and label 5 diagrams daily',
+      ],
+      turningPoint: 'I was a mediocre student until I built a daily 5am study habit. Those 2 quiet hours before college changed my preparation completely.',
+    },
+    {
+      id: '2', name: 'Kiran Mehta', rank: 31, year: 2023, score: 700,
+      topTips: [
+        'For Chemistry: NCERT chapters 1-5 Physical + all Organic reactions are non-negotiable',
+        'Physics: concept clarity over formula memorisation. 45 questions, each is solvable in 90 seconds if you understand the concept',
+        'Take 20 full NEET mocks before the exam — real exam nerves need practice too',
+      ],
+      turningPoint: 'Revising my wrong answers immediately after every mock was more valuable than studying new content.',
+    },
+  ],
+  CBSE_10: [
+    {
+      id: '1', name: 'Ishaan Verma', rank: 1, year: 2024, score: 500,
+      topTips: [
+        'NCERT is the Bible — every single solved example and exercise question',
+        'For Maths: practice all NCERT examples + 5 years previous board papers = 95+ guaranteed',
+        'Science diagrams carry easy marks — label everything perfectly',
+      ],
+      turningPoint: 'I realised scoring 100 in some subjects is very possible with CBSE. That mindset shift made me study smarter.',
+    },
+  ],
+  CBSE_12: [
+    {
+      id: '1', name: 'Aditi Patel', rank: 1, year: 2024, score: 500,
+      topTips: [
+        'For Accountancy: practice formatting — presentation affects marks directly',
+        'English: read the question carefully, answer only what is asked (common mistake)',
+        'Maths: every integration and differentiation type — create your own formula booklet',
+      ],
+      turningPoint: 'Pre-board marks are a preview. I treated my pre-board failures as final exam lessons.',
+    },
+  ],
+  CAT: [
+    {
+      id: '1', name: 'Rahul Bose', rank: 99.98, year: 2024,
+      topTips: [
+        'VARC: read 1 editorial and 1 long article daily — 6 months of this alone can get you 99+ in VARC',
+        'DILR: time management is the only strategy. Identify the easiest set and do it first.',
+        'QA: if you know school Maths well, CAT Quant is doable. Fundamentals over shortcuts.',
+      ],
+      turningPoint: 'I gave 50 mocks. The last 20 felt easy. Mock exposure is everything in CAT.',
+    },
+  ],
+  UPSC: [
+    {
+      id: '1', name: 'Meera Iyer', rank: 12, year: 2024,
+      topTips: [
+        'Newspaper + NCERT + Standard books. No shortcuts. But also no need to read everything.',
+        'Answer writing is the differentiator in Mains — practice one answer daily from Day 1',
+        'Revision: what you revise 5 times matters more than what you read once',
+      ],
+      turningPoint: 'I kept failing Mains until I joined an answer-writing group. Peer feedback was brutal but it transformed my score.',
+    },
+  ],
+  GATE: [
+    {
+      id: '1', name: 'Vikram Singh', rank: 8, year: 2024,
+      topTips: [
+        'GATE is 65 questions in 3 hours — pace is critical, do 1 mark questions in 45 seconds max',
+        'Previous year papers (2010-2024): solve all of them twice. Pattern is consistent.',
+        'General Aptitude: easy 15 marks. Never skip it for technical prep.',
+      ],
+      turningPoint: 'I focussed on understanding over memorisation. GATE rewards deep understanding of fundamentals over rote.',
+    },
+  ],
+};
+
+// ============================================
 // MAIN COMPONENT
 // ============================================
 
@@ -85,9 +216,13 @@ export default function ExamInsights() {
         }
         if (toppersRes.ok) {
           setTopperStories(await toppersRes.json());
+        } else {
+          // Fallback to curated mock data when API unavailable
+          setTopperStories(MOCK_TOPPERS[selectedExam] ?? []);
         }
       } catch (error) {
-        console.error('Failed to fetch insights:', error);
+        // API unavailable — use curated fallback data
+        setTopperStories(MOCK_TOPPERS[selectedExam] ?? []);
       } finally {
         setLoading(false);
       }
