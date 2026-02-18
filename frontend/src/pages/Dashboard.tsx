@@ -5,7 +5,7 @@ import { TeacherDashboard } from './dashboards/TeacherDashboard';
 import { StudentDashboard } from './dashboards/StudentDashboard';
 
 export function Dashboard() {
-  // Use userRole as the single source of truth (synced with playgroundConfig.role on switch)
+  // userRole is the single source of truth — set via setUserRole(), persisted in localStorage
   const { userRole } = useAppStore();
 
   switch (userRole) {

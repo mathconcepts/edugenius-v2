@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { UserRole, Agent, Notification, PlaygroundConfig } from '@/types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { UserRole, Agent, Notification } from '@/types';
 
 interface User {
   id: string;
@@ -30,9 +30,7 @@ interface AppState {
   
   // Playground mode
   playgroundMode: boolean;
-  playgroundConfig: PlaygroundConfig;
   setPlaygroundMode: (enabled: boolean) => void;
-  setPlaygroundConfig: (config: Partial<PlaygroundConfig>) => void;
   
   // Notifications
   notifications: Notification[];
@@ -171,36 +169,25 @@ export const useAppStore = create<AppState>()(
       user: null,
       setUser: (user) => set({ user }),
       
-      // User Role — updates both userRole and playgroundConfig.role together
-      userRole: 'ceo',
-      setUserRole: (role) => set((state) => ({
-        userRole: role,
-        playgroundConfig: { ...state.playgroundConfig, role },
-      })),
-      
+      // User Role — single source of truth for all role-gated UI
+      userRole: 'ceo' as UserRole,
+      setUserRole: (role) => set({ userRole: role }),
+
       // Theme
-      theme: 'dark',
-      toggleTheme: () => set((state) => ({ 
-        theme: state.theme === 'dark' ? 'light' : 'dark' 
+      theme: 'dark' as 'light' | 'dark',
+      toggleTheme: () => set((state) => ({
+        theme: state.theme === 'dark' ? 'light' : 'dark',
       })),
-      
+
       // Sidebar
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-      
+
       // Playground
       playgroundMode: true,
-      playgroundConfig: {
-        role: 'ceo',
-        mockData: true,
-        showDebug: false,
-      },
       setPlaygroundMode: (enabled) => set({ playgroundMode: enabled }),
-      setPlaygroundConfig: (config) => set((state) => ({
-        playgroundConfig: { ...state.playgroundConfig, ...config },
-      })),
-      
+
       // Notifications
       notifications: [],
       addNotification: (notification) => set((state) => ({
@@ -212,7 +199,7 @@ export const useAppStore = create<AppState>()(
             read: false,
           },
           ...state.notifications,
-        ].slice(0, 50), // Keep last 50
+        ].slice(0, 50),
       })),
       markNotificationRead: (id) => set((state) => ({
         notifications: state.notifications.map((n) =>
@@ -220,7 +207,7 @@ export const useAppStore = create<AppState>()(
         ),
       })),
       clearNotifications: () => set({ notifications: [] }),
-      
+
       // Agents
       agents: defaultAgents,
       setAgents: (agents) => set({ agents }),
@@ -232,12 +219,22 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'edugenius-storage',
+      version: 2, // Bumped: clears old stale cache that had playgroundConfig
+      storage: createJSONStorage(() => localStorage),
+      migrate: (_oldState, _oldVersion) => {
+        // Always start fresh on version bump — safe since it's preview/playground data
+        return {
+          theme: 'dark' as const,
+          sidebarOpen: true,
+          userRole: 'ceo' as UserRole,
+          playgroundMode: true,
+        };
+      },
       partialize: (state) => ({
         theme: state.theme,
         sidebarOpen: state.sidebarOpen,
         userRole: state.userRole,
         playgroundMode: state.playgroundMode,
-        playgroundConfig: state.playgroundConfig,
       }),
     }
   )
