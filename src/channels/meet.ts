@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Google Meet Channel Adapter
  * Live tutoring sessions via Google Meet

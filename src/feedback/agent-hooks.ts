@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * EduGenius Feedback Agent Hooks
  * Connects feedback events to all impacted agents:

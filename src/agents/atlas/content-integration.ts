@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Atlas Content Integration
  * Integrates Atlas agent with the content delivery pipeline

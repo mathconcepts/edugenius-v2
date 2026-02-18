@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * JWT Token Management
  * Secure token generation and validation

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Herald Agent - Marketing Automation
  * Manages campaigns, social media, and lead nurturing

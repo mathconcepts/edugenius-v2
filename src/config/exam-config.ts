@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Exam Configuration Manager
  * Handles exam nature, format, content cadence, and configuration

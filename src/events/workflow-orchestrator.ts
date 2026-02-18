@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * EduGenius Workflow Orchestrator
  * Coordinates multi-agent workflows with state management

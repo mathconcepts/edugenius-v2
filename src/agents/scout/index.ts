@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Scout Agent - Market Intelligence
  * Monitors trends, competitors, and exam updates

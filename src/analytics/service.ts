@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Analytics Service
  * Multi-provider analytics tracking

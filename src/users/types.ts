@@ -334,7 +334,7 @@ export interface UpdateUserRequest {
 
 export interface UpdateStudentProfileRequest {
   grade?: number;
-  board?: string;
+  board?: 'CBSE' | 'ICSE' | 'STATE' | 'IB' | 'OTHER';
   school?: string;
   primaryExam?: ExamType;
   primaryExamYear?: number;

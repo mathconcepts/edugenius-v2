@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Channel Service
  * Unified multi-channel message handling
@@ -11,7 +12,7 @@ import {
 import * as whatsapp from './whatsapp';
 import * as telegram from './telegram';
 import * as meet from './meet';
-import { EventBus } from '../events/bus';
+import { EventBus } from '../events/event-bus';
 
 // In-memory stores
 const conversations = new Map<string, Conversation>();

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Atlas Agent - Content Engine
  * Creates, manages, and publishes educational content

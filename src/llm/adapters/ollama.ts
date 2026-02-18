@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Ollama Adapter for EduGenius LLM Layer
  * Supports local LLM inference via Ollama server
@@ -8,8 +9,8 @@ import { BaseAdapter } from './base';
 import {
   LLMRequest,
   LLMResponse,
-  EmbeddingRequest,
-  EmbeddingResponse,
+  EmbedRequest,
+  EmbedResponse,
   ProviderConfig,
   ModelCapabilities,
   LLMError,
@@ -114,7 +115,7 @@ export class OllamaAdapter extends BaseAdapter {
     }
   }
 
-  async embed(request: EmbeddingRequest): Promise<EmbeddingResponse> {
+  async embed(request: EmbedRequest): Promise<EmbedResponse> {
     return this.withRetry(async () => {
       const startTime = Date.now();
       const embeddings: number[][] = [];

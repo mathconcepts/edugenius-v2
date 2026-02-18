@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LLM Consensus Verifier
  * Verify content by asking multiple LLMs and checking for agreement

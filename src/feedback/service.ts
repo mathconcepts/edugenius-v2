@@ -533,8 +533,26 @@ export class FeedbackService {
   // QUERY
   // --------------------------------------------------------
 
+  getAllActiveTickets(): FeedbackTicket[] {
+    return Array.from(this.tickets.values()).filter(
+      (t) => !['resolved', 'closed', 'rejected'].includes(t.status)
+    );
+  }
+
+  /** Sync version for internal use */
+  getTicketSync(ticketId: string): FeedbackTicket | null {
+    return this.tickets.get(ticketId) ?? null;
+  }
+
   async getTicket(ticketId: string): Promise<FeedbackTicket | null> {
     return this.tickets.get(ticketId) ?? null;
+  }
+
+  /** Sync version for internal use */
+  getUserTicketsSync(userId: string): FeedbackTicket[] {
+    return Array.from(this.tickets.values())
+      .filter((t) => t.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async getUserTickets(userId: string): Promise<FeedbackTicket[]> {

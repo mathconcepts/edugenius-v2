@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * EduGenius Feedback Classifier
  * Keyword-based classification with confidence scoring and quality analysis

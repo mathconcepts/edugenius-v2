@@ -7,15 +7,8 @@
 export * from './types';
 
 // Repository
-export {
-  Repository,
-  InMemoryRepository,
-  CachedRepository,
-  CacheAdapter,
-  createRepository,
-  type RepositoryConfig,
-  type RepositoryType,
-} from './repository';
+export type { Repository, CacheAdapter, RepositoryConfig, RepositoryType } from './repository';
+export { InMemoryRepository, CachedRepository, createRepository } from './repository';
 
 // Cache
 export {
@@ -30,23 +23,8 @@ export {
 } from './cache';
 
 // Vector Store
-export {
-  VectorStore,
-  InMemoryVectorStore,
-  SemanticSearchService,
-  MockEmbeddingProvider,
-  StudentKnowledgeGraph,
-  getVectorStore,
-  resetVectorStore,
-  type VectorDocument,
-  type VectorMetadata,
-  type VectorSearchParams,
-  type VectorSearchResult,
-  type VectorFilter,
-  type EmbeddingProvider,
-  type KnowledgeNode,
-  type KnowledgeEdge,
-} from './vector-store';
+export type { VectorStore, VectorDocument, VectorMetadata, VectorSearchParams, VectorSearchResult, VectorFilter, EmbeddingProvider, KnowledgeNode, KnowledgeEdge } from './vector-store';
+export { InMemoryVectorStore, SemanticSearchService, MockEmbeddingProvider, StudentKnowledgeGraph, getVectorStore, resetVectorStore } from './vector-store';
 
 // ============================================================================
 // Convenience Functions

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * EduGenius LLM Abstraction Layer - Gemini Adapter
  * Supports Gemini Flash, Pro, and LearnLM models

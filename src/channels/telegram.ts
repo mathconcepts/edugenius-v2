@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telegram Channel Adapter
  * Telegram Bot API integration

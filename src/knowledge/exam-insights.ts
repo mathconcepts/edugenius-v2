@@ -537,6 +537,166 @@ export const EXAM_BEST_PRACTICES: Record<ExamType, {
       "Review flagged questions",
     ],
   },
+
+  ICSE_10: {
+    overview: "ICSE Class 10 tests both conceptual understanding and application across a broad syllabus. English skills and internal assessments matter significantly.",
+    keyStrategies: [
+      "Balance board subjects with practical/project work",
+      "Focus on English — it's a strong scoring subject",
+      "Practice previous 10 years' papers thoroughly",
+      "Don't neglect internal assessment marks",
+    ],
+    subjectPriorities: [
+      { subject: "English", priority: "high", reason: "Strong scoring, needed for top percentage" },
+      { subject: "Mathematics", priority: "high", reason: "Direct marks, no interpretation needed" },
+      { subject: "Science", priority: "medium", reason: "Three-part paper needs balanced preparation" },
+    ],
+    commonMistakes: [
+      "Ignoring project/practical marks",
+      "Underestimating English Literature",
+      "Skipping second language preparation",
+    ],
+    timelineRecommendation: [
+      { months: 6, phase: "Foundation", focus: "Complete syllabus and notes" },
+      { months: 3, phase: "Practice", focus: "Past papers and mock tests" },
+      { months: 1, phase: "Revision", focus: "Weak areas and formula revision" },
+    ],
+    scoringTips: [
+      "Attempt all questions — no negative marking",
+      "Present answers clearly with steps",
+      "Use diagrams wherever possible",
+    ],
+    lastWeekStrategy: [
+      "Revise formula sheets and important definitions",
+      "Do one full mock paper daily",
+      "Focus on high-weightage chapters",
+    ],
+    examDayTips: [
+      "Read questions carefully before answering",
+      "Manage time across sections",
+      "Attempt easy questions first",
+    ],
+  },
+
+  ISC_12: {
+    overview: "ISC Class 12 has a detailed syllabus with both board exams and internal assessment. English and core subjects need balanced attention.",
+    keyStrategies: [
+      "Understand the paper pattern for each subject",
+      "Focus on internal assessment — it contributes significantly",
+      "Practice writing answers within time limits",
+      "Group study for Literature and History subjects",
+    ],
+    subjectPriorities: [
+      { subject: "English", priority: "high", reason: "Compulsory and high scoring" },
+      { subject: "Mathematics/Science", priority: "high", reason: "Core subject for future streams" },
+      { subject: "Optional Subject", priority: "medium", reason: "Choose scoring elective wisely" },
+    ],
+    commonMistakes: [
+      "Not reading prescribed texts for English Literature",
+      "Neglecting internal marks",
+      "Poor time management in lengthy papers",
+    ],
+    timelineRecommendation: [
+      { months: 8, phase: "Foundation", focus: "Complete syllabus coverage" },
+      { months: 3, phase: "Revision", focus: "Topic-wise revision and past papers" },
+      { months: 1, phase: "Final Prep", focus: "Full mock tests and weak areas" },
+    ],
+    scoringTips: [
+      "Answer precisely — avoid padding",
+      "Show all working in Math/Science",
+      "Use correct terminology in Science answers",
+    ],
+    lastWeekStrategy: [
+      "Revise key themes for Literature subjects",
+      "Practice time-bound writing",
+      "Quick formula revision for Science/Math",
+    ],
+    examDayTips: [
+      "Read the entire question paper first",
+      "Attempt compulsory questions first",
+      "Leave time to review answers",
+    ],
+  },
+
+  STATE_BOARDS: {
+    overview: "State board exams vary by state but generally test NCERT-level content with state-specific topics. Focus on official textbooks and past papers.",
+    keyStrategies: [
+      "Stick to state board textbooks as primary resource",
+      "Solve 5+ years of state board past papers",
+      "Focus on chapter-end questions from official books",
+      "Don't over-prepare with competitive exam material",
+    ],
+    subjectPriorities: [
+      { subject: "Mathematics", priority: "high", reason: "Scoring and formula-based" },
+      { subject: "Science", priority: "high", reason: "Theory + practical components" },
+      { subject: "Languages", priority: "medium", reason: "Scoring but time-intensive" },
+    ],
+    commonMistakes: [
+      "Using competitive exam books instead of board textbooks",
+      "Neglecting regional language papers",
+      "Ignoring diagram-based questions in Science",
+    ],
+    timelineRecommendation: [
+      { months: 5, phase: "Coverage", focus: "Complete all chapters from textbooks" },
+      { months: 2, phase: "Practice", focus: "Past papers and sample papers" },
+      { months: 1, phase: "Revision", focus: "Quick revision and weak topics" },
+    ],
+    scoringTips: [
+      "Draw neat, labelled diagrams",
+      "Write answers in proper format required by board",
+      "Attempt all parts of each question",
+    ],
+    lastWeekStrategy: [
+      "Read key definitions and theorems",
+      "Practice one past paper per day",
+      "Focus on most scoring chapters",
+    ],
+    examDayTips: [
+      "Carry all required stationery",
+      "Read instructions on cover page",
+      "Divide time equally across sections",
+    ],
+  },
+
+  OTHER: {
+    overview: "For exams not specifically listed, focus on understanding the exam pattern, syllabus, and consistent practice with quality study materials.",
+    keyStrategies: [
+      "Download official syllabus and study plan",
+      "Practice previous years' papers",
+      "Focus on fundamentals before advanced topics",
+      "Join or form a study group for peer learning",
+    ],
+    subjectPriorities: [
+      { subject: "Core Subject", priority: "high", reason: "Primary focus area for the exam" },
+      { subject: "Supporting Subject", priority: "medium", reason: "Complements core knowledge" },
+      { subject: "General Knowledge", priority: "low", reason: "Supplementary if applicable" },
+    ],
+    commonMistakes: [
+      "Not studying from official sources",
+      "Underestimating the syllabus breadth",
+      "Poor time management during exam",
+    ],
+    timelineRecommendation: [
+      { months: 4, phase: "Foundation", focus: "Understand all topics" },
+      { months: 2, phase: "Practice", focus: "Past papers and mock tests" },
+      { months: 1, phase: "Final", focus: "Revision and confidence building" },
+    ],
+    scoringTips: [
+      "Answer questions you know well first",
+      "Manage time carefully",
+      "Review your answers before submission",
+    ],
+    lastWeekStrategy: [
+      "Light revision of key topics",
+      "Ensure good sleep schedule",
+      "Review your notes and formula sheets",
+    ],
+    examDayTips: [
+      "Arrive early at exam venue",
+      "Stay calm and read questions carefully",
+      "Don't spend too long on any single question",
+    ],
+  },
 };
 
 // ============================================

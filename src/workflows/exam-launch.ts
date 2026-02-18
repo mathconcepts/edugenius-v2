@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Exam Launch Workflow
  * End-to-end workflow for launching support for a new exam

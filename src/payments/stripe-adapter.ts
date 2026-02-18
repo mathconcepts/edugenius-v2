@@ -48,10 +48,11 @@ async function stripeRequest<T>(
   }
   
   const response = await fetch(url, options);
-  const json = await response.json();
+  const json = await response.json() as Record<string, unknown>;
   
   if (!response.ok) {
-    throw new Error(json.error?.message || 'Stripe API error');
+    const err = json.error as Record<string, unknown> | undefined;
+    throw new Error((err?.message as string) || 'Stripe API error');
   }
   
   return json as T;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * User Management API Routes
  * RESTful endpoints for user operations

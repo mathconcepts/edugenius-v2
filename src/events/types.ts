@@ -386,6 +386,22 @@ export interface EventTypeMap {
   'system.workflow.started': WorkflowStartedPayload;
   'system.workflow.step': WorkflowStepPayload;
   'system.workflow.completed': WorkflowCompletedPayload;
+
+  // Additional agent events
+  'atlas.content.viewed': Record<string, unknown>;
+  'forge.build.completed': Record<string, unknown>;
+  'forge.deploy.completed': Record<string, unknown>;
+  'forge.evaluate.rollback': Record<string, unknown>;
+  'forge.rollback.executed': Record<string, unknown>;
+  'herald.promote.requested': Record<string, unknown>;
+  'herald.reengage.requested': Record<string, unknown>;
+  'mentor.progress.update': Record<string, unknown>;
+  'oracle.track.deployment': Record<string, unknown>;
+  'scout.opportunity.found': Record<string, unknown>;
+  'workflow.started': Record<string, unknown>;
+  'workflow.completed': Record<string, unknown>;
+  'workflow.failed': Record<string, unknown>;
+  [key: `${string}.analytics.event`]: Record<string, unknown>;
 }
 
 export type EventType = keyof EventTypeMap;

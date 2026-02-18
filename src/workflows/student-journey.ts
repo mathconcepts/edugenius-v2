@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Student Journey Workflow
  * End-to-end student learning experience

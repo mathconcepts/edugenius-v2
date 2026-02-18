@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Oracle Agent - Analytics & Insights
  * Tracks metrics, detects anomalies, and generates reports

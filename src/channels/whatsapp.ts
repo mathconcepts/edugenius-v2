@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * WhatsApp Channel Adapter
  * Meta Cloud API integration

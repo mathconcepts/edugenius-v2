@@ -246,6 +246,86 @@ export const DEFAULT_EXAM_CONFIGS: Record<ExamType, Partial<ExamAdminConfig>> = 
     trialDays: 3,
     syllabusYear: 2024,
   },
+
+  ICSE_10: {
+    enabled: true,
+    requiresApproval: false,
+    autoApproveRoles: ['student'],
+    enabledSubjects: ['mathematics', 'physics', 'chemistry', 'biology', 'english', 'social_science'],
+    enabledGrades: [10],
+    enabledYears: [2025, 2026],
+    features: {
+      aiTutor: true,
+      practiceTests: true,
+      mockExams: true,
+      liveClasses: false,
+      studyMaterial: true,
+      parentReports: true,
+    },
+    pricingTier: 'basic',
+    trialDays: 7,
+    syllabusYear: 2024,
+  },
+
+  ISC_12: {
+    enabled: true,
+    requiresApproval: false,
+    autoApproveRoles: ['student'],
+    enabledSubjects: ['mathematics', 'physics', 'chemistry', 'biology', 'english', 'computer_science'],
+    enabledGrades: [12],
+    enabledYears: [2025, 2026],
+    features: {
+      aiTutor: true,
+      practiceTests: true,
+      mockExams: true,
+      liveClasses: false,
+      studyMaterial: true,
+      parentReports: true,
+    },
+    pricingTier: 'basic',
+    trialDays: 7,
+    syllabusYear: 2024,
+  },
+
+  STATE_BOARDS: {
+    enabled: false, // Admin must enable per state
+    requiresApproval: false,
+    autoApproveRoles: ['student'],
+    enabledSubjects: ['mathematics', 'physics', 'chemistry', 'biology', 'english', 'social_science'],
+    enabledGrades: [10, 12],
+    enabledYears: [2025, 2026],
+    features: {
+      aiTutor: false,
+      practiceTests: true,
+      mockExams: false,
+      liveClasses: false,
+      studyMaterial: true,
+      parentReports: true,
+    },
+    pricingTier: 'basic',
+    trialDays: 7,
+    syllabusYear: 2024,
+  },
+
+  OTHER: {
+    enabled: false,
+    requiresApproval: true,
+    autoApproveRoles: [],
+    enabledSubjects: ['mathematics', 'english'],
+    enabledGrades: [],
+    enabledYears: [2025, 2026],
+    features: {
+      aiTutor: false,
+      practiceTests: true,
+      mockExams: false,
+      liveClasses: false,
+      studyMaterial: false,
+      parentReports: false,
+    },
+    pricingTier: 'basic',
+    trialDays: 3,
+    syllabusYear: 2024,
+  },
 };
 
 // ============================================

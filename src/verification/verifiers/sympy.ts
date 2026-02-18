@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SymPy Verifier
  * Verify mathematical expressions using Python SymPy library

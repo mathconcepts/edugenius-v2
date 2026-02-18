@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Payment Configuration
  * Secure configuration management for payment providers

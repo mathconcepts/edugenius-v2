@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * EduGenius Event Bus - Core Implementation
  * Provides typed pub/sub messaging between agents

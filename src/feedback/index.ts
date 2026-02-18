@@ -29,7 +29,7 @@ export type {
 } from './types';
 
 // Service
-export { FeedbackService, feedbackService, SLA_CONFIGS, onFeedbackEvent } from './service';
+export { FeedbackService, feedbackService, SLA_CONFIG } from './service';
 
 // Classifier
 export { classifyTicket, scoreComplaintQuality, getL1ConfidenceThreshold } from './classifier';

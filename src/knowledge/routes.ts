@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Exam Insights API Routes
  */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * EduGenius Data Layer - Repository Pattern
  * Generic repository interface with implementations

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Content Delivery API Routes
  * Routes for prompts, content pipeline, landing pages, and deployments

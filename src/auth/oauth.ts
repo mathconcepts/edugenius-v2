@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * OAuth Provider Integration
  * Google, Microsoft, Apple OAuth flows

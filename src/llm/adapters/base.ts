@@ -42,7 +42,7 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     this.defaultModel = config.defaultModel;
     
     this.healthStatus = {
-      provider: this.providerId,
+      provider: (this as any).providerId ?? 'unknown',
       healthy: true,
       latencyMs: 0,
       lastCheck: new Date(),

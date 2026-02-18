@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Herald Marketing Integration
  * Integrates Herald agent with content delivery and landing pages

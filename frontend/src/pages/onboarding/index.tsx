@@ -627,7 +627,7 @@ export default function OnboardingFlow() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-surface-400">Exam:</span>
-                        <span className="text-white">{EXAMS.find(e => e.id === userData.selectedExam)?.name}</span>
+                        <span className="text-white">{availableExams.find((e: any) => e.id === userData.selectedExam)?.name ?? userData.selectedExam}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-surface-400">Year:</span>

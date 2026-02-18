@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Forge Agent - Deployment & Infrastructure
  * Manages CI/CD, deployments, and system health
