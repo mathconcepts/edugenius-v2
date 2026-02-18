@@ -20,6 +20,7 @@ import {
   Plug,
   Target,
   PenTool,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -34,6 +35,7 @@ const roleNavItems = {
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/events', icon: Zap, label: 'Events' },
     { to: '/integrations', icon: Plug, label: 'Integrations' },
+    { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   admin: [
@@ -41,6 +43,7 @@ const roleNavItems = {
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/content', icon: FileText, label: 'Content' },
     { to: '/blog', icon: PenTool, label: 'Blog' },
+    { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
     { to: '/analytics', icon: BarChart3, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
@@ -50,6 +53,7 @@ const roleNavItems = {
     { to: '/content', icon: BookOpen, label: 'Lessons' },
     { to: '/analytics', icon: BarChart3, label: 'Progress' },
     { to: '/chat', icon: MessageSquare, label: 'Help' },
+    { to: '/feedback', icon: MessageSquarePlus, label: 'Feedback' },
   ],
   student: [
     { to: '/', icon: Home, label: 'Home' },
@@ -57,6 +61,7 @@ const roleNavItems = {
     { to: '/chat', icon: MessageSquare, label: 'Ask Sage' },
     { to: '/notebook', icon: BookMarked, label: 'Notebook' },
     { to: '/progress', icon: BarChart3, label: 'Progress' },
+    { to: '/feedback', icon: MessageSquarePlus, label: 'My Tickets' },
   ],
 };
 

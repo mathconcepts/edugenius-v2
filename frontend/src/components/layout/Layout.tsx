@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import FeedbackWidget from '@/components/FeedbackWidget';
 import { useAppStore } from '@/stores/appStore';
 import { clsx } from 'clsx';
 
@@ -21,6 +22,7 @@ export function Layout() {
           <Outlet />
         </div>
       </main>
+      <FeedbackWidget />
     </div>
   );
 }

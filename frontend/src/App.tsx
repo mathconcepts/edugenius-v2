@@ -30,6 +30,10 @@ const Onboarding = lazy(() => import('@/pages/onboarding'));
 // Lazy load exam insights
 const ExamInsights = lazy(() => import('@/pages/ExamInsights'));
 
+// Lazy load feedback
+const FeedbackPage = lazy(() => import('@/pages/Feedback'));
+const AdminFeedback = lazy(() => import('@/pages/dashboards/AdminFeedback'));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -106,6 +110,10 @@ export default function App() {
           
           {/* Teacher routes */}
           <Route path="students" element={<Students />} />
+
+          {/* Feedback & Complaints */}
+          <Route path="feedback" element={<FeedbackPage />} />
+          <Route path="admin/feedback" element={<AdminFeedback />} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
