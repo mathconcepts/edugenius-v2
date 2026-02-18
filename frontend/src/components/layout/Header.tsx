@@ -27,6 +27,7 @@ const roleConfig = {
 
 export function Header() {
   const { theme, toggleTheme, notifications, markNotificationRead, sidebarOpen, userRole, setUserRole } = useAppStore();
+  const isSimpleRole = userRole === 'student' || userRole === 'teacher';
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -56,19 +57,22 @@ export function Header() {
         sidebarOpen ? 'left-[260px]' : 'left-[72px]'
       )}
     >
-      {/* Search */}
-      <div className="flex-1 max-w-xl">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search anything..."
-            className="input pl-10"
-          />
+      {/* Search — hide for student/teacher to reduce noise */}
+      {!isSimpleRole && (
+        <div className="flex-1 max-w-xl">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search anything..."
+              className="input pl-10"
+            />
+          </div>
         </div>
-      </div>
+      )}
+      {isSimpleRole && <div className="flex-1" />}
 
       {/* Actions */}
       <div className="flex items-center gap-2">

@@ -1,349 +1,248 @@
+/**
+ * StudentDashboard — Frugal, motivating, Khanmigo-inspired
+ * Focus: What to do today + quick access to chat
+ * No agent noise, no clutter — just learning momentum
+ */
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import {
-  BookOpen,
-  Trophy,
-  Flame,
-  Target,
-  MessageSquare,
-  Play,
-  Clock,
-  CheckCircle,
-  Sparkles,
-  Brain,
-  Zap,
-} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { MessageSquare, BookOpen, Flame, Target, Trophy, ChevronRight, Play, CheckCircle2, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const subjects = [
-  { id: 'math', name: 'Mathematics', icon: '🔢', progress: 72, color: 'from-blue-500 to-cyan-500' },
-  { id: 'physics', name: 'Physics', icon: '⚡', progress: 58, color: 'from-yellow-500 to-orange-500' },
-  { id: 'chemistry', name: 'Chemistry', icon: '🧪', progress: 45, color: 'from-green-500 to-emerald-500' },
-  { id: 'biology', name: 'Biology', icon: '🧬', progress: 63, color: 'from-pink-500 to-rose-500' },
+// ── Mock data (real data comes from backend) ────────────────────────────────
+
+const todayPlan = [
+  { id: '1', title: 'Quadratic Equations', subject: 'Mathematics', duration: '20 min', done: true },
+  { id: '2', title: 'Newton\'s Second Law', subject: 'Physics', duration: '25 min', done: false },
+  { id: '3', title: 'Organic Chemistry Basics', subject: 'Chemistry', duration: '20 min', done: false },
 ];
 
-const recentTopics = [
-  { id: '1', title: 'Quadratic Equations', subject: 'Mathematics', status: 'in-progress', progress: 65 },
-  { id: '2', title: 'Newton\'s Laws', subject: 'Physics', status: 'completed', progress: 100 },
-  { id: '3', title: 'Chemical Bonding', subject: 'Chemistry', status: 'not-started', progress: 0 },
+const recentChats = [
+  { id: '1', preview: 'Explain integration by parts', time: '2h ago' },
+  { id: '2', preview: 'Why does NaCl dissolve in water?', time: 'Yesterday' },
 ];
 
-const badges = [
-  { id: '1', name: 'Quick Learner', icon: '🚀', earned: true },
-  { id: '2', name: '7 Day Streak', icon: '🔥', earned: true },
-  { id: '3', name: 'Problem Solver', icon: '🧩', earned: true },
-  { id: '4', name: 'Math Master', icon: '👑', earned: false },
-  { id: '5', name: 'Perfect Score', icon: '💯', earned: false },
-];
+const examCountdown = { exam: 'JEE Main', daysLeft: 47 };
 
-const dailyChallenges = [
-  { id: '1', title: 'Solve 5 algebra problems', xp: 50, completed: true },
-  { id: '2', title: 'Watch a physics video', xp: 30, completed: false },
-  { id: '3', title: 'Practice for 30 minutes', xp: 40, completed: false },
-];
+const weekProgress = [40, 65, 50, 80, 70, 30, 60]; // Mon-Sun, percentage
+
+// ── Tiny streak flame ───────────────────────────────────────────────────────
+
+function StreakPill({ streak }: { streak: number }) {
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full">
+      <Flame className="w-4 h-4 text-orange-400" />
+      <span className="text-sm font-semibold text-orange-300">{streak} day streak</span>
+    </div>
+  );
+}
+
+// ── Week progress bar (7 dots) ───────────────────────────────────────────────
+
+function WeekBar({ data }: { data: number[] }) {
+  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const today = new Date().getDay(); // 0=Sun
+  const todayIdx = today === 0 ? 6 : today - 1;
+
+  return (
+    <div className="flex items-end gap-1.5">
+      {data.map((pct, i) => (
+        <div key={i} className="flex flex-col items-center gap-1">
+          <div className="w-6 bg-surface-800 rounded-sm overflow-hidden" style={{ height: 32 }}>
+            <div
+              className={clsx(
+                'w-full rounded-sm transition-all',
+                i === todayIdx ? 'bg-primary-500' : pct > 0 ? 'bg-primary-500/40' : 'bg-surface-700'
+              )}
+              style={{ height: `${pct}%`, marginTop: `${100 - pct}%` }}
+            />
+          </div>
+          <span className={clsx('text-[10px]', i === todayIdx ? 'text-primary-400 font-bold' : 'text-surface-600')}>{days[i]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 
 export function StudentDashboard() {
   const [streak] = useState(12);
-  const [totalXP] = useState(2450);
-  const [level] = useState(15);
+  const doneTasks = todayPlan.filter(t => t.done).length;
+  const totalTasks = todayPlan.length;
+  const todayPct = Math.round((doneTasks / totalTasks) * 100);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Welcome Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-2xl p-6 bg-gradient-to-r from-primary-500/10 via-accent-500/10 to-primary-500/10"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Welcome back, Student! 👋</h1>
-            <p className="text-surface-400 mt-1">Ready to learn something new today?</p>
-          </div>
-          <Link
-            to="/chat"
-            className="btn-primary flex items-center gap-2"
-          >
-            <MessageSquare className="w-5 h-5" />
-            Ask Sage
-          </Link>
-        </div>
+    <div className="max-w-3xl mx-auto space-y-5 pb-8">
 
-        {/* Stats Strip */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-900/50">
-            <div className="p-2 rounded-lg bg-orange-500/20">
-              <Flame className="w-6 h-6 text-orange-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{streak}</p>
-              <p className="text-sm text-surface-400">Day Streak</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-900/50">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <Sparkles className="w-6 h-6 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{totalXP.toLocaleString()}</p>
-              <p className="text-sm text-surface-400">Total XP</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-900/50">
-            <div className="p-2 rounded-lg bg-primary-500/20">
-              <Trophy className="w-6 h-6 text-primary-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">Level {level}</p>
-              <p className="text-sm text-surface-400">Explorer</p>
-            </div>
-          </div>
+      {/* ── Top row: greeting + streak ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <h1 className="text-xl font-bold">Good morning! 👋</h1>
+          <p className="text-surface-400 text-sm mt-0.5">
+            {examCountdown.daysLeft} days to {examCountdown.exam} · Let's make today count
+          </p>
         </div>
+        <StreakPill streak={streak} />
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Continue Learning */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg">Continue Learning</h2>
-              <Link to="/learn" className="text-sm text-primary-400 hover:text-primary-300">
-                View all
-              </Link>
+      {/* ── Hero CTA: Ask a question ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <Link
+          to="/chat"
+          className="block group p-5 rounded-2xl bg-gradient-to-r from-primary-600/30 via-primary-500/20 to-accent-500/20 border border-primary-500/30 hover:border-primary-400/50 transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-primary-500/20 group-hover:bg-primary-500/30 transition-colors">
+                <MessageSquare className="w-6 h-6 text-primary-400" />
+              </div>
+              <div>
+                <p className="font-semibold">Ask your AI tutor</p>
+                <p className="text-sm text-surface-400">Type, speak, or snap a photo of your problem</p>
+              </div>
             </div>
+            <ChevronRight className="w-5 h-5 text-surface-400 group-hover:text-primary-400 transition-colors group-hover:translate-x-1 transform" />
+          </div>
 
-            <div className="space-y-3">
-              {recentTopics.map((topic) => (
-                <div
-                  key={topic.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 transition-colors cursor-pointer group"
-                >
-                  <div className="p-3 rounded-xl bg-primary-500/10">
-                    <BookOpen className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{topic.title}</h3>
-                      {topic.status === 'completed' && (
-                        <CheckCircle className="w-4 h-4 text-green-400" />
-                      )}
-                    </div>
-                    <p className="text-sm text-surface-400">{topic.subject}</p>
-                    {topic.status === 'in-progress' && (
-                      <div className="mt-2 h-1.5 bg-surface-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
-                          style={{ width: `${topic.progress}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <button className="p-2 rounded-lg bg-primary-500 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Play className="w-4 h-4" />
-                  </button>
+          {/* Recent questions as quick-tap chips */}
+          {recentChats.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="text-xs text-surface-500 self-center">Recent:</span>
+              {recentChats.map(c => (
+                <span key={c.id} className="text-xs px-2.5 py-1 bg-surface-800/80 rounded-full text-surface-300 hover:text-white cursor-pointer transition-colors truncate max-w-[180px]">
+                  {c.preview}
+                </span>
+              ))}
+            </div>
+          )}
+        </Link>
+      </motion.div>
+
+      {/* ── Two-column: today's plan + weekly progress ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        {/* Today's plan */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="card"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary-400" />
+              <h2 className="font-semibold text-sm">Today's Plan</h2>
+            </div>
+            <span className="text-xs text-surface-500">{doneTasks}/{totalTasks} done</span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="h-1.5 bg-surface-700 rounded-full mb-4 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all duration-500"
+              style={{ width: `${todayPct}%` }}
+            />
+          </div>
+
+          <div className="space-y-2.5">
+            {todayPlan.map(task => (
+              <div key={task.id} className={clsx(
+                'flex items-center gap-3 p-2.5 rounded-xl transition-colors',
+                task.done ? 'opacity-50' : 'hover:bg-surface-800/60 cursor-pointer'
+              )}>
+                <div className={clsx(
+                  'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0',
+                  task.done ? 'bg-green-500' : 'border-2 border-surface-600'
+                )}>
+                  {task.done && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                 </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Subjects */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="card"
-          >
-            <h2 className="font-semibold text-lg mb-4">My Subjects</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {subjects.map((subject) => (
-                <Link
-                  key={subject.id}
-                  to={`/learn/${subject.id}`}
-                  className="p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 transition-colors group"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-3xl">{subject.icon}</span>
-                    <div>
-                      <h3 className="font-medium">{subject.name}</h3>
-                      <p className="text-sm text-surface-400">{subject.progress}% complete</p>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-surface-700 rounded-full overflow-hidden">
-                    <div
-                      className={clsx(
-                        'h-full rounded-full bg-gradient-to-r',
-                        subject.color
-                      )}
-                      style={{ width: `${subject.progress}%` }}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-4"
-          >
-            <Link
-              to="/chat"
-              className="card-hover flex flex-col items-center text-center group"
-            >
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-accent-500/20 to-primary-500/20 mb-3 group-hover:scale-110 transition-transform">
-                <Brain className="w-8 h-8 text-accent-400" />
-              </div>
-              <h3 className="font-medium">Ask a Question</h3>
-              <p className="text-xs text-surface-400 mt-1">Sage is ready to help</p>
-            </Link>
-            <Link
-              to="/notebook"
-              className="card-hover flex flex-col items-center text-center group"
-            >
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 mb-3 group-hover:scale-110 transition-transform">
-                <BookOpen className="w-8 h-8 text-green-400" />
-              </div>
-              <h3 className="font-medium">Smart Notebook</h3>
-              <p className="text-xs text-surface-400 mt-1">Write & solve</p>
-            </Link>
-            <Link
-              to="/progress"
-              className="card-hover flex flex-col items-center text-center group"
-            >
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 mb-3 group-hover:scale-110 transition-transform">
-                <Target className="w-8 h-8 text-yellow-400" />
-              </div>
-              <h3 className="font-medium">My Progress</h3>
-              <p className="text-xs text-surface-400 mt-1">Track your growth</p>
-            </Link>
-            <Link
-              to="/insights"
-              className="card-hover flex flex-col items-center text-center group"
-            >
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 mb-3 group-hover:scale-110 transition-transform">
-                <Trophy className="w-8 h-8 text-pink-400" />
-              </div>
-              <h3 className="font-medium">Exam Tips</h3>
-              <p className="text-xs text-surface-400 mt-1">Topper strategies</p>
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Daily Challenges */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Daily Challenges</h2>
-              <Zap className="w-5 h-5 text-yellow-400" />
-            </div>
-            <div className="space-y-3">
-              {dailyChallenges.map((challenge) => (
-                <div
-                  key={challenge.id}
-                  className={clsx(
-                    'flex items-center gap-3 p-3 rounded-lg transition-colors',
-                    challenge.completed
-                      ? 'bg-green-500/10 border border-green-500/30'
-                      : 'bg-surface-800/50 hover:bg-surface-800 cursor-pointer'
-                  )}
-                >
-                  <div
-                    className={clsx(
-                      'w-6 h-6 rounded-full flex items-center justify-center',
-                      challenge.completed
-                        ? 'bg-green-500'
-                        : 'border-2 border-surface-600'
-                    )}
-                  >
-                    {challenge.completed && (
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className={clsx(
-                      'text-sm',
-                      challenge.completed && 'line-through text-surface-400'
-                    )}>
-                      {challenge.title}
-                    </p>
-                  </div>
-                  <span className="text-xs text-yellow-400 font-medium">
-                    +{challenge.xp} XP
-                  </span>
+                <div className="flex-1 min-w-0">
+                  <p className={clsx('text-sm font-medium truncate', task.done && 'line-through')}>{task.title}</p>
+                  <p className="text-xs text-surface-500">{task.subject} · {task.duration}</p>
                 </div>
-              ))}
-            </div>
-          </motion.div>
+                {!task.done && (
+                  <Link to="/learn" className="p-1.5 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-colors">
+                    <Play className="w-3.5 h-3.5 text-primary-400" />
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </motion.div>
 
-          {/* Badges */}
+        {/* Weekly activity + exam countdown */}
+        <div className="space-y-4">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.12 }}
             className="card"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">My Badges</h2>
-              <Link to="/progress" className="text-sm text-primary-400 hover:text-primary-300">
-                View all
-              </Link>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-4 h-4 text-accent-400" />
+              <h2 className="font-semibold text-sm">This Week</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {badges.map((badge) => (
-                <div
-                  key={badge.id}
-                  className={clsx(
-                    'p-3 rounded-xl text-center transition-all',
-                    badge.earned
-                      ? 'bg-surface-800/50'
-                      : 'bg-surface-800/30 opacity-50'
-                  )}
-                  title={badge.name}
-                >
-                  <span className="text-2xl">{badge.icon}</span>
-                </div>
-              ))}
-            </div>
+            <WeekBar data={weekProgress} />
+            <p className="text-xs text-surface-500 mt-3">5 of 7 days active · Great work!</p>
           </motion.div>
 
-          {/* Study Timer */}
+          {/* Exam countdown card */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="card bg-gradient-to-br from-primary-500/10 to-accent-500/10"
+            transition={{ delay: 0.15 }}
+            className="card bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20"
           >
-            <div className="flex items-center gap-3 mb-4">
-              <Clock className="w-5 h-5 text-primary-400" />
-              <h2 className="font-semibold">Study Timer</h2>
+            <div className="flex items-center gap-2 mb-1">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <h2 className="font-semibold text-sm text-amber-300">{examCountdown.exam}</h2>
             </div>
-            <div className="text-center py-4">
-              <p className="text-4xl font-bold font-mono">25:00</p>
-              <p className="text-sm text-surface-400 mt-2">Focus Session</p>
-            </div>
-            <button className="w-full btn-primary flex items-center justify-center gap-2">
-              <Play className="w-4 h-4" />
-              Start Focus Mode
-            </button>
+            <p className="text-3xl font-bold text-amber-200">{examCountdown.daysLeft}</p>
+            <p className="text-xs text-amber-400/70">days remaining</p>
+            <Link to="/insights" className="mt-3 text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors">
+              View topper strategies <ChevronRight className="w-3 h-3" />
+            </Link>
           </motion.div>
         </div>
       </div>
+
+      {/* ── Bottom row: quick access links ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+        className="grid grid-cols-3 gap-3"
+      >
+        {[
+          { to: '/learn', icon: BookOpen, label: 'Study', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { to: '/notebook', icon: '📓', label: 'Notebook', color: 'text-green-400', bg: 'bg-green-500/10' },
+          { to: '/progress', icon: '📈', label: 'Progress', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+        ].map(item => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 transition-colors text-center group"
+          >
+            <div className={clsx('p-2.5 rounded-xl', item.bg)}>
+              {typeof item.icon === 'string' ? (
+                <span className="text-xl">{item.icon}</span>
+              ) : (
+                <item.icon className={clsx('w-5 h-5', item.color)} />
+              )}
+            </div>
+            <span className="text-sm font-medium">{item.label}</span>
+          </Link>
+        ))}
+      </motion.div>
     </div>
   );
 }

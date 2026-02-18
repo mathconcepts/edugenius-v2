@@ -1,285 +1,279 @@
-import { motion } from 'framer-motion';
+/**
+ * TeacherDashboard — Frugal, action-oriented
+ * Focus: Know your students, act fast, AI is one click away
+ * No noise — just students, classes, and AI help
+ */
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
-  Users,
-  MessageSquare,
-  TrendingUp,
-  AlertCircle,
-  ChevronRight,
-  Plus,
-  Calendar,
-  Award,
+  Users, MessageSquare, AlertCircle, TrendingUp,
+  ChevronRight, Plus, Clock, CheckCircle2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const myStudents = [
-  { id: '1', name: 'Arjun Sharma', avatar: null, progress: 85, lastActive: '2 hours ago', status: 'active' },
-  { id: '2', name: 'Priya Patel', avatar: null, progress: 72, lastActive: '1 day ago', status: 'needs-attention' },
-  { id: '3', name: 'Rahul Kumar', avatar: null, progress: 91, lastActive: '30 min ago', status: 'active' },
-  { id: '4', name: 'Sneha Gupta', avatar: null, progress: 45, lastActive: '3 days ago', status: 'struggling' },
-  { id: '5', name: 'Vikram Singh', avatar: null, progress: 68, lastActive: '5 hours ago', status: 'active' },
+// ── Mock data ────────────────────────────────────────────────────────────────
+
+const students = [
+  { id: '1', name: 'Arjun Sharma', progress: 85, status: 'on-track' as const, lastSeen: '2h ago', topic: 'Quadratic Equations' },
+  { id: '2', name: 'Priya Patel', progress: 52, status: 'struggling' as const, lastSeen: '1d ago', topic: 'Chemical Bonding' },
+  { id: '3', name: 'Rahul Kumar', progress: 91, status: 'on-track' as const, lastSeen: '30m ago', topic: 'Newton\'s Laws' },
+  { id: '4', name: 'Sneha Gupta', progress: 38, status: 'needs-attention' as const, lastSeen: '3d ago', topic: 'Trigonometry' },
+  { id: '5', name: 'Vikram Singh', progress: 74, status: 'on-track' as const, lastSeen: '5h ago', topic: 'Organic Chemistry' },
 ];
 
-const recentSubmissions = [
-  { id: '1', student: 'Arjun Sharma', topic: 'Quadratic Equations', score: 92, date: 'Today' },
-  { id: '2', student: 'Rahul Kumar', topic: 'Newton\'s Laws', score: 88, date: 'Today' },
-  { id: '3', student: 'Priya Patel', topic: 'Chemical Bonding', score: 65, date: 'Yesterday' },
+const todayClasses = [
+  { id: '1', name: 'Math 10A', time: '10:00 AM', topic: 'Trigonometry', students: 32, status: 'upcoming' as const },
+  { id: '2', name: 'Physics 11B', time: '2:00 PM', topic: 'Mechanics', students: 28, status: 'upcoming' as const },
 ];
 
-const upcomingClasses = [
-  { id: '1', title: 'Math - Class 10A', time: '10:00 AM', students: 32, topic: 'Trigonometry' },
-  { id: '2', title: 'Physics - Class 11B', time: '2:00 PM', students: 28, topic: 'Mechanics' },
-];
+type StudentStatus = 'on-track' | 'needs-attention' | 'struggling';
 
-type StudentStatus = 'active' | 'needs-attention' | 'struggling';
-
-const statusLabels: Record<StudentStatus, string> = {
-  active: 'On Track',
-  'needs-attention': 'Needs Attention',
-  struggling: 'Struggling',
+const statusConfig: Record<StudentStatus, { label: string; color: string; dot: string }> = {
+  'on-track': { label: 'On track', color: 'text-green-400', dot: 'bg-green-400' },
+  'needs-attention': { label: 'Needs attention', color: 'text-amber-400', dot: 'bg-amber-400' },
+  'struggling': { label: 'Struggling', color: 'text-red-400', dot: 'bg-red-400' },
 };
 
+// ── Stat chip ────────────────────────────────────────────────────────────────
+
+function StatChip({ icon: Icon, value, label, color }: {
+  icon: React.ElementType; value: string | number; label: string; color: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-800/50">
+      <div className={clsx('p-2 rounded-lg', color)}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div>
+        <p className="text-xl font-bold">{value}</p>
+        <p className="text-xs text-surface-400">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
+
 export function TeacherDashboard() {
-  const totalStudents = myStudents.length;
-  const avgProgress = Math.round(myStudents.reduce((sum, s) => sum + s.progress, 0) / totalStudents);
-  const needsAttention = myStudents.filter(s => s.status !== 'active').length;
+  const [filter, setFilter] = useState<'all' | StudentStatus>('all');
+
+  const needsAttention = students.filter(s => s.status !== 'on-track').length;
+  const avgProgress = Math.round(students.reduce((s, st) => s + st.progress, 0) / students.length);
+  const filtered = filter === 'all' ? students : students.filter(s => s.status === filter);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto space-y-5 pb-8">
+
+      {/* ── Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
-          <p className="text-surface-400">Monitor your students and manage lessons</p>
+          <h1 className="text-xl font-bold">Good morning! 👋</h1>
+          <p className="text-surface-400 text-sm mt-0.5">
+            {needsAttention > 0
+              ? `${needsAttention} student${needsAttention > 1 ? 's' : ''} need your attention today`
+              : 'All students are on track — great work!'}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="btn-secondary flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Get AI Help
-          </button>
-          <button className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Lesson
-          </button>
-        </div>
-      </div>
+        <button className="btn-primary flex items-center gap-2 text-sm">
+          <Plus className="w-4 h-4" />
+          New Lesson
+        </button>
+      </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-primary-500/20">
-              <Users className="w-6 h-6 text-primary-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{totalStudents}</p>
-              <p className="text-sm text-surface-400">My Students</p>
-            </div>
-          </div>
-        </motion.div>
+      {/* ── Stats strip ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="grid grid-cols-3 gap-3"
+      >
+        <StatChip icon={Users} value={students.length} label="My Students" color="bg-primary-500/20 text-primary-400" />
+        <StatChip icon={TrendingUp} value={`${avgProgress}%`} label="Avg Progress" color="bg-green-500/20 text-green-400" />
+        <StatChip icon={AlertCircle} value={needsAttention} label="Need Help" color="bg-amber-500/20 text-amber-400" />
+      </motion.div>
 
+      {/* ── Main grid: students + sidebar ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* Students list (takes 2/3 width on large screens) */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="card"
+          className="lg:col-span-2 card"
         >
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-green-500/20">
-              <TrendingUp className="w-6 h-6 text-green-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{avgProgress}%</p>
-              <p className="text-sm text-surface-400">Avg Progress</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-yellow-500/20">
-              <AlertCircle className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{needsAttention}</p>
-              <p className="text-sm text-surface-400">Need Attention</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="card"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-accent-500/20">
-              <Award className="w-6 h-6 text-accent-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">12</p>
-              <p className="text-sm text-surface-400">Lessons Created</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Students List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card lg:col-span-2"
-        >
+          {/* List header + filter pills */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">My Students</h2>
-            <Link to="/students" className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
-              View All <ChevronRight className="w-4 h-4" />
-            </Link>
+            <h2 className="font-semibold">Students</h2>
+            <div className="flex gap-1">
+              {(['all', 'needs-attention', 'struggling'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={clsx(
+                    'px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+                    filter === f
+                      ? 'bg-primary-500/20 text-primary-400'
+                      : 'text-surface-400 hover:text-white hover:bg-surface-700'
+                  )}
+                >
+                  {f === 'all' ? 'All' : f === 'needs-attention' ? 'Attention' : 'Struggling'}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {myStudents.map((student) => (
-              <div
-                key={student.id}
-                className="flex items-center gap-4 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 transition-colors cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-medium">
-                  {student.name.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{student.name}</h3>
-                    <span
-                      className={clsx(
-                        'px-2 py-0.5 rounded-full text-xs font-medium',
-                        student.status === 'active' && 'bg-green-500/20 text-green-400',
-                        student.status === 'needs-attention' && 'bg-yellow-500/20 text-yellow-400',
-                        student.status === 'struggling' && 'bg-red-500/20 text-red-400'
-                      )}
-                    >
-                      {statusLabels[student.status as StudentStatus]}
-                    </span>
+          <div className="space-y-2">
+            {filtered.map(student => {
+              const sc = statusConfig[student.status];
+              return (
+                <div
+                  key={student.id}
+                  className="flex items-center gap-4 p-3.5 rounded-xl bg-surface-800/40 hover:bg-surface-800/80 transition-colors cursor-pointer group"
+                >
+                  {/* Avatar */}
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                    {student.name.charAt(0)}
                   </div>
-                  <p className="text-sm text-surface-400">Last active: {student.lastActive}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">{student.progress}%</p>
-                  <div className="w-20 h-1.5 bg-surface-700 rounded-full mt-1">
-                    <div
-                      className={clsx(
-                        'h-full rounded-full',
-                        student.progress >= 80 && 'bg-green-500',
-                        student.progress >= 60 && student.progress < 80 && 'bg-yellow-500',
-                        student.progress < 60 && 'bg-red-500'
-                      )}
-                      style={{ width: `${student.progress}%` }}
-                    />
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{student.name}</p>
+                      <span className={clsx('flex items-center gap-1 text-xs', sc.color)}>
+                        <span className={clsx('w-1.5 h-1.5 rounded-full', sc.dot)} />
+                        {sc.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-surface-500 truncate">
+                      Working on: {student.topic} · {student.lastSeen}
+                    </p>
                   </div>
+
+                  {/* Progress */}
+                  <div className="text-right flex-shrink-0">
+                    <p className={clsx('font-bold text-sm', student.progress >= 75 ? 'text-green-400' : student.progress >= 50 ? 'text-amber-400' : 'text-red-400')}>
+                      {student.progress}%
+                    </p>
+                    <div className="w-16 h-1.5 bg-surface-700 rounded-full mt-1">
+                      <div
+                        className={clsx('h-full rounded-full', student.progress >= 75 ? 'bg-green-500' : student.progress >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+                        style={{ width: `${student.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action (visible on hover) */}
+                  <Link
+                    to="/chat"
+                    onClick={e => e.stopPropagation()}
+                    title="Get AI help for this student"
+                    className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-all flex-shrink-0"
+                  >
+                    <MessageSquare className="w-4 h-4 text-primary-400" />
+                  </Link>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          <Link to="/students" className="mt-4 flex items-center justify-center gap-1 text-sm text-surface-400 hover:text-white transition-colors py-2">
+            View all students <ChevronRight className="w-4 h-4" />
+          </Link>
         </motion.div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Upcoming Classes */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Today's Classes</h2>
-              <Calendar className="w-5 h-5 text-surface-400" />
-            </div>
-            <div className="space-y-3">
-              {upcomingClasses.map((cls) => (
-                <div
-                  key={cls.id}
-                  className="p-3 rounded-lg bg-surface-800/50 hover:bg-surface-800 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium text-sm">{cls.title}</h3>
-                    <span className="text-xs text-primary-400">{cls.time}</span>
-                  </div>
-                  <p className="text-xs text-surface-400">
-                    {cls.topic} • {cls.students} students
-                  </p>
-                </div>
-              ))}
-            </div>
-            <button className="w-full mt-4 btn-secondary text-sm">
-              View Schedule
-            </button>
-          </motion.div>
+        {/* Sidebar: today's classes + AI help */}
+        <div className="space-y-4">
 
-          {/* Recent Submissions */}
+          {/* Today's classes */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.12 }}
             className="card"
           >
-            <h2 className="font-semibold mb-4">Recent Submissions</h2>
-            <div className="space-y-3">
-              {recentSubmissions.map((sub) => (
-                <div
-                  key={sub.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-surface-800/50"
-                >
-                  <div>
-                    <p className="font-medium text-sm">{sub.student}</p>
-                    <p className="text-xs text-surface-400">{sub.topic}</p>
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-4 h-4 text-surface-400" />
+              <h2 className="font-semibold text-sm">Today's Classes</h2>
+            </div>
+            <div className="space-y-2.5">
+              {todayClasses.map(cls => (
+                <div key={cls.id} className="p-3 rounded-xl bg-surface-800/50 hover:bg-surface-800 transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">{cls.name}</p>
+                    <span className="text-xs text-primary-400 font-medium">{cls.time}</span>
                   </div>
-                  <div className="text-right">
-                    <p
-                      className={clsx(
-                        'font-bold',
-                        sub.score >= 80 && 'text-green-400',
-                        sub.score >= 60 && sub.score < 80 && 'text-yellow-400',
-                        sub.score < 60 && 'text-red-400'
-                      )}
-                    >
-                      {sub.score}%
-                    </p>
-                    <p className="text-xs text-surface-500">{sub.date}</p>
-                  </div>
+                  <p className="text-xs text-surface-400 mt-0.5">{cls.topic} · {cls.students} students</p>
                 </div>
               ))}
             </div>
           </motion.div>
 
-          {/* AI Assistant */}
+          {/* AI Help — single focused CTA */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="card bg-gradient-to-br from-accent-500/10 to-primary-500/10"
+            transition={{ delay: 0.15 }}
+            className="card bg-gradient-to-br from-primary-500/10 to-accent-500/10 border border-primary-500/20"
           >
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-2.5 mb-3">
               <span className="text-2xl">🎓</span>
-              <h2 className="font-semibold">Sage AI Assistant</h2>
+              <div>
+                <h2 className="font-semibold text-sm">AI Assistant</h2>
+                <p className="text-xs text-surface-400">Lesson plans, analysis, question banks</p>
+              </div>
             </div>
-            <p className="text-sm text-surface-400 mb-4">
-              Get help creating lessons, analyzing student performance, or generating practice problems.
-            </p>
-            <Link to="/chat" className="btn-primary w-full text-center block">
-              Chat with Sage
+            <div className="space-y-2">
+              {[
+                'Create a quiz for Class 10A',
+                'Who needs help with Physics?',
+                'Generate practice problems',
+              ].map((prompt, i) => (
+                <Link
+                  key={i}
+                  to={`/chat?q=${encodeURIComponent(prompt)}`}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-surface-800/60 hover:bg-surface-800 text-xs text-surface-300 hover:text-white transition-colors text-left"
+                >
+                  <span className="text-accent-400">›</span>
+                  {prompt}
+                </Link>
+              ))}
+            </div>
+            <Link to="/chat" className="mt-3 btn-primary w-full text-center block text-sm py-2">
+              Open AI Chat
             </Link>
+          </motion.div>
+
+          {/* Quick wins */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="card"
+          >
+            <h2 className="font-semibold text-sm mb-3">Quick Actions</h2>
+            <div className="space-y-2">
+              {[
+                { to: '/students', icon: Users, label: 'View all students' },
+                { to: '/content', icon: CheckCircle2, label: 'Create a lesson' },
+                { to: '/analytics', icon: TrendingUp, label: 'Progress reports' },
+              ].map(item => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-800/60 text-surface-300 hover:text-white transition-colors"
+                >
+                  <item.icon className="w-4 h-4 text-surface-500" />
+                  <span className="text-sm">{item.label}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-surface-600 ml-auto" />
+                </Link>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
