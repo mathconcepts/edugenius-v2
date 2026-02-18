@@ -7,12 +7,15 @@ import type { Request, Response, Router } from 'express';
 import { userService } from './service';
 import { verificationService } from './verification';
 import { createOnboardingFlow, EXAM_CONFIGS, LEARNING_STYLE_QUESTIONS } from './onboarding';
+import { examAdminService, type ExamAdminConfig } from './exam-admin';
 import type {
   CreateUserRequest,
   UpdateUserRequest,
   UpdateStudentProfileRequest,
   UserSearchFilters,
   VerificationChannel,
+  ExamType,
+  Subject,
 } from './types';
 
 // ============================================
@@ -393,6 +396,227 @@ export const userRoutes = {
   },
 
   // ============================================
+  // EXAM ADMIN ROUTES
+  // ============================================
+
+  async getEnabledExams(_req: Request, res: Response): Promise<void> {
+    try {
+      const exams = await examAdminService.getEnabledExams();
+      res.json(exams);
+    } catch (error) {
+      console.error('Error getting enabled exams:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async getAllExamConfigs(_req: Request, res: Response): Promise<void> {
+    try {
+      const configs = await examAdminService.getAllExamConfigs();
+      res.json(configs);
+    } catch (error) {
+      console.error('Error getting exam configs:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async getExamAdminConfig(req: Request, res: Response): Promise<void> {
+    try {
+      const { examId } = req.params;
+      const config = await examAdminService.getExamConfig(examId as ExamType);
+      
+      if (!config) {
+        res.status(404).json({ error: 'Exam not found' });
+        return;
+      }
+
+      res.json(config);
+    } catch (error) {
+      console.error('Error getting exam config:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async updateExamAdminConfig(req: Request, res: Response): Promise<void> {
+    try {
+      const { examId } = req.params;
+      const updates = req.body;
+      const adminId = req.headers['x-admin-id'] as string || 'admin';
+
+      const config = await examAdminService.updateExamConfig(
+        examId as ExamType,
+        updates,
+        adminId
+      );
+
+      res.json(config);
+    } catch (error) {
+      console.error('Error updating exam config:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async enableExam(req: Request, res: Response): Promise<void> {
+    try {
+      const { examId } = req.params;
+      const adminId = req.headers['x-admin-id'] as string || 'admin';
+
+      await examAdminService.enableExam(examId as ExamType, adminId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error enabling exam:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async disableExam(req: Request, res: Response): Promise<void> {
+    try {
+      const { examId } = req.params;
+      const adminId = req.headers['x-admin-id'] as string || 'admin';
+
+      await examAdminService.disableExam(examId as ExamType, adminId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error disabling exam:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async setExamSubjects(req: Request, res: Response): Promise<void> {
+    try {
+      const { examId } = req.params;
+      const { subjects } = req.body as { subjects: Subject[] };
+      const adminId = req.headers['x-admin-id'] as string || 'admin';
+
+      await examAdminService.setEnabledSubjects(examId as ExamType, subjects, adminId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error setting exam subjects:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async setExamYears(req: Request, res: Response): Promise<void> {
+    try {
+      const { examId } = req.params;
+      const { years } = req.body as { years: number[] };
+      const adminId = req.headers['x-admin-id'] as string || 'admin';
+
+      await examAdminService.setEnabledYears(examId as ExamType, years, adminId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error setting exam years:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  // ============================================
+  // ENROLLMENT ROUTES
+  // ============================================
+
+  async requestEnrollment(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const { examId, year, subjects, grade } = req.body;
+
+      const enrollment = await examAdminService.requestEnrollment({
+        userId,
+        examId,
+        requestedYear: year,
+        requestedSubjects: subjects,
+        requestedGrade: grade,
+      });
+
+      res.status(201).json(enrollment);
+    } catch (error) {
+      console.error('Error requesting enrollment:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to request enrollment' });
+    }
+  },
+
+  async getUserEnrollments(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const enrollments = await examAdminService.getUserEnrollments(userId);
+      res.json(enrollments);
+    } catch (error) {
+      console.error('Error getting user enrollments:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async getUserActiveEnrollments(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const enrollments = await examAdminService.getUserActiveEnrollments(userId);
+      res.json(enrollments);
+    } catch (error) {
+      console.error('Error getting active enrollments:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async checkExamAccess(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId, examId } = req.params;
+      const hasAccess = await examAdminService.hasExamAccess(userId, examId as ExamType);
+      const details = await examAdminService.getExamAccessDetails(userId, examId as ExamType);
+      res.json({ hasAccess, enrollment: details });
+    } catch (error) {
+      console.error('Error checking exam access:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async getPendingEnrollments(_req: Request, res: Response): Promise<void> {
+    try {
+      const enrollments = await examAdminService.getPendingEnrollments();
+      res.json(enrollments);
+    } catch (error) {
+      console.error('Error getting pending enrollments:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async approveEnrollment(req: Request, res: Response): Promise<void> {
+    try {
+      const { enrollmentId } = req.params;
+      const { accessLevel, expiresInDays } = req.body;
+      const adminId = req.headers['x-admin-id'] as string || 'admin';
+
+      const enrollment = await examAdminService.approveEnrollment(
+        enrollmentId,
+        adminId,
+        accessLevel || 'trial',
+        expiresInDays
+      );
+
+      res.json(enrollment);
+    } catch (error) {
+      console.error('Error approving enrollment:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to approve enrollment' });
+    }
+  },
+
+  async rejectEnrollment(req: Request, res: Response): Promise<void> {
+    try {
+      const { enrollmentId } = req.params;
+      const { reason } = req.body;
+      const adminId = req.headers['x-admin-id'] as string || 'admin';
+
+      const enrollment = await examAdminService.rejectEnrollment(
+        enrollmentId,
+        adminId,
+        reason || 'No reason provided'
+      );
+
+      res.json(enrollment);
+    } catch (error) {
+      console.error('Error rejecting enrollment:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to reject enrollment' });
+    }
+  },
+
+  // ============================================
   // ACTIVITY LOGS
   // ============================================
 
@@ -476,10 +700,41 @@ export function setupUserRoutes(router: Router): void {
   // Activity
   router.get('/users/:userId/activity', userRoutes.getActivityLogs);
 
-  // Admin
+  // Admin bulk operations
   router.post('/users/bulk', userRoutes.bulkAction);
 
   // Static data
   router.get('/config/exams', userRoutes.getExamConfigs);
   router.get('/config/learning-style-quiz', userRoutes.getLearningStyleQuiz);
+
+  // ==========================================
+  // EXAM ADMIN ROUTES (Admin only)
+  // ==========================================
+  
+  // Get enabled exams (for students/users)
+  router.get('/exams/enabled', userRoutes.getEnabledExams);
+  
+  // Admin exam management
+  router.get('/admin/exams', userRoutes.getAllExamConfigs);
+  router.get('/admin/exams/:examId', userRoutes.getExamAdminConfig);
+  router.patch('/admin/exams/:examId', userRoutes.updateExamAdminConfig);
+  router.post('/admin/exams/:examId/enable', userRoutes.enableExam);
+  router.post('/admin/exams/:examId/disable', userRoutes.disableExam);
+  router.put('/admin/exams/:examId/subjects', userRoutes.setExamSubjects);
+  router.put('/admin/exams/:examId/years', userRoutes.setExamYears);
+
+  // ==========================================
+  // ENROLLMENT ROUTES
+  // ==========================================
+  
+  // User enrollment
+  router.post('/users/:userId/enrollments', userRoutes.requestEnrollment);
+  router.get('/users/:userId/enrollments', userRoutes.getUserEnrollments);
+  router.get('/users/:userId/enrollments/active', userRoutes.getUserActiveEnrollments);
+  router.get('/users/:userId/access/:examId', userRoutes.checkExamAccess);
+  
+  // Admin enrollment management
+  router.get('/admin/enrollments/pending', userRoutes.getPendingEnrollments);
+  router.post('/admin/enrollments/:enrollmentId/approve', userRoutes.approveEnrollment);
+  router.post('/admin/enrollments/:enrollmentId/reject', userRoutes.rejectEnrollment);
 }

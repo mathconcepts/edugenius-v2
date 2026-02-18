@@ -46,13 +46,17 @@ interface ExamConfig {
   subjects: string[];
   grades: number[];
   color: string;
+  enabled?: boolean;
+  enabledYears?: number[];
+  requiresApproval?: boolean;
+  pricingTier?: string;
 }
 
 // ============================================
-// EXAM CONFIGURATIONS
+// EXAM CONFIGURATIONS (defaults, will be overridden by API)
 // ============================================
 
-const EXAMS: ExamConfig[] = [
+const DEFAULT_EXAMS: ExamConfig[] = [
   { id: 'JEE_MAIN', name: 'JEE Main', icon: '🎯', subjects: ['Physics', 'Chemistry', 'Mathematics'], grades: [11, 12], color: 'bg-blue-500' },
   { id: 'JEE_ADVANCED', name: 'JEE Advanced', icon: '🏆', subjects: ['Physics', 'Chemistry', 'Mathematics'], grades: [11, 12], color: 'bg-purple-500' },
   { id: 'NEET', name: 'NEET', icon: '🩺', subjects: ['Physics', 'Chemistry', 'Biology'], grades: [11, 12], color: 'bg-green-500' },
@@ -62,6 +66,17 @@ const EXAMS: ExamConfig[] = [
   { id: 'UPSC', name: 'UPSC CSE', icon: '🏛️', subjects: ['GS', 'Optional'], grades: [], color: 'bg-cyan-500' },
   { id: 'GATE', name: 'GATE', icon: '⚙️', subjects: ['Subject-specific'], grades: [], color: 'bg-lime-500' },
 ];
+
+// Exam icons and colors mapping
+const EXAM_ICONS: Record<string, string> = {
+  JEE_MAIN: '🎯', JEE_ADVANCED: '🏆', NEET: '🩺', CBSE_10: '📝',
+  CBSE_12: '📚', CAT: '💼', UPSC: '🏛️', GATE: '⚙️',
+};
+const EXAM_COLORS: Record<string, string> = {
+  JEE_MAIN: 'bg-blue-500', JEE_ADVANCED: 'bg-purple-500', NEET: 'bg-green-500',
+  CBSE_10: 'bg-yellow-500', CBSE_12: 'bg-red-500', CAT: 'bg-indigo-500',
+  UPSC: 'bg-cyan-500', GATE: 'bg-lime-500',
+};
 
 // ============================================
 // LEARNING STYLE QUESTIONS
@@ -107,6 +122,9 @@ const LEARNING_STYLE_QUESTIONS = [
 export default function OnboardingFlow() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
+  const [availableExams, setAvailableExams] = useState<ExamConfig[]>([]);
+  const [loadingExams, setLoadingExams] = useState(true);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<'none' | 'pending' | 'approved'>('none');
   const [userData, setUserData] = useState({
     role: '' as UserRole | '',
     email: '',
@@ -120,6 +138,41 @@ export default function OnboardingFlow() {
     learningStyleAnswers: {} as Record<string, string>,
     connectedChannels: [] as string[],
   });
+
+  // Fetch admin-enabled exams on mount
+  useEffect(() => {
+    async function fetchEnabledExams() {
+      try {
+        const response = await fetch('/api/exams/enabled');
+        if (response.ok) {
+          const data = await response.json();
+          // Transform API response to ExamConfig format
+          const exams: ExamConfig[] = data.map((exam: any) => ({
+            id: exam.examId,
+            name: exam.examId.replace(/_/g, ' '),
+            icon: EXAM_ICONS[exam.examId] || '📚',
+            subjects: exam.enabledSubjects || [],
+            grades: exam.enabledGrades || [],
+            color: EXAM_COLORS[exam.examId] || 'bg-gray-500',
+            enabled: exam.enabled,
+            enabledYears: exam.enabledYears || [],
+            requiresApproval: exam.requiresApproval,
+            pricingTier: exam.pricingTier,
+          }));
+          setAvailableExams(exams);
+        } else {
+          // Fallback to defaults if API fails
+          setAvailableExams(DEFAULT_EXAMS);
+        }
+      } catch (error) {
+        console.error('Failed to fetch enabled exams:', error);
+        setAvailableExams(DEFAULT_EXAMS);
+      } finally {
+        setLoadingExams(false);
+      }
+    }
+    fetchEnabledExams();
+  }, []);
 
   const steps: OnboardingStep[] = [
     'welcome',
@@ -295,53 +348,109 @@ export default function OnboardingFlow() {
               </StepContainer>
             )}
 
-            {/* Exam Selection */}
+            {/* Exam Selection - Admin Controlled */}
             {currentStep === 'exam' && (
               <StepContainer key="exam">
                 <h2 className="text-3xl font-bold text-white mb-2 text-center">
                   Which exam are you preparing for?
                 </h2>
                 <p className="text-surface-400 mb-8 text-center">
-                  We'll customize your learning path accordingly
+                  {loadingExams 
+                    ? 'Loading available exams...' 
+                    : 'Select from available exams configured by admin'
+                  }
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {EXAMS.map((exam) => (
-                    <button
-                      key={exam.id}
-                      onClick={() => {
-                        setUserData({ 
-                          ...userData, 
-                          selectedExam: exam.id,
-                          subjects: exam.subjects,
-                        });
-                        nextStep();
-                      }}
-                      className={clsx(
-                        'p-4 rounded-xl border-2 text-center transition-all hover:scale-105',
-                        userData.selectedExam === exam.id
-                          ? 'border-primary-500 bg-primary-500/10'
-                          : 'border-surface-700 bg-surface-800 hover:border-surface-600'
-                      )}
-                    >
-                      <span className="text-3xl mb-2 block">{exam.icon}</span>
-                      <h3 className="font-medium text-white">{exam.name}</h3>
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-6 flex items-center justify-center gap-4">
-                  <span className="text-surface-400">Exam Year:</span>
-                  <select
-                    value={userData.examYear}
-                    onChange={(e) => setUserData({ ...userData, examYear: parseInt(e.target.value) })}
-                    className="input w-32"
-                  >
-                    {[0, 1, 2, 3].map((offset) => (
-                      <option key={offset} value={new Date().getFullYear() + offset}>
-                        {new Date().getFullYear() + offset}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                
+                {loadingExams ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+                  </div>
+                ) : availableExams.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-surface-400">No exams are currently available.</p>
+                    <p className="text-surface-500 text-sm mt-2">Please contact support.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {availableExams.map((exam) => (
+                        <button
+                          key={exam.id}
+                          onClick={async () => {
+                            setUserData({ 
+                              ...userData, 
+                              selectedExam: exam.id,
+                              subjects: exam.subjects,
+                            });
+                            
+                            // Check if exam requires approval
+                            if (exam.requiresApproval) {
+                              setEnrollmentStatus('pending');
+                            } else {
+                              setEnrollmentStatus('approved');
+                            }
+                            nextStep();
+                          }}
+                          className={clsx(
+                            'p-4 rounded-xl border-2 text-center transition-all hover:scale-105 relative',
+                            userData.selectedExam === exam.id
+                              ? 'border-primary-500 bg-primary-500/10'
+                              : 'border-surface-700 bg-surface-800 hover:border-surface-600'
+                          )}
+                        >
+                          <span className="text-3xl mb-2 block">{exam.icon}</span>
+                          <h3 className="font-medium text-white">{exam.name}</h3>
+                          
+                          {/* Pricing tier badge */}
+                          {exam.pricingTier && (
+                            <span className={clsx(
+                              'absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full',
+                              exam.pricingTier === 'free' && 'bg-green-500/20 text-green-400',
+                              exam.pricingTier === 'basic' && 'bg-blue-500/20 text-blue-400',
+                              exam.pricingTier === 'premium' && 'bg-purple-500/20 text-purple-400',
+                              exam.pricingTier === 'enterprise' && 'bg-yellow-500/20 text-yellow-400',
+                            )}>
+                              {exam.pricingTier}
+                            </span>
+                          )}
+                          
+                          {/* Approval required indicator */}
+                          {exam.requiresApproval && (
+                            <span className="text-xs text-surface-500 mt-1 block">
+                              Requires approval
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {/* Year selection - only show enabled years */}
+                    <div className="mt-6 flex items-center justify-center gap-4">
+                      <span className="text-surface-400">Exam Year:</span>
+                      <select
+                        value={userData.examYear}
+                        onChange={(e) => setUserData({ ...userData, examYear: parseInt(e.target.value) })}
+                        className="input w-32"
+                      >
+                        {(userData.selectedExam && availableExams.find(e => e.id === userData.selectedExam)?.enabledYears?.length
+                          ? availableExams.find(e => e.id === userData.selectedExam)!.enabledYears!
+                          : [0, 1, 2, 3].map(o => new Date().getFullYear() + o)
+                        ).map((year) => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Enrollment status message */}
+                    {enrollmentStatus === 'pending' && (
+                      <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
+                        <p className="text-yellow-400 text-sm">
+                          ⏳ This exam requires approval. You'll get access once an admin approves your request.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </StepContainer>
             )}
 

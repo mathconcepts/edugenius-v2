@@ -14,6 +14,7 @@ import type {
 } from './types';
 import type { UserRole } from '../auth/types';
 import { userService } from './service';
+import { examAdminService, type ExamAdminConfig } from './exam-admin';
 
 // ============================================
 // ONBOARDING CONFIGURATION
@@ -387,19 +388,99 @@ export class OnboardingFlow {
     await this.load(); // Refresh
   }
 
+  /**
+   * Get available exams based on admin configuration
+   * Only returns exams that are enabled by admin
+   */
+  async getAvailableExams(): Promise<ExamAdminConfig[]> {
+    return examAdminService.getEnabledExams();
+  }
+
+  /**
+   * Get available subjects for a specific exam (admin-controlled)
+   */
+  async getAvailableSubjects(examId: ExamType): Promise<Subject[]> {
+    const config = await examAdminService.getExamConfig(examId);
+    return config?.enabledSubjects ?? [];
+  }
+
+  /**
+   * Get available years for a specific exam (admin-controlled)
+   */
+  async getAvailableYears(examId: ExamType): Promise<number[]> {
+    const config = await examAdminService.getExamConfig(examId);
+    return config?.enabledYears ?? [];
+  }
+
+  /**
+   * Get available grades for a specific exam (admin-controlled)
+   */
+  async getAvailableGrades(examId: ExamType): Promise<number[]> {
+    const config = await examAdminService.getExamConfig(examId);
+    return config?.enabledGrades ?? [];
+  }
+
+  /**
+   * Select exam with admin validation and enrollment request
+   */
   async selectExam(
     examType: ExamType,
     examYear: number,
-    subjects: Subject[]
-  ): Promise<void> {
-    await userService.setExamConfiguration(this.userId, {
-      primaryExam: examType,
-      primaryExamYear: examYear,
-      subjects,
-    });
-    await this.completeStep('exam_selected');
-    await this.completeStep('subjects_configured');
-    await this.load();
+    subjects: Subject[],
+    grade?: number
+  ): Promise<{ success: boolean; requiresApproval: boolean; error?: string }> {
+    // Validate against admin config
+    const config = await examAdminService.getExamConfig(examType);
+    
+    if (!config || !config.enabled) {
+      return { success: false, requiresApproval: false, error: 'This exam is not currently available' };
+    }
+
+    if (!config.enabledYears.includes(examYear)) {
+      return { success: false, requiresApproval: false, error: `Year ${examYear} is not available for this exam` };
+    }
+
+    const invalidSubjects = subjects.filter(s => !config.enabledSubjects.includes(s));
+    if (invalidSubjects.length > 0) {
+      return { success: false, requiresApproval: false, error: `Subjects not available: ${invalidSubjects.join(', ')}` };
+    }
+
+    if (grade && config.enabledGrades.length > 0 && !config.enabledGrades.includes(grade)) {
+      return { success: false, requiresApproval: false, error: `Grade ${grade} is not available for this exam` };
+    }
+
+    try {
+      // Request enrollment
+      const enrollment = await examAdminService.requestEnrollment({
+        userId: this.userId,
+        examId: examType,
+        requestedYear: examYear,
+        requestedSubjects: subjects,
+        requestedGrade: grade,
+      });
+
+      // Update user's exam configuration
+      await userService.setExamConfiguration(this.userId, {
+        primaryExam: examType,
+        primaryExamYear: examYear,
+        subjects,
+      });
+
+      await this.completeStep('exam_selected');
+      await this.completeStep('subjects_configured');
+      await this.load();
+
+      return {
+        success: true,
+        requiresApproval: enrollment.status === 'pending',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        requiresApproval: false,
+        error: error instanceof Error ? error.message : 'Failed to enroll in exam',
+      };
+    }
   }
 
   async setLearningStyle(style: LearningStyle): Promise<void> {

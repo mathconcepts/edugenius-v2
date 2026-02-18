@@ -9,6 +9,8 @@ export * from './types';
 // Services
 export { UserService, userService } from './service';
 export { VerificationService, verificationService, VERIFICATION_DEPENDENCIES } from './verification';
+export { ExamAdminService, examAdminService, DEFAULT_EXAM_CONFIGS } from './exam-admin';
+export type { ExamAdminConfig, ExamEnrollment, ExamEnrollmentRequest } from './exam-admin';
 
 // Onboarding
 export {
@@ -34,6 +36,7 @@ export {
   heraldHooks,
   atlasHooks,
   forgeHooks,
+  examAdminHooks,
 } from './agent-hooks';
 
 // Re-export commonly used types

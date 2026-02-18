@@ -4,6 +4,7 @@
  */
 
 import { userService } from './service';
+import { examAdminService } from './exam-admin';
 import type { EduGeniusUser, StudentProfile, ExamType } from './types';
 
 // ============================================
@@ -274,8 +275,10 @@ export function registerAgentHooks(): void {
     ...heraldHooks,
     ...atlasHooks,
     ...forgeHooks,
+    ...examAdminHooks,
   ];
 
+  // Register user service hooks
   for (const hook of allHooks) {
     userService.on(hook.eventType, async (payload) => {
       try {
@@ -286,8 +289,125 @@ export function registerAgentHooks(): void {
     });
   }
 
+  // Register exam admin service hooks
+  for (const hook of examAdminHooks) {
+    examAdminService.on(hook.eventType, async (payload) => {
+      try {
+        await hook.handler(payload);
+      } catch (error) {
+        console.error(`[${hook.agentId}] Error handling ${hook.eventType}:`, error);
+      }
+    });
+  }
+
   console.log(`[AgentHooks] Registered ${allHooks.length} hooks across ${new Set(allHooks.map(h => h.agentId)).size} agents`);
 }
+
+// ============================================
+// EXAM ADMIN HOOKS
+// ============================================
+
+export const examAdminHooks: AgentHook[] = [
+  {
+    agentId: 'atlas',
+    eventType: 'exam:enabled',
+    handler: async (payload: { examId: ExamType; adminId: string }) => {
+      console.log(`[Atlas] Exam ${payload.examId} enabled - preparing content pipeline`);
+      // Atlas would:
+      // 1. Initialize content generation for this exam
+      // 2. Queue syllabus analysis
+      // 3. Prepare question banks
+      // 4. Generate study materials
+    },
+  },
+  {
+    agentId: 'atlas',
+    eventType: 'exam:config:updated',
+    handler: async (payload: { examId: ExamType; updates: any }) => {
+      console.log(`[Atlas] Exam ${payload.examId} config updated`);
+      // Atlas would:
+      // 1. Check if subjects changed
+      // 2. Update content pipeline
+      // 3. Regenerate affected materials
+    },
+  },
+  {
+    agentId: 'sage',
+    eventType: 'enrollment:approved',
+    handler: async (payload: { userId: string; examId: ExamType }) => {
+      console.log(`[Sage] User ${payload.userId} approved for ${payload.examId}`);
+      // Sage would:
+      // 1. Prepare personalized welcome
+      // 2. Load exam-specific tutoring context
+      // 3. Initialize diagnostic assessment
+    },
+  },
+  {
+    agentId: 'mentor',
+    eventType: 'enrollment:approved',
+    handler: async (payload: { userId: string; examId: ExamType }) => {
+      console.log(`[Mentor] User ${payload.userId} enrolled in ${payload.examId}`);
+      // Mentor would:
+      // 1. Send welcome message
+      // 2. Schedule first study reminder
+      // 3. Set up exam-specific milestones
+    },
+  },
+  {
+    agentId: 'mentor',
+    eventType: 'enrollment:rejected',
+    handler: async (payload: { userId: string; rejectionReason: string }) => {
+      console.log(`[Mentor] Enrollment rejected for ${payload.userId}`);
+      // Mentor would:
+      // 1. Send empathetic notification
+      // 2. Suggest alternatives if available
+    },
+  },
+  {
+    agentId: 'herald',
+    eventType: 'exam:enabled',
+    handler: async (payload: { examId: ExamType }) => {
+      console.log(`[Herald] Exam ${payload.examId} enabled - updating marketing`);
+      // Herald would:
+      // 1. Update website exam listings
+      // 2. Create announcement posts
+      // 3. Update ad campaigns
+    },
+  },
+  {
+    agentId: 'herald',
+    eventType: 'exam:disabled',
+    handler: async (payload: { examId: ExamType }) => {
+      console.log(`[Herald] Exam ${payload.examId} disabled - pausing marketing`);
+      // Herald would:
+      // 1. Remove from public listings
+      // 2. Pause related ad campaigns
+      // 3. Update SEO pages
+    },
+  },
+  {
+    agentId: 'oracle',
+    eventType: 'enrollment:approved',
+    handler: async (payload: { examId: ExamType }) => {
+      console.log(`[Oracle] Tracking enrollment for ${payload.examId}`);
+      // Oracle would:
+      // 1. Update exam popularity metrics
+      // 2. Track conversion funnel
+      // 3. Analyze enrollment patterns
+    },
+  },
+  {
+    agentId: 'forge',
+    eventType: 'exam:enabled',
+    handler: async (payload: { examId: ExamType }) => {
+      console.log(`[Forge] Provisioning resources for ${payload.examId}`);
+      // Forge would:
+      // 1. Ensure content storage is ready
+      // 2. Check API capacity
+      // 3. Prepare scaling if needed
+    },
+  },
+];
 
 // ============================================
 // DEPENDENCY MATRIX
@@ -302,6 +422,13 @@ export const USER_EVENT_DEPENDENCIES = {
   'channel:connected': ['mentor'],
   'verification:confirmed': ['herald'],
   'telegram:connected': ['forge'],
+  // Exam admin events
+  'exam:enabled': ['atlas', 'herald', 'forge'],
+  'exam:disabled': ['herald'],
+  'exam:config:updated': ['atlas'],
+  'enrollment:approved': ['sage', 'mentor', 'oracle'],
+  'enrollment:rejected': ['mentor'],
+  'enrollment:requested': ['oracle'],
 };
 
 /**
