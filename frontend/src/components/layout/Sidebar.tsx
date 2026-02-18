@@ -17,6 +17,7 @@ import {
   PlayCircle,
   User,
   BookMarked,
+  Plug,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -28,6 +29,7 @@ const roleNavItems = {
     { to: '/content', icon: FileText, label: 'Content' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/events', icon: Zap, label: 'Events' },
+    { to: '/integrations', icon: Plug, label: 'Integrations' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   admin: [

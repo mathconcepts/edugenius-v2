@@ -12,6 +12,7 @@ import {
   Students,
   RolePreview,
 } from '@/pages';
+import { CEOIntegrations } from '@/pages/dashboards';
 import { 
   WebsiteHome, 
   WebsitePricing, 
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="users" element={<Users />} />
         <Route path="events" element={<Events />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="integrations" element={<CEOIntegrations />} />
         
         {/* Student routes */}
         <Route path="learn" element={<Learn />} />
