@@ -21,6 +21,7 @@ import {
   Target,
   PenTool,
   MessageSquarePlus,
+  Trophy,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -61,6 +62,7 @@ const roleNavItems = {
     { to: '/chat', icon: MessageSquare, label: 'Ask Sage' },
     { to: '/notebook', icon: BookMarked, label: 'Notebook' },
     { to: '/progress', icon: BarChart3, label: 'Progress' },
+    { to: '/insights', icon: Trophy, label: 'Exam Tips' },
     { to: '/feedback', icon: MessageSquarePlus, label: 'My Tickets' },
   ],
 };

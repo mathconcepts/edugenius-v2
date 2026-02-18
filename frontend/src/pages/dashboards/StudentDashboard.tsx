@@ -194,7 +194,7 @@ export function StudentDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="grid grid-cols-3 gap-4"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-4"
           >
             <Link
               to="/chat"
@@ -225,6 +225,16 @@ export function StudentDashboard() {
               </div>
               <h3 className="font-medium">My Progress</h3>
               <p className="text-xs text-surface-400 mt-1">Track your growth</p>
+            </Link>
+            <Link
+              to="/insights"
+              className="card-hover flex flex-col items-center text-center group"
+            >
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <Trophy className="w-8 h-8 text-pink-400" />
+              </div>
+              <h3 className="font-medium">Exam Tips</h3>
+              <p className="text-xs text-surface-400 mt-1">Topper strategies</p>
             </Link>
           </motion.div>
         </div>
