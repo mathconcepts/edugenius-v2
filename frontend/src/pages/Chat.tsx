@@ -22,6 +22,7 @@ import { OutputBlockRenderer } from '@/components/chat/OutputBlockRenderer';
 import { DrawingCanvas } from '@/components/chat/DrawingCanvas';
 import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
+import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import type { AgentType, Message, MediaAttachment, IntentResult } from '@/types';
 import type { LearningMode } from '@/types/personalization';
 import { clsx } from 'clsx';
@@ -445,14 +446,29 @@ export function Chat() {
     setIsTyping(true);
     setStreaming(true);
 
-    // Simulate AI response with timing
-    const responseDelay = 800 + Math.random() * 1200;
     const start = Date.now();
 
-    setTimeout(() => {
-      const responseText = getMockResponse(intent.intent, activeAgent);
-      const outputBlocks = generateOutputBlocks(responseText, intent.intent);
+    // Build conversation history for context
+    const history = currentSession?.messages.slice(-10).map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    })) ?? [];
 
+    // Try real LLM first, fall back to mock
+    const tryRealLLM = async () => {
+      const llmResponse = await callLLM({
+        agent: activeAgent,
+        message: userText,
+        attachments: attachments.length > 0 ? attachments : undefined,
+        intent: intent.intent as import('@/services/intentEngine').IntentCategory,
+        mode: learningMode,
+        conversationHistory: history,
+      });
+      return llmResponse;
+    };
+
+    const deliverResponse = (responseText: string, provider?: string) => {
+      const outputBlocks = generateOutputBlocks(responseText, intent.intent);
       addMessage(sessionId!, {
         role: 'assistant',
         content: responseText,
@@ -462,11 +478,40 @@ export function Chat() {
         metadata: {
           processingMs: Date.now() - start,
           confidence: intent.confidence,
+          provider,
         },
       });
       setIsTyping(false);
       setStreaming(false);
-    }, responseDelay);
+    };
+
+    if (isLLMConfigured()) {
+      // Real LLM call
+      tryRealLLM()
+        .then(llmResponse => {
+          if (llmResponse) {
+            deliverResponse(llmResponse.text, llmResponse.provider);
+          } else {
+            // callLLM returned null (shouldn't happen when configured)
+            deliverResponse(getMockResponse(intent.intent, activeAgent), 'mock');
+          }
+        })
+        .catch(err => {
+          console.error('[Chat] LLM error, falling back to mock:', err);
+          addNotification({
+            type: 'warning',
+            title: 'AI service error',
+            message: `Falling back to demo response. (${(err as Error).message})`,
+          });
+          deliverResponse(getMockResponse(intent.intent, activeAgent), 'mock-fallback');
+        });
+    } else {
+      // No API key configured — use mock with realistic delay
+      const responseDelay = 800 + Math.random() * 1200;
+      setTimeout(() => {
+        deliverResponse(getMockResponse(intent.intent, activeAgent), 'mock');
+      }, responseDelay);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -589,6 +634,12 @@ export function Chat() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* LLM Provider indicator */}
+            <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${isLLMConfigured() ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-surface-700/50 text-surface-500 border border-surface-600/30'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${isLLMConfigured() ? 'bg-green-400 animate-pulse' : 'bg-surface-500'}`} />
+              {isLLMConfigured() ? getActiveProvider() : 'demo'}
+            </div>
+
             {/* Auto-routed indicator */}
             {autoRoutedAgent && autoRoutedAgent !== selectedAgent && (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}

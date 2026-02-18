@@ -132,6 +132,7 @@ export interface Message {
     sources?: string[];
     confidence?: number;
     processingMs?: number;
+    provider?: string;  // e.g. 'gemini', 'anthropic', 'mock'
   };
 }
 
