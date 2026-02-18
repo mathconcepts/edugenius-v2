@@ -76,8 +76,8 @@ const agentShortcuts = [
 ];
 
 export function Sidebar() {
-  const { sidebarOpen, toggleSidebar, playgroundConfig, setPlaygroundConfig } = useAppStore();
-  const navItems = roleNavItems[playgroundConfig.role] || roleNavItems.ceo;
+  const { sidebarOpen, toggleSidebar, userRole, setUserRole } = useAppStore();
+  const navItems = roleNavItems[userRole] || roleNavItems.ceo;
 
   return (
     <motion.aside
@@ -135,10 +135,10 @@ export function Sidebar() {
             {(['ceo', 'admin', 'teacher', 'student'] as const).map((role) => (
               <button
                 key={role}
-                onClick={() => setPlaygroundConfig({ role })}
+                onClick={() => setUserRole(role)}
                 className={clsx(
                   'px-2 py-1.5 rounded text-xs font-medium transition-all',
-                  playgroundConfig.role === role
+                  userRole === role
                     ? 'bg-primary-500 text-white'
                     : 'bg-surface-800 text-surface-400 hover:text-white hover:bg-surface-700'
                 )}
@@ -172,7 +172,7 @@ export function Sidebar() {
         ))}
 
         {/* Agent Shortcuts (CEO only) */}
-        {playgroundConfig.role === 'ceo' && sidebarOpen && (
+        {userRole === 'ceo' && sidebarOpen && (
           <>
             <div className="pt-4 pb-2">
               <p className="text-xs text-surface-500 px-3 uppercase tracking-wider">Agents</p>
@@ -210,11 +210,11 @@ export function Sidebar() {
           {sidebarOpen && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
-                {playgroundConfig.role === 'ceo' ? 'Giri (CEO)' : 
-                 playgroundConfig.role === 'admin' ? 'Admin User' :
-                 playgroundConfig.role === 'teacher' ? 'Teacher User' : 'Student User'}
+                {userRole === 'ceo' ? 'Giri (CEO)' : 
+                 userRole === 'admin' ? 'Admin User' :
+                 userRole === 'teacher' ? 'Teacher User' : 'Student User'}
               </p>
-              <p className="text-xs text-surface-500 capitalize">{playgroundConfig.role}</p>
+              <p className="text-xs text-surface-500 capitalize">{userRole}</p>
             </div>
           )}
         </div>

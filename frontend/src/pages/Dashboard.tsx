@@ -5,9 +5,10 @@ import { TeacherDashboard } from './dashboards/TeacherDashboard';
 import { StudentDashboard } from './dashboards/StudentDashboard';
 
 export function Dashboard() {
-  const { playgroundConfig } = useAppStore();
+  // Use userRole as the single source of truth (synced with playgroundConfig.role on switch)
+  const { userRole } = useAppStore();
 
-  switch (playgroundConfig.role) {
+  switch (userRole) {
     case 'ceo':
       return <CEODashboard />;
     case 'admin':

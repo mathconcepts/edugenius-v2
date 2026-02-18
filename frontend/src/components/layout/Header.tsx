@@ -50,7 +50,7 @@ export function Header() {
   return (
     <header
       className={clsx(
-        'fixed top-0 right-0 h-16 glass border-b border-surface-700/50 z-30 flex items-center justify-between px-6 transition-all',
+        'fixed top-0 right-0 h-16 glass border-b border-surface-700/50 z-30 flex items-center justify-between px-6 transition-all duration-200',
         sidebarOpen ? 'left-[260px]' : 'left-[72px]'
       )}
     >
@@ -125,12 +125,13 @@ export function Header() {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 hover:bg-surface-800 rounded-lg transition-colors"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="p-2 hover:bg-surface-800 dark:hover:bg-surface-800 hover:bg-gray-100 rounded-lg transition-colors"
         >
           {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-surface-400" />
+            <Sun className="w-5 h-5 text-yellow-400" />
           ) : (
-            <Moon className="w-5 h-5 text-surface-400" />
+            <Moon className="w-5 h-5 text-primary-500" />
           )}
         </button>
 

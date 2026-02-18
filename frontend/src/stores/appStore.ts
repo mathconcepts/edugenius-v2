@@ -171,9 +171,12 @@ export const useAppStore = create<AppState>()(
       user: null,
       setUser: (user) => set({ user }),
       
-      // User Role
+      // User Role — updates both userRole and playgroundConfig.role together
       userRole: 'ceo',
-      setUserRole: (role) => set({ userRole: role }),
+      setUserRole: (role) => set((state) => ({
+        userRole: role,
+        playgroundConfig: { ...state.playgroundConfig, role },
+      })),
       
       // Theme
       theme: 'dark',
