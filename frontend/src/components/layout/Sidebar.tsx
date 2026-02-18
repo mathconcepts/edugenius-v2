@@ -18,12 +18,14 @@ import {
   User,
   BookMarked,
   Plug,
+  Target,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
 const roleNavItems = {
   ceo: [
     { to: '/', icon: Home, label: 'Dashboard' },
+    { to: '/strategy', icon: Target, label: 'Strategy' },
     { to: '/agents', icon: Bot, label: 'Agents' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
