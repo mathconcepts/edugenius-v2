@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
@@ -77,6 +77,7 @@ const agentShortcuts = [
 
 export function Sidebar() {
   const { sidebarOpen, toggleSidebar, userRole, setUserRole } = useAppStore();
+  const navigate = useNavigate();
   const navItems = roleNavItems[userRole] || roleNavItems.ceo;
 
   return (
@@ -135,7 +136,7 @@ export function Sidebar() {
             {(['ceo', 'admin', 'teacher', 'student'] as const).map((role) => (
               <button
                 key={role}
-                onClick={() => setUserRole(role)}
+                onClick={() => { setUserRole(role); navigate('/'); }}
                 className={clsx(
                   'px-2 py-1.5 rounded text-xs font-medium transition-all',
                   userRole === role

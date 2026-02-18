@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -26,6 +27,7 @@ const roleConfig = {
 
 export function Header() {
   const { theme, toggleTheme, notifications, markNotificationRead, sidebarOpen, userRole, setUserRole } = useAppStore();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
@@ -104,6 +106,7 @@ export function Header() {
                         onClick={() => {
                           setUserRole(role);
                           setShowRoleSwitcher(false);
+                          navigate('/');
                         }}
                         className={clsx(
                           'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left',
