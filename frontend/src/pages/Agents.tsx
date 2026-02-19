@@ -14,6 +14,8 @@ import {
   TrendingUp,
   MessageSquare,
   RefreshCw,
+  ArrowRight,
+  Network,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -26,6 +28,7 @@ import {
 } from 'recharts';
 import { useAppStore } from '@/stores/appStore';
 import { clsx } from 'clsx';
+import { AGENT_META, AgentId, WORKFLOWS } from '@/services/agentWorkflows';
 
 const performanceData = [
   { time: '00:00', tasks: 12, tokens: 5000 },
@@ -42,6 +45,146 @@ const recentTasks = [
   { id: '3', type: 'tutor', description: 'Tutoring session with Student #2847', time: '10 min ago', status: 'in-progress' },
   { id: '4', type: 'marketing', description: 'Draft blog post: "10 Tips for JEE"', time: '15 min ago', status: 'pending-review' },
 ];
+
+// ── Agent Connection Map ─────────────────────────────────────────────────────
+
+function AgentConnectionMap({
+  selectedAgentId,
+  onSelectAgent,
+}: {
+  selectedAgentId: string | null;
+  onSelectAgent: (id: string) => void;
+}) {
+  const [hoveredAgent, setHoveredAgent] = useState<AgentId | null>(null);
+  const agentList = Object.values(AGENT_META);
+
+  const highlighted = hoveredAgent || (selectedAgentId as AgentId | null);
+
+  return (
+    <div className="card mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Network className="w-4 h-4 text-primary-400" />
+        <h3 className="font-semibold">Agent Connection Map</h3>
+        <span className="text-xs text-surface-500 ml-1">Click an agent to select • Hover to see connections</span>
+      </div>
+
+      {/* Hexagonal-ish grid of agents */}
+      <div className="grid grid-cols-4 md:grid-cols-7 gap-3 mb-4">
+        {agentList.map(meta => {
+          const isSelected = selectedAgentId === meta.id;
+          const isHighlighted = highlighted === meta.id;
+          const isConnected = highlighted
+            ? (AGENT_META[highlighted]?.outputsTo.includes(meta.id) ||
+               AGENT_META[highlighted]?.inputsFrom.includes(meta.id))
+            : false;
+          const isDimmed = highlighted && !isHighlighted && !isConnected;
+
+          return (
+            <button
+              key={meta.id}
+              onClick={() => onSelectAgent(meta.id)}
+              onMouseEnter={() => setHoveredAgent(meta.id)}
+              onMouseLeave={() => setHoveredAgent(null)}
+              className={clsx(
+                'flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-200',
+                isSelected && 'border-primary-500 bg-primary-500/15 scale-105',
+                isHighlighted && !isSelected && 'border-primary-400/60 bg-primary-500/10',
+                isConnected && 'border-green-500/50 bg-green-500/10',
+                isDimmed && 'opacity-30',
+                !isHighlighted && !isSelected && !isConnected && !isDimmed && 'border-surface-700 bg-surface-800/50 hover:border-surface-600'
+              )}
+              style={{ borderColor: isHighlighted ? meta.color + '80' : undefined }}
+            >
+              <span className="text-2xl">{meta.emoji}</span>
+              <span className="text-xs font-semibold">{meta.name}</span>
+              <span className="text-[10px] text-surface-500 text-center leading-tight">{meta.role}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Connection detail panel */}
+      {highlighted && AGENT_META[highlighted] && (
+        <motion.div
+          key={highlighted}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl border border-surface-700/50 bg-surface-800/40"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">{AGENT_META[highlighted].emoji}</span>
+            <div>
+              <p className="font-semibold">{AGENT_META[highlighted].name}</p>
+              <p className="text-xs text-surface-400">{AGENT_META[highlighted].description}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            {/* Receives from */}
+            <div className="p-3 rounded-xl bg-surface-900/60">
+              <p className="text-surface-500 uppercase tracking-wider mb-2">Receives from</p>
+              {AGENT_META[highlighted].inputsFrom.length === 0 ? (
+                <p className="text-surface-400 italic">Trigger only (CEO/system)</p>
+              ) : (
+                <div className="space-y-1">
+                  {AGENT_META[highlighted].inputsFrom.map(id => (
+                    <div key={id} className="flex items-center gap-1.5">
+                      <span>{AGENT_META[id]?.emoji}</span>
+                      <span className="text-surface-300">{AGENT_META[id]?.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Sends to */}
+            <div className="p-3 rounded-xl bg-surface-900/60">
+              <p className="text-surface-500 uppercase tracking-wider mb-2">Sends to</p>
+              {AGENT_META[highlighted].outputsTo.length === 0 ? (
+                <p className="text-surface-400 italic">Terminal agent</p>
+              ) : (
+                <div className="space-y-1">
+                  {AGENT_META[highlighted].outputsTo.map(id => (
+                    <div key={id} className="flex items-center gap-1.5">
+                      <span>{AGENT_META[id]?.emoji}</span>
+                      <span className="text-surface-300">{AGENT_META[id]?.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Active in workflows */}
+            <div className="p-3 rounded-xl bg-surface-900/60">
+              <p className="text-surface-500 uppercase tracking-wider mb-2">Active in workflows</p>
+              <div className="space-y-1">
+                {AGENT_META[highlighted].workflows.map(wfId => (
+                  <div key={wfId} className="text-surface-300">
+                    {WORKFLOWS[wfId]?.name || wfId}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-agents */}
+          <div className="mt-3">
+            <p className="text-[10px] text-surface-500 uppercase tracking-wider mb-2">Sub-agents</p>
+            <div className="flex flex-wrap gap-1.5">
+              {AGENT_META[highlighted].subAgents.map(sub => (
+                <span key={sub} className="text-xs px-2 py-1 rounded-lg bg-surface-700/50 text-surface-300">
+                  {sub}
+                </span>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export function Agents() {
   const { agentId } = useParams();
@@ -70,6 +213,12 @@ export function Agents() {
         </div>
       </div>
 
+      {/* Connection Map */}
+      <AgentConnectionMap
+        selectedAgentId={selectedAgent}
+        onSelectAgent={setSelectedAgent}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Agent List */}
         <div className="space-y-3">
@@ -78,7 +227,7 @@ export function Agents() {
               key={a.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              onClick={() => setSelectedAgent(a.id)}
+              onClick={() => setSelectedAgent(selectedAgent === a.id ? null : a.id)}
               className={clsx(
                 'card-hover flex items-center gap-4 cursor-pointer',
                 selectedAgent === a.id && 'ring-2 ring-primary-500 bg-primary-500/5'

@@ -11,17 +11,16 @@ import {
   ArrowDown,
   CheckCircle,
   AlertCircle,
-  Play,
   X,
   Rocket,
   ChevronRight,
   BarChart3,
-  FileText,
   Target,
   MessageSquare,
   Plug,
   PenTool,
 } from 'lucide-react';
+import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
 import {
   LineChart,
   Line,
@@ -132,44 +131,43 @@ function LaunchExamModal({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<'pilot' | 'full'>('pilot');
   const [launched, setLaunched] = useState(false);
 
+  const selectedExam = EXAM_OPTIONS.find(e => e.id === selected);
+
   const handleLaunch = () => {
     if (!selected) return;
     setLaunched(true);
-    setTimeout(onClose, 2000);
   };
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={!launched ? onClose : undefined} />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg glass rounded-2xl shadow-2xl p-6"
+        className={clsx(
+          'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full glass rounded-2xl shadow-2xl p-6 overflow-y-auto',
+          launched ? 'max-w-2xl max-h-[90vh]' : 'max-w-lg'
+        )}
       >
-        {launched ? (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-4">🚀</div>
-            <h3 className="text-xl font-bold text-green-400">Launch Initiated!</h3>
-            <p className="text-surface-400 mt-2 text-sm">
-              {EXAM_OPTIONS.find(e => e.id === selected)?.label} is being set up in {mode} mode.
-              Atlas is generating content now.
-            </p>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Rocket className="w-5 h-5 text-primary-400" />
+            <h3 className="text-lg font-bold">
+              {launched ? `Launching ${selectedExam?.label}...` : 'Launch Exam'}
+            </h3>
           </div>
-        ) : (
+          {!launched && (
+            <button onClick={onClose} className="p-1.5 hover:bg-surface-800 rounded-lg transition-colors">
+              <X className="w-4 h-4 text-surface-400" />
+            </button>
+          )}
+        </div>
+
+        {!launched ? (
           <>
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <Rocket className="w-5 h-5 text-primary-400" />
-                <h3 className="text-lg font-bold">Launch Exam</h3>
-              </div>
-              <button onClick={onClose} className="p-1.5 hover:bg-surface-800 rounded-lg transition-colors">
-                <X className="w-4 h-4 text-surface-400" />
-              </button>
-            </div>
-
             <p className="text-sm text-surface-400 mb-4">Select an exam to launch or activate:</p>
-
             <div className="grid grid-cols-2 gap-2 mb-5">
               {EXAM_OPTIONS.map(exam => {
                 const sc = statusConfig[exam.status];
@@ -235,8 +233,33 @@ function LaunchExamModal({ onClose }: { onClose: () => void }) {
               )}
             >
               <Rocket className="w-4 h-4" />
-              {selected ? `Launch ${EXAM_OPTIONS.find(e => e.id === selected)?.label}` : 'Select an exam first'}
+              {selected ? `Launch ${selectedExam?.label}` : 'Select an exam first'}
             </button>
+          </>
+        ) : (
+          <>
+            {/* Workflow info bar */}
+            <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-surface-800/50 border border-surface-700/50">
+              <span className="text-2xl">{selectedExam?.icon}</span>
+              <div>
+                <p className="text-sm font-semibold">{selectedExam?.label}</p>
+                <p className="text-xs text-surface-400">
+                  Pipeline: Scout 🔍 → Atlas 📚 → Forge ⚙️ → Oracle 📊
+                </p>
+              </div>
+              <span className={clsx('ml-auto text-xs px-2 py-0.5 rounded border', statusConfig[selectedExam?.status ?? 'inactive'].color)}>
+                {mode === 'pilot' ? '🧪 Pilot' : '🌐 Full Launch'}
+              </span>
+            </div>
+
+            {/* Live workflow panel */}
+            <AgentWorkflowPanel
+              workflowId="launch_exam"
+              inputs={{ examName: selectedExam?.label, examId: selected, mode }}
+              autoStart={true}
+              showFlowDiagram={true}
+              onComplete={() => setTimeout(onClose, 3000)}
+            />
           </>
         )}
       </motion.div>
@@ -246,47 +269,24 @@ function LaunchExamModal({ onClose }: { onClose: () => void }) {
 
 // ── Run Daily Ops Modal ──────────────────────────────────────────────────────
 
-const OPS_TASKS = [
-  { id: 'content', label: 'Generate today\'s content', agent: 'Atlas', icon: '📚', eta: '~3 min' },
-  { id: 'insights', label: 'Refresh student insights', agent: 'Oracle', icon: '📊', eta: '~1 min' },
-  { id: 'marketing', label: 'Schedule social posts', agent: 'Herald', icon: '📢', eta: '~2 min' },
-  { id: 'monitor', label: 'Check system health', agent: 'Forge', icon: '⚙️', eta: '~30s' },
-  { id: 'outreach', label: 'Send re-engagement nudges', agent: 'Mentor', icon: '👨‍🏫', eta: '~1 min' },
-];
-
 function RunOpsModal({ onClose }: { onClose: () => void }) {
-  const [running, setRunning] = useState(false);
-  const [done, setDone] = useState<string[]>([]);
-
-  const handleRun = () => {
-    setRunning(true);
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < OPS_TASKS.length) {
-        setDone(prev => [...prev, OPS_TASKS[i].id]);
-        i++;
-      } else {
-        clearInterval(interval);
-        setTimeout(onClose, 1500);
-      }
-    }, 600);
-  };
+  const [started, setStarted] = useState(false);
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 z-50" onClick={!running ? onClose : undefined} />
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={!started ? onClose : undefined} />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md glass rounded-2xl shadow-2xl p-6"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl max-h-[90vh] overflow-y-auto glass rounded-2xl shadow-2xl p-6"
       >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-yellow-400" />
             <h3 className="text-lg font-bold">Daily Operations</h3>
           </div>
-          {!running && (
+          {!started && (
             <button onClick={onClose} className="p-1.5 hover:bg-surface-800 rounded-lg transition-colors">
               <X className="w-4 h-4 text-surface-400" />
             </button>
@@ -294,42 +294,26 @@ function RunOpsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="text-sm text-surface-400 mb-4">
-          {running ? 'Running ops — agents are working...' : 'The following tasks will run across your agent fleet:'}
+          {started
+            ? 'Running daily ops — all agents working in sequence...'
+            : 'Pipeline: Oracle 📊 → Scout 🔍 → Herald 📢 → Mentor 👨‍🏫 → Forge ⚙️'}
         </p>
 
-        <div className="space-y-2.5 mb-5">
-          {OPS_TASKS.map(task => {
-            const isDone = done.includes(task.id);
-            return (
-              <div key={task.id} className={clsx(
-                'flex items-center gap-3 p-3 rounded-xl transition-all',
-                isDone ? 'bg-green-500/10 border border-green-500/20' : 'bg-surface-800/50'
-              )}>
-                <span className="text-lg">{task.icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{task.label}</p>
-                  <p className="text-xs text-surface-500">{task.agent} · {task.eta}</p>
-                </div>
-                {isDone ? (
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                ) : running ? (
-                  <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+        <AgentWorkflowPanel
+          workflowId="run_daily_ops"
+          inputs={{ date: new Date().toISOString().split('T')[0] }}
+          autoStart={started}
+          showFlowDiagram={true}
+          onComplete={() => setTimeout(onClose, 4000)}
+        />
 
-        {!running && (
+        {!started && (
           <button
-            onClick={handleRun}
-            className="w-full py-2.5 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-400 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            onClick={() => setStarted(true)}
+            className="mt-4 w-full py-2.5 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-400 font-semibold text-sm transition-all flex items-center justify-center gap-2"
           >
             <Zap className="w-4 h-4" /> Run All Tasks
           </button>
-        )}
-        {running && done.length === OPS_TASKS.length && (
-          <p className="text-center text-green-400 font-medium text-sm">✅ All tasks complete!</p>
         )}
       </motion.div>
     </>

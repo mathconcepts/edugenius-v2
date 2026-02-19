@@ -5,10 +5,11 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Upload, Globe, Bot, Sparkles, ChevronDown,
+  Upload, Globe, Bot, Sparkles,
   X, Check, Loader2, Eye, Edit3, BarChart3, Plus,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
 
 // ── Types & data ─────────────────────────────────────────────────────────────
 
@@ -294,22 +295,50 @@ function ApiPanel() {
   );
 }
 
+const AGENT_TO_WORKFLOW: Record<string, string> = {
+  atlas: 'generate_content',
+  herald: 'blog_post',
+  scout: 'growth_strategy',
+};
+
+const AGENT_PRESETS: Record<string, Array<{ label: string; topic: string; contentType: string }>> = {
+  atlas: [
+    { label: 'Generate 20 JEE MCQs on Modern Physics', topic: 'Modern Physics', contentType: 'question' },
+    { label: 'Create NEET Biology lesson on Cell Division', topic: 'Cell Division', contentType: 'lesson' },
+    { label: 'Make a practice quiz on Organic Chemistry', topic: 'Organic Chemistry', contentType: 'quiz' },
+  ],
+  herald: [
+    { label: 'Write SEO blog: Top 10 JEE Preparation Tips', topic: 'JEE Preparation Tips', contentType: 'blog' },
+    { label: 'Blog: NEET success stories and strategies', topic: 'NEET Success Stories', contentType: 'blog' },
+    { label: 'Blog: How to crack CAT in 3 months', topic: 'CAT Preparation Strategy', contentType: 'blog' },
+  ],
+  scout: [
+    { label: 'Research competitor pricing for JEE coaching', topic: 'JEE coaching market', contentType: 'research' },
+    { label: 'Analyse top-performing EdTech content formats', topic: 'EdTech content formats', contentType: 'research' },
+    { label: 'Find trending topics in competitive exam prep', topic: 'competitive exam trends', contentType: 'research' },
+  ],
+};
+
 function AgentPanel() {
   const [agent, setAgent] = useState(AGENTS[0]);
-  const [preset, setPreset] = useState('');
-  const [running, setRunning] = useState(false);
-  const [done, setDone] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<{ label: string; topic: string; contentType: string } | null>(null);
+  const [started, setStarted] = useState(false);
+  const [complete, setComplete] = useState(false);
 
-  const presets: Record<string, string[]> = {
-    atlas: ['Generate 20 JEE MCQs on Modern Physics', 'Create NEET Biology lesson on Cell Division', 'Make a practice quiz on Organic Chemistry'],
-    herald: ['Write SEO blog: Top 10 JEE Preparation Tips', 'Create LinkedIn post about NEET success stories', 'Draft email campaign for new exam launch'],
-    scout: ['Research competitor pricing for JEE coaching', 'Analyse top-performing EdTech content formats', 'Find trending topics in competitive exam prep'],
+  const presets = AGENT_PRESETS[agent.id] || [];
+  const workflowId = AGENT_TO_WORKFLOW[agent.id] || 'generate_content';
+
+  const handleAgentSwitch = (a: typeof AGENTS[0]) => {
+    setAgent(a);
+    setSelectedPreset(null);
+    setStarted(false);
+    setComplete(false);
   };
 
   const handleRun = () => {
-    if (!preset) return;
-    setRunning(true); setDone(false);
-    setTimeout(() => { setRunning(false); setDone(true); setTimeout(() => setDone(false), 3000); }, 3000);
+    if (!selectedPreset) return;
+    setStarted(true);
+    setComplete(false);
   };
 
   return (
@@ -318,7 +347,7 @@ function AgentPanel() {
         <p className="text-xs text-surface-400 mb-2">Select agent</p>
         <div className="grid grid-cols-3 gap-2">
           {AGENTS.map(a => (
-            <button key={a.id} onClick={() => { setAgent(a); setPreset(''); }}
+            <button key={a.id} onClick={() => handleAgentSwitch(a)}
               className={clsx('flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all text-center',
                 agent.id === a.id ? 'border-primary-500 bg-primary-500/10' : 'border-surface-700 bg-surface-800/50 hover:border-surface-600')}>
               <span className="text-xl">{a.emoji}</span>
@@ -329,26 +358,58 @@ function AgentPanel() {
         </div>
       </div>
 
-      <div>
-        <p className="text-xs text-surface-400 mb-2">Quick presets for {agent.name}</p>
-        <div className="space-y-1.5">
-          {presets[agent.id].map(p => (
-            <button key={p} onClick={() => setPreset(p)}
-              className={clsx('w-full text-left text-xs px-3 py-2.5 rounded-xl transition-colors',
-                preset === p ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30' : 'bg-surface-800/50 hover:bg-surface-700 text-surface-300')}>
-              <span className="text-accent-400 mr-1.5">›</span>{p}
-            </button>
-          ))}
-        </div>
-      </div>
+      {!started ? (
+        <>
+          <div>
+            <p className="text-xs text-surface-400 mb-2">Quick presets for {agent.name}</p>
+            <div className="space-y-1.5">
+              {presets.map(p => (
+                <button key={p.label} onClick={() => setSelectedPreset(p)}
+                  className={clsx('w-full text-left text-xs px-3 py-2.5 rounded-xl transition-colors',
+                    selectedPreset?.label === p.label
+                      ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
+                      : 'bg-surface-800/50 hover:bg-surface-700 text-surface-300')}>
+                  <span className="text-accent-400 mr-1.5">›</span>{p.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <button onClick={handleRun} disabled={!preset || running}
-        className={clsx('flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all',
-          preset ? 'bg-accent-600 hover:bg-accent-500 text-white' : 'bg-surface-700 text-surface-500 cursor-not-allowed')}>
-        {running ? <><Loader2 className="w-4 h-4 animate-spin" /> {agent.name} is working...</>
-          : done ? <><Check className="w-4 h-4" /> Done!</>
-          : <>{agent.emoji} Run with {agent.name}</>}
-      </button>
+          <button onClick={handleRun} disabled={!selectedPreset}
+            className={clsx('flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all',
+              selectedPreset ? 'bg-accent-600 hover:bg-accent-500 text-white' : 'bg-surface-700 text-surface-500 cursor-not-allowed')}>
+            {agent.emoji} Run with {agent.name}
+          </button>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <div className="p-3 rounded-xl bg-surface-800/50 border border-surface-700/50">
+            <p className="text-xs text-surface-400 mb-1">Running</p>
+            <p className="text-sm font-medium">{selectedPreset?.label}</p>
+          </div>
+
+          <AgentWorkflowPanel
+            workflowId={workflowId}
+            inputs={{
+              topic: selectedPreset?.topic,
+              contentType: selectedPreset?.contentType,
+              agent: agent.name,
+            }}
+            autoStart={true}
+            showFlowDiagram={true}
+            onComplete={() => setComplete(true)}
+          />
+
+          {complete && (
+            <button
+              onClick={() => { setStarted(false); setComplete(false); setSelectedPreset(null); }}
+              className="w-full py-2 rounded-xl border border-surface-700 text-surface-400 hover:bg-surface-800 text-sm transition-all"
+            >
+              ← Back to presets
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,8 @@
  * Autonomous growth strategy management
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Types
@@ -371,6 +372,7 @@ export const CEOStrategy: React.FC = () => {
   const [expandedRec, setExpandedRec] = useState<string | null>(null);
   const [autonomousMode, setAutonomousMode] = useState(true);
   const [autoApproveThreshold, setAutoApproveThreshold] = useState(85);
+  const [runningPlaybook, setRunningPlaybook] = useState<string | null>(null);
 
   const handleApprove = (id: string) => {
     setRecommendations(prev => prev.map(r => 
@@ -504,42 +506,67 @@ export const CEOStrategy: React.FC = () => {
 
       {activeTab === 'playbooks' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {mockPlaybooks.map(pb => (
-            <div key={pb.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{pb.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pb.description}</p>
+          {mockPlaybooks.map(pb => {
+            const isRunning = runningPlaybook === pb.id;
+            // Map playbook to workflow id
+            const workflowId = pb.id === 'pb_1' ? 'growth_strategy'
+              : pb.id === 'pb_2' ? 'student_engagement'
+              : pb.id === 'pb_3' ? 'generate_content'
+              : 'run_daily_ops';
+
+            return (
+              <div key={pb.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{pb.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pb.description}</p>
+                  </div>
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    pb.automationLevel === 'full_auto' ? 'bg-green-100 text-green-700' :
+                    pb.automationLevel === 'semi_auto' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {pb.automationLevel.replace('_', ' ')}
+                  </span>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded ${
-                  pb.automationLevel === 'full_auto' ? 'bg-green-100 text-green-700' :
-                  pb.automationLevel === 'semi_auto' ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-gray-100 text-gray-700'
-                }`}>
-                  {pb.automationLevel.replace('_', ' ')}
-                </span>
+
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Success Rate</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{Math.round(pb.successRate * 100)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Executions</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{pb.timesExecuted}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Phase</p>
+                    <p className="font-semibold text-gray-900 dark:text-white capitalize">{pb.phase}</p>
+                  </div>
+                </div>
+
+                {isRunning ? (
+                  <div className="mt-3">
+                    <AgentWorkflowPanel
+                      workflowId={workflowId}
+                      inputs={{ playbookName: pb.name }}
+                      autoStart={true}
+                      compact={true}
+                      showFlowDiagram={false}
+                      onComplete={() => setRunningPlaybook(null)}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setRunningPlaybook(pb.id)}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    ▶ Trigger Playbook
+                  </button>
+                )}
               </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <p className="text-xs text-gray-500">Success Rate</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{Math.round(pb.successRate * 100)}%</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Executions</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{pb.timesExecuted}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Phase</p>
-                  <p className="font-semibold text-gray-900 dark:text-white capitalize">{pb.phase}</p>
-                </div>
-              </div>
-              
-              <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                ▶ Trigger Playbook
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
