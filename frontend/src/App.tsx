@@ -44,6 +44,9 @@ const ConnectionRegistry = lazy(() => import('@/pages/ConnectionRegistry').then(
 // Lazy load user attribute registry
 const UserAttributeRegistry = lazy(() => import('@/pages/UserAttributeRegistry').then(m => ({ default: m.UserAttributeRegistry })));
 
+// Lazy load manager dashboard
+const ManagerDashboard = lazy(() => import('@/pages/dashboards/ManagerDashboard').then(m => ({ default: m.ManagerDashboard })));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -105,6 +108,7 @@ export default function App() {
           <Route path="integrations" element={<CEOIntegrations />} />
           <Route path="connections" element={<ConnectionRegistry />} />
           <Route path="user-attributes" element={<UserAttributeRegistry />} />
+          <Route path="manager" element={<ManagerDashboard />} />
           <Route path="strategy" element={<CEOStrategy />} />
           <Route path="blog" element={<WebsiteBlog adminMode />} />
           

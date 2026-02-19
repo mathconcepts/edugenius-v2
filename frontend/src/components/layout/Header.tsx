@@ -18,9 +18,10 @@ import {
 import { useAppStore } from '@/stores/appStore';
 import { clsx } from 'clsx';
 
-const roleConfig = {
+const roleConfig: Record<string, { icon: string; label: string; color: string }> = {
   ceo: { icon: '👔', label: 'CEO', color: 'from-purple-500 to-pink-500' },
   admin: { icon: '⚙️', label: 'Admin', color: 'from-blue-500 to-cyan-500' },
+  manager: { icon: '🎧', label: 'Manager', color: 'from-teal-500 to-green-500' },
   teacher: { icon: '👩‍🏫', label: 'Teacher', color: 'from-green-500 to-emerald-500' },
   student: { icon: '🎓', label: 'Student', color: 'from-orange-500 to-red-500' },
 };
@@ -108,7 +109,7 @@ export function Header() {
                       <button
                         key={role}
                         onClick={() => {
-                          setUserRole(role);
+                          setUserRole(role as import('@/types').UserRole);
                           setShowRoleSwitcher(false);
                           navigate('/');
                         }}

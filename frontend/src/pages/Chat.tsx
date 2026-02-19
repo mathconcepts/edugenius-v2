@@ -309,6 +309,12 @@ const SUGGESTIONS_BY_AGENT: Record<AgentType, string[]> = {
     'Analyse error logs from the last 24 hours',
     'Optimise database query performance',
   ],
+  nexus: [
+    'Show me all at-risk students for JEE Main',
+    'Draft a churn rescue message for Kabir Verma',
+    'Which tickets are about to breach SLA?',
+    'Suggest resolution for TKT-00042',
+  ],
 };
 
 // ─── Main Chat Component ──────────────────────────────────────────────────────

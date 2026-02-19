@@ -14,7 +14,7 @@ import { clsx } from 'clsx';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type Role = 'student' | 'parent' | 'teacher' | 'admin' | 'owner';
+type Role = 'student' | 'parent' | 'teacher' | 'manager' | 'admin' | 'owner';
 type Plan = 'free' | 'starter' | 'pro' | 'enterprise';
 type Status = 'active' | 'inactive' | 'suspended' | 'pending';
 
@@ -60,6 +60,7 @@ const roleMeta: Record<Role, { label: string; icon: React.ReactNode; color: stri
   student:  { label: 'Student',    icon: <GraduationCap size={11}/>, color: 'text-blue-400 bg-blue-500/20' },
   parent:   { label: 'Parent',     icon: <Users size={11}/>,         color: 'text-purple-400 bg-purple-500/20' },
   teacher:  { label: 'Teacher',    icon: <BookOpen size={11}/>,      color: 'text-green-400 bg-green-500/20' },
+  manager:  { label: 'Manager',    icon: <Shield size={11}/>,        color: 'text-teal-400 bg-teal-500/20' },
   admin:    { label: 'Admin',      icon: <Shield size={11}/>,        color: 'text-amber-400 bg-amber-500/20' },
   owner:    { label: 'Owner',      icon: <Crown size={11}/>,         color: 'text-red-400 bg-red-500/20' },
 };

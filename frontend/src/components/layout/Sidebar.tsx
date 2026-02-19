@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck,
+  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -31,6 +31,12 @@ const roleNavItems = {
     { to: '/user-attributes', icon: UserCheck, label: 'User Attributes' },
     { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
     { to: '/settings', icon: Settings, label: 'Settings' },
+  ],
+  manager: [
+    { to: '/manager', icon: Headphones, label: 'My Dashboard', highlight: true },
+    { to: '/users',   icon: Users,      label: 'Students' },
+    { to: '/feedback', icon: MessageSquarePlus, label: 'Tickets' },
+    { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   ],
   admin: [
     { to: '/', icon: Home, label: 'Dashboard' },
@@ -143,7 +149,7 @@ export function Sidebar() {
         <div className="px-3 py-2 border-b border-surface-700/30">
           <p className="text-[10px] text-surface-500 mb-1.5 px-1 uppercase tracking-wider">View as</p>
           <div className="grid grid-cols-2 gap-1">
-            {(['ceo', 'admin', 'teacher', 'student'] as const).map(role => (
+            {(['ceo', 'admin', 'manager', 'teacher', 'student'] as const).map(role => (
               <button
                 key={role}
                 onClick={() => { setUserRole(role); navigate('/'); }}
@@ -262,6 +268,7 @@ export function Sidebar() {
               <p className="text-xs font-medium truncate">
                 {userRole === 'ceo' ? 'Giri (CEO)' :
                  userRole === 'admin' ? 'Admin' :
+                 userRole === 'manager' ? 'Manager' :
                  userRole === 'teacher' ? 'Teacher' : 'Student'}
               </p>
               <p className="text-[10px] text-surface-500 capitalize">{userRole}</p>

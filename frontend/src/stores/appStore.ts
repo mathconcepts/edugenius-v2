@@ -160,6 +160,26 @@ const defaultAgents: Agent[] = [
     ],
     metrics: { tasksCompleted: 1834, tokensUsed: 420000, avgResponseTime: 3.1, successRate: 95.7 },
   },
+  {
+    id: 'nexus',
+    name: 'Nexus',
+    emoji: '🔗',
+    status: 'active',
+    description: 'Manager Orchestrator — L2 ticket routing, at-risk detection, outreach, update dispatch',
+    subAgents: [
+      { id: 'ticket-router',        name: 'Ticket Router',         description: 'Routes L2 tickets to exam-scoped manager',         status: 'active' },
+      { id: 'at-risk-detector',     name: 'At-Risk Detector',      description: 'Flags disengaged students for proactive outreach',  status: 'active' },
+      { id: 'outreach-composer',    name: 'Outreach Composer',     description: 'Drafts personalised outreach per channel',          status: 'active' },
+      { id: 'update-dispatcher',    name: 'Update Dispatcher',     description: 'Routes update triggers to Atlas/Forge/Sage/Herald', status: 'active' },
+      { id: 'resolution-suggester', name: 'Resolution Suggester',  description: 'Suggests resolutions from KB + past tickets',       status: 'active' },
+      { id: 'csat-monitor',         name: 'CSAT Monitor',          description: 'Tracks per-manager satisfaction scores',            status: 'active' },
+      { id: 'broadcast-planner',    name: 'Broadcast Planner',     description: 'Plans exam-scoped announcements across channels',   status: 'idle'   },
+      { id: 'churn-rescue',         name: 'Churn Rescue',          description: 'Detects near-expiry inactive students',             status: 'active' },
+      { id: 'escalation-guard',     name: 'Escalation Guard',      description: 'Nudges manager on SLA-approaching tickets',        status: 'active' },
+      { id: 'knowledge-updater',    name: 'Knowledge Updater',     description: 'Adds resolved patterns to L1 knowledge base',      status: 'idle'   },
+    ],
+    metrics: { tasksCompleted: 0, tokensUsed: 0, avgResponseTime: 0.8, successRate: 100 },
+  },
 ];
 
 export const useAppStore = create<AppState>()(
