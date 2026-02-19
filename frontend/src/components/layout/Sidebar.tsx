@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy,
+  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -21,6 +21,7 @@ const roleNavItems = {
     { to: '/strategy', icon: Target, label: 'Strategy' },
     { to: '/agents', icon: Bot, label: 'Agents' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
     { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/users', icon: Users, label: 'Users' },
@@ -32,6 +33,7 @@ const roleNavItems = {
   admin: [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/users', icon: Users, label: 'Users' },
+    { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
     { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
@@ -42,6 +44,7 @@ const roleNavItems = {
     { to: '/', icon: Home, label: 'Home' },
     { to: '/chat', icon: MessageSquare, label: 'AI Chat', highlight: true },
     { to: '/students', icon: Users, label: 'Students' },
+    { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Stats' },
     { to: '/content', icon: BookOpen, label: 'Lessons' },
     { to: '/analytics', icon: BarChart3, label: 'Progress' },
   ],
