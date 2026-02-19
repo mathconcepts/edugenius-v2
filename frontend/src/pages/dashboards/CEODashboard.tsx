@@ -1,4 +1,6 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
   DollarSign,
@@ -10,6 +12,15 @@ import {
   CheckCircle,
   AlertCircle,
   Play,
+  X,
+  Rocket,
+  ChevronRight,
+  BarChart3,
+  FileText,
+  Target,
+  MessageSquare,
+  Plug,
+  PenTool,
 } from 'lucide-react';
 import {
   LineChart,
@@ -97,15 +108,267 @@ function StatCard({ title, value, change, icon: Icon, color }: StatCardProps) {
   );
 }
 
+// ── Launch Exam Modal ──────────────────────────────────────────────────────────
+
+const EXAM_OPTIONS = [
+  { id: 'jee_main', label: 'JEE Main', icon: '🔢', status: 'active' as const },
+  { id: 'jee_advanced', label: 'JEE Advanced', icon: '⚡', status: 'pilot' as const },
+  { id: 'neet', label: 'NEET', icon: '🧬', status: 'active' as const },
+  { id: 'cbse_10', label: 'CBSE Class 10', icon: '📚', status: 'active' as const },
+  { id: 'cbse_12', label: 'CBSE Class 12', icon: '🎓', status: 'pilot' as const },
+  { id: 'cat', label: 'CAT', icon: '💼', status: 'inactive' as const },
+  { id: 'upsc', label: 'UPSC', icon: '🏛️', status: 'inactive' as const },
+  { id: 'gate', label: 'GATE', icon: '⚙️', status: 'inactive' as const },
+];
+
+const statusConfig = {
+  active: { label: 'Live', color: 'bg-green-500/10 text-green-400 border-green-500/20' },
+  pilot: { label: 'Pilot', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  inactive: { label: 'Inactive', color: 'bg-surface-700 text-surface-400 border-surface-600' },
+};
+
+function LaunchExamModal({ onClose }: { onClose: () => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [mode, setMode] = useState<'pilot' | 'full'>('pilot');
+  const [launched, setLaunched] = useState(false);
+
+  const handleLaunch = () => {
+    if (!selected) return;
+    setLaunched(true);
+    setTimeout(onClose, 2000);
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg glass rounded-2xl shadow-2xl p-6"
+      >
+        {launched ? (
+          <div className="text-center py-8">
+            <div className="text-5xl mb-4">🚀</div>
+            <h3 className="text-xl font-bold text-green-400">Launch Initiated!</h3>
+            <p className="text-surface-400 mt-2 text-sm">
+              {EXAM_OPTIONS.find(e => e.id === selected)?.label} is being set up in {mode} mode.
+              Atlas is generating content now.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <Rocket className="w-5 h-5 text-primary-400" />
+                <h3 className="text-lg font-bold">Launch Exam</h3>
+              </div>
+              <button onClick={onClose} className="p-1.5 hover:bg-surface-800 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-surface-400" />
+              </button>
+            </div>
+
+            <p className="text-sm text-surface-400 mb-4">Select an exam to launch or activate:</p>
+
+            <div className="grid grid-cols-2 gap-2 mb-5">
+              {EXAM_OPTIONS.map(exam => {
+                const sc = statusConfig[exam.status];
+                return (
+                  <button
+                    key={exam.id}
+                    onClick={() => setSelected(exam.id)}
+                    className={clsx(
+                      'flex items-center gap-3 p-3 rounded-xl border transition-all text-left',
+                      selected === exam.id
+                        ? 'border-primary-500 bg-primary-500/10'
+                        : 'border-surface-700 bg-surface-800/50 hover:border-surface-600'
+                    )}
+                  >
+                    <span className="text-xl">{exam.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{exam.label}</p>
+                      <span className={clsx('text-[10px] px-1.5 py-0.5 rounded border', sc.color)}>
+                        {sc.label}
+                      </span>
+                    </div>
+                    {selected === exam.id && (
+                      <CheckCircle className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mb-5">
+              <p className="text-sm text-surface-400 mb-2">Launch mode:</p>
+              <div className="flex gap-2">
+                {(['pilot', 'full'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setMode(m)}
+                    className={clsx(
+                      'flex-1 py-2 rounded-lg text-sm font-medium border transition-all',
+                      mode === m
+                        ? 'border-primary-500 bg-primary-500/20 text-primary-400'
+                        : 'border-surface-700 text-surface-400 hover:border-surface-600'
+                    )}
+                  >
+                    {m === 'pilot' ? '🧪 Pilot (limited users)' : '🌐 Full Launch'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-surface-500 mt-2">
+                {mode === 'pilot'
+                  ? 'Pilot: up to 50 users, AI tutor active, content generated by Atlas'
+                  : 'Full launch: unlimited users, all features enabled, Herald starts marketing'}
+              </p>
+            </div>
+
+            <button
+              onClick={handleLaunch}
+              disabled={!selected}
+              className={clsx(
+                'w-full py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2',
+                selected
+                  ? 'bg-primary-500 hover:bg-primary-400 text-white'
+                  : 'bg-surface-800 text-surface-500 cursor-not-allowed'
+              )}
+            >
+              <Rocket className="w-4 h-4" />
+              {selected ? `Launch ${EXAM_OPTIONS.find(e => e.id === selected)?.label}` : 'Select an exam first'}
+            </button>
+          </>
+        )}
+      </motion.div>
+    </>
+  );
+}
+
+// ── Run Daily Ops Modal ──────────────────────────────────────────────────────
+
+const OPS_TASKS = [
+  { id: 'content', label: 'Generate today\'s content', agent: 'Atlas', icon: '📚', eta: '~3 min' },
+  { id: 'insights', label: 'Refresh student insights', agent: 'Oracle', icon: '📊', eta: '~1 min' },
+  { id: 'marketing', label: 'Schedule social posts', agent: 'Herald', icon: '📢', eta: '~2 min' },
+  { id: 'monitor', label: 'Check system health', agent: 'Forge', icon: '⚙️', eta: '~30s' },
+  { id: 'outreach', label: 'Send re-engagement nudges', agent: 'Mentor', icon: '👨‍🏫', eta: '~1 min' },
+];
+
+function RunOpsModal({ onClose }: { onClose: () => void }) {
+  const [running, setRunning] = useState(false);
+  const [done, setDone] = useState<string[]>([]);
+
+  const handleRun = () => {
+    setRunning(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < OPS_TASKS.length) {
+        setDone(prev => [...prev, OPS_TASKS[i].id]);
+        i++;
+      } else {
+        clearInterval(interval);
+        setTimeout(onClose, 1500);
+      }
+    }, 600);
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={!running ? onClose : undefined} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md glass rounded-2xl shadow-2xl p-6"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-yellow-400" />
+            <h3 className="text-lg font-bold">Daily Operations</h3>
+          </div>
+          {!running && (
+            <button onClick={onClose} className="p-1.5 hover:bg-surface-800 rounded-lg transition-colors">
+              <X className="w-4 h-4 text-surface-400" />
+            </button>
+          )}
+        </div>
+
+        <p className="text-sm text-surface-400 mb-4">
+          {running ? 'Running ops — agents are working...' : 'The following tasks will run across your agent fleet:'}
+        </p>
+
+        <div className="space-y-2.5 mb-5">
+          {OPS_TASKS.map(task => {
+            const isDone = done.includes(task.id);
+            return (
+              <div key={task.id} className={clsx(
+                'flex items-center gap-3 p-3 rounded-xl transition-all',
+                isDone ? 'bg-green-500/10 border border-green-500/20' : 'bg-surface-800/50'
+              )}>
+                <span className="text-lg">{task.icon}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{task.label}</p>
+                  <p className="text-xs text-surface-500">{task.agent} · {task.eta}</p>
+                </div>
+                {isDone ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : running ? (
+                  <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+
+        {!running && (
+          <button
+            onClick={handleRun}
+            className="w-full py-2.5 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-400 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+          >
+            <Zap className="w-4 h-4" /> Run All Tasks
+          </button>
+        )}
+        {running && done.length === OPS_TASKS.length && (
+          <p className="text-center text-green-400 font-medium text-sm">✅ All tasks complete!</p>
+        )}
+      </motion.div>
+    </>
+  );
+}
+
+// ── All quick actions config ───────────────────────────────────────────────────
+
+// ── Main Dashboard ────────────────────────────────────────────────────────────
+
 export function CEODashboard() {
   const { agents } = useAppStore();
+  const navigate = useNavigate();
+  const [showLaunchModal, setShowLaunchModal] = useState(false);
+  const [showOpsModal, setShowOpsModal] = useState(false);
 
   const activeAgents = agents.filter(a => a.status === 'active' || a.status === 'busy').length;
   const totalTasks = agents.reduce((sum, a) => sum + a.metrics.tasksCompleted, 0);
   const avgSuccessRate = agents.reduce((sum, a) => sum + a.metrics.successRate, 0) / agents.length;
 
+  const quickActions = [
+    { icon: Rocket, label: 'Launch Exam', desc: 'Start new exam pipeline', color: 'text-primary-400', bg: 'bg-primary-500/10 border-primary-500/30 hover:bg-primary-500/20', action: () => setShowLaunchModal(true) },
+    { icon: Zap, label: 'Run Daily Ops', desc: 'Execute daily automation', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20', action: () => setShowOpsModal(true) },
+    { icon: MessageSquare, label: 'Chat with Agents', desc: 'Direct agent interaction', color: 'text-accent-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/chat') },
+    { icon: BarChart3, label: 'View Analytics', desc: 'Platform performance', color: 'text-green-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/analytics') },
+    { icon: Target, label: 'Growth Strategy', desc: 'Autonomous playbooks', color: 'text-orange-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/strategy') },
+    { icon: Plug, label: 'Integrations', desc: 'Connect tools & APIs', color: 'text-purple-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/integrations') },
+    { icon: PenTool, label: 'Blog / Content', desc: 'AI blog management', color: 'text-pink-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/blog') },
+    { icon: Users, label: 'Manage Users', desc: 'Students & teachers', color: 'text-cyan-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/users') },
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Modals */}
+      <AnimatePresence>
+        {showLaunchModal && <LaunchExamModal onClose={() => setShowLaunchModal(false)} />}
+        {showOpsModal && <RunOpsModal onClose={() => setShowOpsModal(false)} />}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -277,58 +540,57 @@ export function CEODashboard() {
           </div>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions + Recent Events */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="card"
+          className="space-y-4"
         >
-          <h3 className="font-semibold mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-primary-500/10 border border-primary-500/30 hover:bg-primary-500/20 transition-colors text-left">
-              <Play className="w-5 h-5 text-primary-400" />
-              <div>
-                <p className="font-medium text-sm">Launch Exam</p>
-                <p className="text-xs text-surface-400">Start new exam content pipeline</p>
-              </div>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors text-left">
-              <Zap className="w-5 h-5 text-yellow-400" />
-              <div>
-                <p className="font-medium text-sm">Run Daily Ops</p>
-                <p className="text-xs text-surface-400">Execute daily automation</p>
-              </div>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors text-left">
-              <Bot className="w-5 h-5 text-accent-400" />
-              <div>
-                <p className="font-medium text-sm">Chat with Agents</p>
-                <p className="text-xs text-surface-400">Direct agent interaction</p>
-              </div>
-            </button>
+          {/* Quick Actions — now fully wired */}
+          <div className="card">
+            <h3 className="font-semibold mb-3">Quick Actions</h3>
+            <div className="space-y-2">
+              {quickActions.slice(0, 4).map((action, i) => (
+                <button
+                  key={i}
+                  onClick={action.action}
+                  className={clsx(
+                    'w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left group',
+                    action.bg
+                  )}
+                >
+                  <action.icon className={clsx('w-5 h-5 flex-shrink-0', action.color)} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{action.label}</p>
+                    <p className="text-xs text-surface-400">{action.desc}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-surface-600 group-hover:text-surface-400 transition-colors" />
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Recent Events */}
-          <div className="mt-6 pt-4 border-t border-surface-700/50">
-            <h4 className="text-sm font-medium text-surface-400 mb-3">Recent Events</h4>
+          <div className="card">
+            <h4 className="text-sm font-semibold mb-3">Recent Events</h4>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <CheckCircle className="w-4 h-4 text-green-400 mt-0.5" />
+                <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm">Atlas published 15 new questions</p>
                   <p className="text-xs text-surface-500">2 min ago</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Activity className="w-4 h-4 text-blue-400 mt-0.5" />
+                <Activity className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm">Sage handled 45 student sessions</p>
                   <p className="text-xs text-surface-500">15 min ago</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm">Herald awaiting blog approval</p>
                   <p className="text-xs text-surface-500">1 hour ago</p>
@@ -338,6 +600,33 @@ export function CEODashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* All Quick Actions grid (below charts) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45 }}
+        className="card"
+      >
+        <h3 className="font-semibold mb-4">All Quick Actions</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {quickActions.map((action, i) => (
+            <button
+              key={i}
+              onClick={action.action}
+              className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 border border-surface-700/50 hover:border-surface-600 transition-all group text-center"
+            >
+              <div className={clsx('p-3 rounded-xl bg-surface-700/50 group-hover:scale-110 transition-transform')}>
+                <action.icon className={clsx('w-5 h-5', action.color)} />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{action.label}</p>
+                <p className="text-[10px] text-surface-500 mt-0.5">{action.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </motion.div>
 
       {/* Agent Workload Distribution */}
       <motion.div
