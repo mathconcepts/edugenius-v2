@@ -12,6 +12,7 @@ import {
   Download,
   Filter,
 } from 'lucide-react';
+import { LiveHealthPanel, OnboardingFunnelCard, ContentQualityHeatmap, QuickUserActions, ActionableAlerts } from '@/components/ux/UXEnhancements';
 import {
   AreaChart,
   Area,
@@ -148,6 +149,12 @@ export function AdminDashboard() {
         </motion.div>
       </div>
 
+      {/* ── Live Health Panel + Quick User Actions ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <LiveHealthPanel />
+        <QuickUserActions />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* User Activity Chart */}
         <motion.div
@@ -193,42 +200,8 @@ export function AdminDashboard() {
           </ResponsiveContainer>
         </motion.div>
 
-        {/* System Alerts */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="card"
-        >
-          <h2 className="font-semibold mb-4">System Alerts</h2>
-          <div className="space-y-3">
-            {systemAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={clsx(
-                  'flex items-start gap-3 p-3 rounded-lg',
-                  alert.type === 'warning' && 'bg-yellow-500/10',
-                  alert.type === 'info' && 'bg-blue-500/10',
-                  alert.type === 'success' && 'bg-green-500/10'
-                )}
-              >
-                {alert.type === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />}
-                {alert.type === 'info' && <Clock className="w-5 h-5 text-blue-400 mt-0.5" />}
-                {alert.type === 'success' && <CheckCircle className="w-5 h-5 text-green-400 mt-0.5" />}
-                <div className="flex-1">
-                  <p className="text-sm">{alert.message}</p>
-                  <p className="text-xs text-surface-500 mt-1">{alert.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <Link
-            to="/settings"
-            className="block text-center text-sm text-primary-400 hover:text-primary-300 mt-4"
-          >
-            View All Alerts
-          </Link>
-        </motion.div>
+        {/* Actionable Alerts (AI-powered) */}
+        <ActionableAlerts />
       </div>
 
       {/* Recent Users & Content Stats */}
@@ -319,6 +292,12 @@ export function AdminDashboard() {
             </div>
           </div>
         </motion.div>
+      </div>
+
+      {/* ── Onboarding Funnel + Content Quality Heatmap ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <OnboardingFunnelCard />
+        <ContentQualityHeatmap />
       </div>
     </div>
   );

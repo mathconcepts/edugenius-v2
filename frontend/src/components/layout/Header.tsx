@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { clsx } from 'clsx';
+import { SmartNotifications } from '@/components/ux/UXEnhancements';
 
 const roleConfig: Record<string, { icon: string; label: string; color: string }> = {
   ceo: { icon: '👔', label: 'CEO', color: 'from-purple-500 to-pink-500' },
@@ -142,6 +143,9 @@ export function Header() {
             <Moon className="w-5 h-5 text-primary-500" />
           )}
         </button>
+
+        {/* ── Smart AI Notifications ── */}
+        <SmartNotifications />
 
         {/* Notifications */}
         <div className="relative">

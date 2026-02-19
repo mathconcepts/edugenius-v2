@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MessageSquare, BookOpen, Flame, Target, Trophy, ChevronRight, Play, CheckCircle2, Sparkles, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { AIStudyCoach, ExamReadinessScore, PeerActivity } from '@/components/ux/UXEnhancements';
 
 // ── Mock data (real data comes from backend) ────────────────────────────────
 
@@ -97,6 +98,9 @@ export function StudentDashboard() {
           <span className="text-xs font-bold text-amber-300">{examCountdown.daysLeft}d</span>
         </div>
       </motion.div>
+
+      {/* ── AI Study Coach ── */}
+      <AIStudyCoach />
 
       {/* ── Hero CTA: Ask a question ── */}
       <motion.div
@@ -220,6 +224,9 @@ export function StudentDashboard() {
               View topper strategies <ChevronRight className="w-3 h-3" />
             </Link>
           </motion.div>
+
+          {/* ── Exam Readiness Score ── */}
+          <ExamReadinessScore />
         </div>
       </div>
 
@@ -235,7 +242,7 @@ export function StudentDashboard() {
           { to: '/notebook', icon: '📓',       label: 'Notebook', color: 'text-green-400',  bg: 'bg-green-500/10' },
           { to: '/progress', icon: BarChart3,  label: 'Progress', color: 'text-purple-400', bg: 'bg-purple-500/10' },
           { to: '/insights', icon: Trophy,     label: 'Exam Tips',color: 'text-amber-400',  bg: 'bg-amber-500/10' },
-        ].map(item => (
+        ].map((item) => (
           <Link
             key={item.to}
             to={item.to}
@@ -252,6 +259,9 @@ export function StudentDashboard() {
           </Link>
         ))}
       </motion.div>
+
+      {/* ── Peer Activity ── */}
+      <PeerActivity />
     </div>
   );
 }

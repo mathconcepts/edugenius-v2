@@ -21,6 +21,7 @@ import { AttachmentPreview } from '@/components/chat/AttachmentPreview';
 import { OutputBlockRenderer } from '@/components/chat/OutputBlockRenderer';
 import { DrawingCanvas } from '@/components/chat/DrawingCanvas';
 import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
+import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import type { AgentType, Message, MediaAttachment, IntentResult } from '@/types';
@@ -612,8 +613,8 @@ export function Chat() {
         <div className="px-4 py-3 border-b border-surface-700/50 flex items-center justify-between">
           {/* Simple mode: clean tutor header, no picker */}
           {isSimpleMode ? (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-lg">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-lg flex-shrink-0">
                 🎓
               </div>
               <div>
@@ -626,6 +627,8 @@ export function Chat() {
                 title="New chat">
                 <Plus className="w-4 h-4" />
               </button>
+              {/* ── Smart Memory Chip ── */}
+              {userRole === 'student' && <SmartMemoryChip />}
             </div>
           ) : (
           <div className="relative">

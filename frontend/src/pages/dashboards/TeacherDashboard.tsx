@@ -11,6 +11,7 @@ import {
   ChevronRight, Plus, Clock, CheckCircle2
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { AITriagePanel, QuickQuestionGen, TeachingEffectivenessCard } from '@/components/ux/UXEnhancements';
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,9 @@ export function TeacherDashboard() {
         <StatChip icon={TrendingUp} value={`${avgProgress}%`} label="Avg Progress" color="bg-green-500/20 text-green-400" />
         <StatChip icon={AlertCircle} value={needsAttention} label="Need Help" color="bg-amber-500/20 text-amber-400" />
       </motion.div>
+
+      {/* ── AI Triage Panel ── */}
+      <AITriagePanel />
 
       {/* ── Main grid: students + sidebar ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -276,6 +280,12 @@ export function TeacherDashboard() {
               ))}
             </div>
           </motion.div>
+
+          {/* ── Quick Question Generator ── */}
+          <QuickQuestionGen />
+
+          {/* ── Teaching Effectiveness ── */}
+          <TeachingEffectivenessCard />
         </div>
       </div>
     </div>

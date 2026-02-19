@@ -21,6 +21,7 @@ import {
   PenTool,
 } from 'lucide-react';
 import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
+import { AgentROIPanel, AIRevenueNarrative, DailyOpsDigest, ExamOpportunityRadar, CompetitorPulse } from '@/components/ux/UXEnhancements';
 import {
   LineChart,
   Line,
@@ -478,6 +479,9 @@ export function CEODashboard() {
         </motion.div>
       </div>
 
+      {/* ── AI Revenue Narrative (Oracle) ── */}
+      <AIRevenueNarrative />
+
       {/* Agent Status & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Agent Status */}
@@ -585,6 +589,9 @@ export function CEODashboard() {
         </motion.div>
       </div>
 
+      {/* ── Agent ROI Panel ── */}
+      <AgentROIPanel />
+
       {/* All Quick Actions grid (below charts) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -640,6 +647,17 @@ export function CEODashboard() {
           </BarChart>
         </ResponsiveContainer>
       </motion.div>
+
+      {/* ── Exam Opportunity Radar + Daily Ops Digest + Competitor Pulse ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <ExamOpportunityRadar />
+        </div>
+        <div className="space-y-4">
+          <DailyOpsDigest />
+          <CompetitorPulse />
+        </div>
+      </div>
     </div>
   );
 }
