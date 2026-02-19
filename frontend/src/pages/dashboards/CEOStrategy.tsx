@@ -1,755 +1,600 @@
 /**
- * CEO Strategy Dashboard
- * Autonomous growth strategy management
+ * CEOStrategy.tsx — Revenue Command Center
+ * The CEO's primary tool for EARNING money, not just viewing metrics.
+ * 6 tabs: Revenue Engine | Growth Playbooks | Opportunity Pipeline |
+ *         Competitive Intel | Agent Command | Business Health
  */
-
-import React, { useState } from 'react';
-import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  DollarSign, Rocket, Search, Cpu, BarChart3,
+  TrendingUp, Zap, ArrowRight, CheckCircle2,
+  AlertTriangle, RefreshCw, Play, Star, Target,
+  Activity, Shield, Clock,
+} from 'lucide-react';
+import { clsx } from 'clsx';
+import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
+import { BUSINESS_AGENTS, MOCK_OPPORTUNITIES, MOCK_COMPETITORS } from '@/services/businessAgents';
+import { MOCK_TREND_KEYWORDS } from '@/services/businessAgents';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 
-// Types
-type Priority = 'critical' | 'high' | 'medium' | 'low';
-type Status = 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed';
+// ─── Revenue Engine Tab ───────────────────────────────────────────────────────
 
-interface Recommendation {
-  id: string;
-  title: string;
-  description: string;
-  rationale: string;
-  priority: Priority;
-  status: Status;
-  confidence: number;
-  projectedImpact: {
-    users: number;
-    revenue: number;
-    timeframe: string;
-  };
-  actions: {
-    title: string;
-    owner: string;
-    effort: string;
-  }[];
-  risks: string[];
-  timestamp: Date;
-  autoApprove: boolean;
-}
-
-interface Playbook {
-  id: string;
-  name: string;
-  description: string;
-  phase: string;
-  targetSegment: string;
-  automationLevel: 'manual' | 'semi_auto' | 'full_auto';
-  successRate: number;
-  timesExecuted: number;
-}
-
-interface ChannelPerformance {
-  channel: string;
-  users: number;
-  cost: number;
-  cac: number;
-  revenue: number;
-  roi: number;
-}
-
-interface SegmentHealth {
-  segment: string;
-  users: number;
-  growth: number;
-  satisfaction: number;
-  churn: number;
-}
-
-// Mock data
-const mockRecommendations: Recommendation[] = [
-  {
-    id: 'rec_1',
-    title: 'Scale Organic Search - High ROI',
-    description: 'Organic search has 15x ROI - opportunity to double content output',
-    rationale: 'Top performing channel with room to grow',
-    priority: 'high',
-    status: 'pending',
-    confidence: 0.85,
-    projectedImpact: { users: 400, revenue: 60000, timeframe: '30 days' },
-    actions: [
-      { title: 'Generate 20 JEE PYQ blog posts', owner: 'Atlas', effort: 'medium' },
-      { title: 'Optimize existing content', owner: 'Herald', effort: 'low' },
-    ],
-    risks: ['Content quality may drop with volume'],
-    timestamp: new Date(),
-    autoApprove: false,
-  },
-  {
-    id: 'rec_2',
-    title: 'Launch NEET Acquisition Campaign',
-    description: 'NEET segment growing 12% but underserved',
-    rationale: 'High growth segment with low competition',
-    priority: 'medium',
-    status: 'pending',
-    confidence: 0.72,
-    projectedImpact: { users: 500, revenue: 75000, timeframe: '45 days' },
-    actions: [
-      { title: 'Create NEET-specific landing page', owner: 'Herald', effort: 'medium' },
-      { title: 'Generate NCERT biology content', owner: 'Atlas', effort: 'high' },
-      { title: 'Run Telegram community campaign', owner: 'Herald', effort: 'low' },
-    ],
-    risks: ['Different audience psychology than JEE'],
-    timestamp: new Date(),
-    autoApprove: false,
-  },
-  {
-    id: 'rec_3',
-    title: 'Pause Paid Search - Negative ROI',
-    description: 'Paid search has 2.5x ROI - below target of 3x',
-    rationale: 'Reallocate budget to higher performing channels',
-    priority: 'critical',
-    status: 'pending',
-    confidence: 0.92,
-    projectedImpact: { users: 0, revenue: 15000, timeframe: '7 days' },
-    actions: [
-      { title: 'Pause underperforming campaigns', owner: 'Herald', effort: 'low' },
-      { title: 'Reallocate to organic + social', owner: 'Herald', effort: 'low' },
-    ],
-    risks: ['May miss some high-intent users'],
-    timestamp: new Date(),
-    autoApprove: true,
-  },
+const revenueForecastData = [
+  { month: 'Feb', conservative: 280000, realistic: 380000, optimistic: 520000 },
+  { month: 'Mar', conservative: 340000, realistic: 460000, optimistic: 640000 },
+  { month: 'Apr', conservative: 420000, realistic: 570000, optimistic: 790000 },
+  { month: 'May', conservative: 510000, realistic: 690000, optimistic: 960000 },
+  { month: 'Jun', conservative: 620000, realistic: 840000, optimistic: 1150000 },
 ];
 
-const mockPlaybooks: Playbook[] = [
-  {
-    id: 'pb_1',
-    name: 'JEE Organic Acquisition',
-    description: 'Capture JEE aspirants through SEO, YouTube, and community',
-    phase: 'growth',
-    targetSegment: 'aspirants_jee',
-    automationLevel: 'semi_auto',
-    successRate: 0.78,
-    timesExecuted: 12,
-  },
-  {
-    id: 'pb_2',
-    name: 'Churn Prevention',
-    description: 'Identify and save at-risk users before they churn',
-    phase: 'optimization',
-    targetSegment: 'all',
-    automationLevel: 'full_auto',
-    successRate: 0.65,
-    timesExecuted: 45,
-  },
-  {
-    id: 'pb_3',
-    name: 'Free to Paid Conversion',
-    description: 'Convert engaged free users to paid subscriptions',
-    phase: 'monetization',
-    targetSegment: 'all',
-    automationLevel: 'semi_auto',
-    successRate: 0.42,
-    timesExecuted: 8,
-  },
-  {
-    id: 'pb_4',
-    name: 'Competitor Price Response',
-    description: 'Respond to competitor pricing changes',
-    phase: 'competitive',
-    targetSegment: 'all',
-    automationLevel: 'manual',
-    successRate: 0.85,
-    timesExecuted: 3,
-  },
+const quickWins = [
+  { id: 'qw1', label: 'Send renewal reminder to 23 expiring plans', agent: 'Nexus', impact: '+₹13,800', action: 'Execute', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+  { id: 'qw2', label: 'Upsell 47 free users who completed 5 sessions', agent: 'Mentor', impact: '+₹28,200', action: 'Execute', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  { id: 'qw3', label: 'Offer 20% discount to 12 churned students', agent: 'Nexus', impact: '+₹5,760', action: 'Execute', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  { id: 'qw4', label: 'Upgrade 31 Starter → Pro (feature gate triggered)', agent: 'Mentor', impact: '+₹9,300', action: 'Execute', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
 ];
 
-const mockChannels: ChannelPerformance[] = [
-  { channel: 'Organic Search', users: 800, cost: 8000, cac: 100, revenue: 120000, roi: 15 },
-  { channel: 'YouTube', users: 500, cost: 10000, cac: 200, revenue: 75000, roi: 7.5 },
-  { channel: 'Social Organic', users: 300, cost: 2000, cac: 67, revenue: 45000, roi: 22.5 },
-  { channel: 'Referral', users: 200, cost: 3000, cac: 150, revenue: 36000, roi: 12 },
-  { channel: 'Paid Search', users: 400, cost: 24000, cac: 600, revenue: 60000, roi: 2.5 },
-];
-
-const mockSegments: SegmentHealth[] = [
-  { segment: 'JEE Aspirants', users: 8000, growth: 0.15, satisfaction: 4.2, churn: 0.04 },
-  { segment: 'NEET Aspirants', users: 5000, growth: 0.12, satisfaction: 4.0, churn: 0.05 },
-  { segment: 'CBSE 12', users: 1500, growth: 0.08, satisfaction: 3.8, churn: 0.06 },
-  { segment: 'CBSE 10', users: 500, growth: 0.05, satisfaction: 3.5, churn: 0.08 },
-];
-
-// Components
-const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) => {
-  const styles: Record<Priority, string> = {
-    critical: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 animate-pulse',
-    high: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-    medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    low: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400',
-  };
+function RevenueEngineTab() {
+  const [executed, setExecuted] = useState<Set<string>>(new Set());
+  const monthlyTarget = 1200000;
+  const monthlyActual = 724000;
+  const pct = Math.round((monthlyActual / monthlyTarget) * 100);
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[priority]}`}>
-      {priority.toUpperCase()}
-    </span>
-  );
-};
-
-const ConfidenceBar: React.FC<{ confidence: number }> = ({ confidence }) => {
-  const percent = Math.round(confidence * 100);
-  const color = percent >= 80 ? 'bg-green-500' : percent >= 60 ? 'bg-yellow-500' : 'bg-red-500';
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div className={`h-full ${color} transition-all`} style={{ width: `${percent}%` }} />
+    <div className="space-y-5">
+      {/* Target progress */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="font-semibold">Monthly Revenue Target</h3>
+            <p className="text-xs text-surface-400">February 2026 · 9 days remaining</p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold">₹{(monthlyActual / 100000).toFixed(1)}L</p>
+            <p className="text-xs text-surface-400">of ₹{(monthlyTarget / 100000).toFixed(1)}L target</p>
+          </div>
+        </div>
+        <div className="h-3 bg-surface-700 rounded-full overflow-hidden mb-2">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 1 }}
+            className={clsx('h-full rounded-full', pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+          />
+        </div>
+        <p className="text-xs text-surface-400">{pct}% achieved · Need ₹{((monthlyTarget - monthlyActual) / 100000).toFixed(1)}L more in 9 days</p>
       </div>
-      <span className="text-xs text-gray-500">{percent}%</span>
-    </div>
-  );
-};
 
-const MetricCard: React.FC<{
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  trend?: 'up' | 'down' | 'stable';
-  trendValue?: string;
-}> = ({ title, value, subtitle, trend, trendValue }) => {
-  const trendColors = {
-    up: 'text-green-500',
-    down: 'text-red-500',
-    stable: 'text-gray-500',
-  };
-  const trendIcons = {
-    up: '↑',
-    down: '↓',
-    stable: '→',
-  };
-
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-      <div className="flex items-center gap-2 mt-1">
-        {subtitle && <span className="text-xs text-gray-500">{subtitle}</span>}
-        {trend && trendValue && (
-          <span className={`text-xs ${trendColors[trend]}`}>
-            {trendIcons[trend]} {trendValue}
-          </span>
+      {/* Quick wins */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <h3 className="font-semibold">Quick Win Actions</h3>
+          <span className="text-xs text-surface-400 ml-auto">AI-identified revenue moves</span>
+        </div>
+        <div className="space-y-2">
+          {quickWins.map(win => (
+            <div key={win.id} className={clsx('flex items-center gap-3 p-3 rounded-xl border', win.color)}>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium leading-snug">{win.label}</p>
+                <p className="text-[10px] text-surface-400 mt-0.5">{win.agent} will execute → <span className="text-green-400 font-medium">{win.impact}</span></p>
+              </div>
+              <button
+                onClick={() => setExecuted(p => new Set([...p, win.id]))}
+                disabled={executed.has(win.id)}
+                className={clsx(
+                  'flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all',
+                  executed.has(win.id) ? 'bg-green-500/20 text-green-400' : 'bg-white/10 hover:bg-white/20'
+                )}
+              >
+                {executed.has(win.id) ? '✅ Sent' : win.action}
+              </button>
+            </div>
+          ))}
+        </div>
+        {executed.size > 0 && (
+          <p className="text-xs text-green-400 mt-3">
+            ✅ {executed.size} action{executed.size > 1 ? 's' : ''} dispatched → potential ₹{
+              quickWins.filter(w => executed.has(w.id)).reduce((s, w) => s + parseInt(w.impact.replace(/[^\d]/g, '')), 0).toLocaleString()
+            } additional revenue
+          </p>
         )}
       </div>
+
+      {/* Revenue forecast chart */}
+      <div className="card">
+        <h3 className="font-semibold mb-4">30/60/90-Day Revenue Forecast</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={revenueForecastData}>
+            <defs>
+              <linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+            <XAxis dataKey="month" stroke="#71717a" fontSize={11} />
+            <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `₹${(v/100000).toFixed(0)}L`} />
+            <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
+              formatter={(v: number) => [`₹${(v/100000).toFixed(1)}L`]} />
+            <Area type="monotone" dataKey="optimistic" stroke="#22c55e" strokeWidth={1} strokeDasharray="4 2" fill="none" />
+            <Area type="monotone" dataKey="realistic" stroke="#0ea5e9" strokeWidth={2} fillOpacity={1} fill="url(#cg1)" />
+            <Area type="monotone" dataKey="conservative" stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 2" fill="none" />
+          </AreaChart>
+        </ResponsiveContainer>
+        <div className="flex gap-4 text-xs mt-2 justify-center">
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-green-500 inline-block" /> Optimistic</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-primary-400 inline-block" /> Realistic</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-amber-400 inline-block" /> Conservative</span>
+        </div>
+      </div>
     </div>
   );
-};
+}
 
-const RecommendationCard: React.FC<{
-  rec: Recommendation;
-  onApprove: (id: string) => void;
-  onReject: (id: string) => void;
-  onExpand: (id: string) => void;
-  isExpanded: boolean;
-}> = ({ rec, onApprove, onReject, onExpand, isExpanded }) => {
-  return (
-    <motion.div
-      layout
-      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-    >
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <PriorityBadge priority={rec.priority} />
-              {rec.autoApprove && (
-                <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">
-                  🤖 Auto-eligible
-                </span>
-              )}
-            </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white">{rec.title}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{rec.description}</p>
-          </div>
-          <ConfidenceBar confidence={rec.confidence} />
-        </div>
+// ─── Growth Playbooks Tab ─────────────────────────────────────────────────────
 
-        {/* Impact Preview */}
-        <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-          <div>
-            <p className="text-xs text-gray-500">Users</p>
-            <p className="font-semibold text-gray-900 dark:text-white">+{rec.projectedImpact.users}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Revenue</p>
-            <p className="font-semibold text-green-600">₹{rec.projectedImpact.revenue.toLocaleString()}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Timeframe</p>
-            <p className="font-semibold text-gray-900 dark:text-white">{rec.projectedImpact.timeframe}</p>
-          </div>
-        </div>
+const playbooks = [
+  { id: 'pb_telegram', name: 'Telegram Community Growth', phase: 'Acquisition', level: 'semi_auto', rate: 0.82, runs: 3, revenue: 148000, desc: 'GrowthCommander builds Telegram community → social proof converts lurkers to trials', agents: ['Herald', 'GrowthCommander', 'Mentor'] },
+  { id: 'pb_schools', name: 'School Partnership Blitz', phase: 'Acquisition', level: 'semi_auto', rate: 0.71, runs: 1, revenue: 84000, desc: '5 school partnerships in 30 days via GrowthCommander.PartnershipFinder', agents: ['GrowthCommander', 'Herald'] },
+  { id: 'pb_referral', name: 'Viral Referral Launch', phase: 'Acquisition', level: 'full_auto', rate: 0.78, runs: 2, revenue: 212000, desc: '2-sided referral with gamification — students earn free months for successful invites', agents: ['GrowthCommander', 'Mentor', 'Nexus'] },
+  { id: 'pb_content', name: 'Scale Organic Search', phase: 'Awareness', level: 'full_auto', rate: 0.91, runs: 8, revenue: 320000, desc: 'Atlas + GrowthCommander.SEOStrategist publish 20 JEE/NEET blog posts per month', agents: ['Atlas', 'GrowthCommander', 'Herald'] },
+  { id: 'pb_reactivate', name: 'Churn Rescue Campaign', phase: 'Retention', level: 'full_auto', rate: 0.34, runs: 5, revenue: 89000, desc: 'RevenueArchitect.ChurnPredictor identifies at-risk users → Nexus sends personalised rescue sequence', agents: ['RevenueArchitect', 'Nexus', 'Mentor'] },
+];
 
-        {/* Expanded Details */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="space-y-4 mb-4"
-            >
-              {/* Rationale */}
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase mb-1">Rationale</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{rec.rationale}</p>
-              </div>
-
-              {/* Actions */}
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Actions</p>
-                <div className="space-y-2">
-                  {rec.actions.map((action, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm">
-                      <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs">
-                        {i + 1}
-                      </span>
-                      <span className="flex-1 text-gray-700 dark:text-gray-300">{action.title}</span>
-                      <span className="text-xs text-gray-500">@{action.owner}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        action.effort === 'low' ? 'bg-green-100 text-green-700' :
-                        action.effort === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {action.effort}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Risks */}
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase mb-1">Risks</p>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                  {rec.risks.map((risk, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-yellow-500">⚠️</span>
-                      {risk}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => onApprove(rec.id)}
-            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-          >
-            ✓ Approve
-          </button>
-          <button
-            onClick={() => onReject(rec.id)}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            ✗ Reject
-          </button>
-          <button
-            onClick={() => onExpand(rec.id)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            {isExpanded ? '↑' : '↓'}
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// Main Component
-export const CEOStrategy: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'recommendations' | 'playbooks' | 'performance' | 'settings'>('recommendations');
-  const [recommendations, setRecommendations] = useState(mockRecommendations);
-  const [expandedRec, setExpandedRec] = useState<string | null>(null);
-  const [autonomousMode, setAutonomousMode] = useState(true);
-  const [autoApproveThreshold, setAutoApproveThreshold] = useState(85);
-  const [runningPlaybook, setRunningPlaybook] = useState<string | null>(null);
-
-  const handleApprove = (id: string) => {
-    setRecommendations(prev => prev.map(r => 
-      r.id === id ? { ...r, status: 'approved' as Status } : r
-    ));
-  };
-
-  const handleReject = (id: string) => {
-    setRecommendations(prev => prev.map(r => 
-      r.id === id ? { ...r, status: 'rejected' as Status } : r
-    ));
-  };
-
-  const pendingRecs = recommendations.filter(r => r.status === 'pending');
-  const criticalRecs = pendingRecs.filter(r => r.priority === 'critical');
+function GrowthPlaybooksTab() {
+  const [activePlaybook, setActivePlaybook] = useState<string | null>(null);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            🎯 Growth Strategy
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Autonomous growth recommendations and execution
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
-            autonomousMode 
-              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${autonomousMode ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-sm font-medium">
-              {autonomousMode ? 'Autonomous Mode ON' : 'Manual Mode'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Critical Alerts */}
-      {criticalRecs.length > 0 && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+    <div className="space-y-3">
+      {playbooks.map(pb => (
+        <div key={pb.id} className="card hover:border-surface-600 transition-colors">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">🚨</span>
-            <div>
-              <h3 className="font-semibold text-red-800 dark:text-red-200">
-                {criticalRecs.length} Critical Action{criticalRecs.length > 1 ? 's' : ''} Required
-              </h3>
-              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                {criticalRecs.map(r => r.title).join(' • ')}
-              </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h3 className="font-semibold text-sm">{pb.name}</h3>
+                <span className={clsx('text-[10px] px-1.5 py-0.5 rounded border',
+                  pb.level === 'full_auto' ? 'text-green-400 border-green-500/30 bg-green-500/10' : 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+                )}>{pb.level === 'full_auto' ? '🤖 Full Auto' : '⚡ Semi-Auto'}</span>
+                <span className="text-[10px] text-surface-500">{pb.phase}</span>
+              </div>
+              <p className="text-xs text-surface-400">{pb.desc}</p>
+              <div className="flex items-center gap-3 mt-2 text-xs">
+                <span className="text-surface-400">Success: <span className="text-white font-medium">{Math.round(pb.rate * 100)}%</span></span>
+                <span className="text-surface-400">Runs: <span className="text-white font-medium">{pb.runs}</span></span>
+                <span className="text-green-400 font-medium">₹{(pb.revenue / 1000).toFixed(0)}K generated</span>
+              </div>
+              <div className="flex gap-1 mt-2 flex-wrap">
+                {pb.agents.map(a => (
+                  <span key={a} className="text-[10px] px-1.5 py-0.5 bg-surface-700 rounded-full text-surface-300">{a}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <button
+                onClick={() => setActivePlaybook(activePlaybook === pb.id ? null : pb.id)}
+                className="text-xs px-3 py-1.5 rounded-lg bg-primary-500/20 border border-primary-500/30 text-primary-400 hover:bg-primary-500/30 transition-colors"
+              >
+                <Play className="w-3.5 h-3.5 inline mr-1" />Run
+              </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <MetricCard title="Active Users" value="4,500" trend="up" trendValue="12%" />
-        <MetricCard title="MRR" value="₹4.5L" trend="up" trendValue="8%" />
-        <MetricCard title="LTV/CAC" value="15x" trend="stable" trendValue="0%" />
-        <MetricCard title="Churn" value="4.5%" trend="down" trendValue="-0.5%" />
-        <MetricCard title="NPS" value="45" trend="up" trendValue="+3" />
-        <MetricCard title="Pending" value={pendingRecs.length} subtitle="decisions" />
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex gap-4">
-          {[
-            { id: 'recommendations', label: 'Recommendations', count: pendingRecs.length },
-            { id: 'playbooks', label: 'Playbooks' },
-            { id: 'performance', label: 'Performance' },
-            { id: 'settings', label: 'Settings' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-3 font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              {tab.label}
-              {tab.count !== undefined && (
-                <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs">
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'recommendations' && (
-        <div className="space-y-4">
-          {pendingRecs.length === 0 ? (
-            <div className="text-center py-12">
-              <span className="text-4xl">✨</span>
-              <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-                All caught up!
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                No pending recommendations. Strategy is running autonomously.
-              </p>
+          {activePlaybook === pb.id && (
+            <div className="mt-4 pt-4 border-t border-surface-700">
+              <AgentWorkflowPanel
+                workflowId="growth_strategy"
+                inputs={{ playbookId: pb.id, playbookName: pb.name }}
+                autoStart={true}
+                showFlowDiagram={false}
+                onComplete={() => setActivePlaybook(null)}
+              />
             </div>
-          ) : (
-            pendingRecs
-              .sort((a, b) => {
-                const order = { critical: 0, high: 1, medium: 2, low: 3 };
-                return order[a.priority] - order[b.priority];
-              })
-              .map(rec => (
-                <RecommendationCard
-                  key={rec.id}
-                  rec={rec}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  onExpand={(id) => setExpandedRec(expandedRec === id ? null : id)}
-                  isExpanded={expandedRec === rec.id}
-                />
-              ))
           )}
         </div>
-      )}
+      ))}
+    </div>
+  );
+}
 
-      {activeTab === 'playbooks' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {mockPlaybooks.map(pb => {
-            const isRunning = runningPlaybook === pb.id;
-            // Map playbook to workflow id
-            const workflowId = pb.id === 'pb_1' ? 'growth_strategy'
-              : pb.id === 'pb_2' ? 'student_engagement'
-              : pb.id === 'pb_3' ? 'generate_content'
-              : 'run_daily_ops';
+// ─── Opportunity Pipeline Tab ─────────────────────────────────────────────────
 
-            return (
-              <div key={pb.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{pb.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pb.description}</p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs rounded ${
-                    pb.automationLevel === 'full_auto' ? 'bg-green-100 text-green-700' :
-                    pb.automationLevel === 'semi_auto' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {pb.automationLevel.replace('_', ' ')}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Success Rate</p>
-                    <p className="font-semibold text-gray-900 dark:text-white">{Math.round(pb.successRate * 100)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Executions</p>
-                    <p className="font-semibold text-gray-900 dark:text-white">{pb.timesExecuted}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Phase</p>
-                    <p className="font-semibold text-gray-900 dark:text-white capitalize">{pb.phase}</p>
-                  </div>
-                </div>
-
-                {isRunning ? (
-                  <div className="mt-3">
-                    <AgentWorkflowPanel
-                      workflowId={workflowId}
-                      inputs={{ playbookName: pb.name }}
-                      autoStart={true}
-                      compact={true}
-                      showFlowDiagram={false}
-                      onComplete={() => setRunningPlaybook(null)}
-                    />
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setRunningPlaybook(pb.id)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    ▶ Trigger Playbook
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {activeTab === 'performance' && (
-        <div className="space-y-6">
-          {/* Channel Performance */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Channel Performance</h3>
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Users</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cost</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">CAC</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">ROI</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {mockChannels
-                    .sort((a, b) => b.roi - a.roi)
-                    .map(ch => (
-                    <tr key={ch.channel}>
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{ch.channel}</td>
-                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">{ch.users}</td>
-                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">₹{ch.cost.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">₹{ch.cac}</td>
-                      <td className="px-4 py-3 text-right text-green-600">₹{ch.revenue.toLocaleString()}</td>
-                      <td className={`px-4 py-3 text-right font-semibold ${ch.roi >= 3 ? 'text-green-600' : 'text-red-600'}`}>
-                        {ch.roi}x
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+function OpportunityPipelineTab({ onDiscover, onLaunch }: { onDiscover: () => void; onLaunch: () => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Opportunities tracked', value: '10', icon: Search, color: 'text-blue-400' },
+          { label: 'Analysed this week', value: '4', icon: BarChart3, color: 'text-purple-400' },
+          { label: 'Ready to launch', value: '2', icon: Rocket, color: 'text-green-400' },
+        ].map(s => (
+          <div key={s.label} className="card flex items-center gap-3">
+            <s.icon className={clsx('w-5 h-5', s.color)} />
+            <div><p className="text-2xl font-bold">{s.value}</p><p className="text-xs text-surface-400">{s.label}</p></div>
           </div>
+        ))}
+      </div>
 
-          {/* Segment Health */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Segment Health</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {mockSegments.map(seg => (
-                <div key={seg.segment} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">{seg.segment}</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Users</span>
-                      <span className="font-medium">{seg.users.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Growth</span>
-                      <span className="font-medium text-green-600">+{Math.round(seg.growth * 100)}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Satisfaction</span>
-                      <span className="font-medium">{seg.satisfaction}/5</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Churn</span>
-                      <span className={`font-medium ${seg.churn > 0.05 ? 'text-red-600' : 'text-green-600'}`}>
-                        {Math.round(seg.churn * 100)}%
-                      </span>
-                    </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {MOCK_OPPORTUNITIES.slice(0, 6).map(opp => (
+          <div key={opp.exam} className="card hover:border-surface-600 transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">{opp.exam}</h3>
+              <span className={clsx('text-xs font-bold px-2 py-0.5 rounded-full border',
+                opp.compositeScore >= 80 ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                : opp.compositeScore >= 70 ? 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+                : 'text-surface-400 border-surface-600'
+              )}>{opp.compositeScore}/100</span>
+            </div>
+            <div className="space-y-1 mb-3">
+              {[
+                { l: 'Demand', v: opp.demandScore, c: 'bg-blue-500' },
+                { l: 'Gap', v: opp.competitionGapScore, c: 'bg-purple-500' },
+                { l: 'Revenue', v: opp.revenuePotentialScore, c: 'bg-green-500' },
+              ].map(d => (
+                <div key={d.l}>
+                  <div className="flex justify-between text-[10px] mb-0.5"><span className="text-surface-400">{d.l}</span><span>{d.v}</span></div>
+                  <div className="h-1 bg-surface-700 rounded-full overflow-hidden">
+                    <div className={clsx('h-full rounded-full', d.c)} style={{ width: `${d.v}%` }} />
                   </div>
                 </div>
               ))}
             </div>
+            <p className="text-xs text-green-400 font-medium">₹{(opp.monthlyRevenueForecast * 12 / 100000).toFixed(0)}L/yr potential</p>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {activeTab === 'settings' && (
-        <div className="max-w-2xl space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Autonomous Mode</h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Enable Autonomous Actions</p>
-                  <p className="text-sm text-gray-500">Allow strategy engine to execute low-risk actions automatically</p>
-                </div>
-                <button
-                  onClick={() => setAutonomousMode(!autonomousMode)}
-                  className={`relative w-14 h-7 rounded-full transition-colors ${
-                    autonomousMode ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
-                  }`}
-                >
-                  <span className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                    autonomousMode ? 'left-8' : 'left-1'
-                  }`} />
-                </button>
-              </div>
-
-              <div>
-                <label className="block font-medium text-gray-900 dark:text-white mb-2">
-                  Auto-Approve Threshold: {autoApproveThreshold}%
-                </label>
-                <input
-                  type="range"
-                  min="60"
-                  max="95"
-                  value={autoApproveThreshold}
-                  onChange={(e) => setAutoApproveThreshold(Number(e.target.value))}
-                  className="w-full"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Recommendations with confidence ≥ {autoApproveThreshold}% will be auto-approved
-                </p>
-              </div>
-
-              <div>
-                <label className="block font-medium text-gray-900 dark:text-white mb-2">
-                  Max Auto-Approve Spend
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
-                  <option value="1000">₹1,000 per action</option>
-                  <option value="5000">₹5,000 per action</option>
-                  <option value="10000">₹10,000 per action</option>
-                  <option value="25000">₹25,000 per action</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-medium text-gray-900 dark:text-white mb-2">
-                  Risk Tolerance
-                </label>
-                <div className="flex gap-2">
-                  {['conservative', 'moderate', 'aggressive'].map(level => (
-                    <button
-                      key={level}
-                      className={`flex-1 px-4 py-2 rounded-lg border capitalize ${
-                        level === 'moderate'
-                          ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30'
-                          : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-            Save Settings
-          </button>
-        </div>
-      )}
-
-      {/* Agent Connections */}
-      <div className="mt-8 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800">
-        <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4">
-          🤖 Connected Agents
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { id: 'scout', emoji: '🔍', name: 'Scout', role: 'Intelligence' },
-            { id: 'oracle', emoji: '📊', name: 'Oracle', role: 'Analytics' },
-            { id: 'herald', emoji: '📢', name: 'Herald', role: 'Marketing' },
-            { id: 'atlas', emoji: '📚', name: 'Atlas', role: 'Content' },
-            { id: 'mentor', emoji: '👨‍🏫', name: 'Mentor', role: 'Engagement' },
-            { id: 'forge', emoji: '⚙️', name: 'Forge', role: 'Technical' },
-          ].map(agent => (
-            <div key={agent.id} className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white dark:bg-gray-800 shadow flex items-center justify-center text-2xl">
-                {agent.emoji}
-              </div>
-              <p className="font-medium text-gray-900 dark:text-white text-sm">{agent.name}</p>
-              <p className="text-xs text-gray-500">{agent.role}</p>
-            </div>
-          ))}
-        </div>
-        <p className="text-sm text-purple-700 dark:text-purple-300 mt-4 text-center">
-          Strategy receives data from all agents and dispatches actions based on recommendations
-        </p>
+      <div className="flex gap-3">
+        <button onClick={onDiscover} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500/20 border border-primary-500/30 text-primary-400 font-semibold text-sm hover:bg-primary-500/30 transition-all">
+          <Search className="w-4 h-4" /> Discover New Opportunities
+        </button>
+        <button onClick={onLaunch} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-400 text-white font-semibold text-sm transition-all">
+          <Rocket className="w-4 h-4" /> Launch Next Exam
+        </button>
       </div>
     </div>
   );
-};
+}
 
-export default CEOStrategy;
+// ─── Competitive Intelligence Tab ─────────────────────────────────────────────
+
+function CompetitiveIntelTab() {
+  return (
+    <div className="space-y-4">
+      <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-lg">🕵️</span>
+          <h3 className="font-semibold">VentureScout Live Feed</h3>
+          <span className="text-xs text-surface-500 ml-auto">Updated 2h ago</span>
+        </div>
+        <div className="space-y-3">
+          {MOCK_COMPETITORS.map(c => (
+            <div key={c.name} className={clsx(
+              'p-3 rounded-xl border',
+              c.threat === 'high' ? 'border-red-500/20 bg-red-500/5'
+              : c.threat === 'medium' ? 'border-amber-500/20 bg-amber-500/5'
+              : 'border-surface-700/50 bg-surface-800/30'
+            )}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className={clsx('text-xs font-bold px-1.5 py-0.5 rounded border',
+                    c.threat === 'high' ? 'text-red-400 border-red-500/30' : c.threat === 'medium' ? 'text-amber-400 border-amber-500/30' : 'text-surface-400 border-surface-600'
+                  )}>{c.threat.toUpperCase()}</span>
+                  <span className="font-semibold text-sm">{c.name}</span>
+                </div>
+                <span className="text-xs text-surface-400">₹{c.price}/mo</span>
+              </div>
+              <p className="text-xs text-surface-300">{c.recentMove}</p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-green-400">→ {c.ourOpportunity}</p>
+                <button className="text-[10px] px-2 py-1 rounded bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors">Respond</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Market position map */}
+      <div className="card">
+        <h3 className="font-semibold mb-3">Market Position Map</h3>
+        <div className="relative h-48 bg-surface-800/50 rounded-xl border border-surface-700/50 overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-surface-500 rotate-[-90deg]">← Lower Price | Higher Price →</div>
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-surface-500">← Generic Content | AI-Powered →</div>
+          </div>
+          {[
+            { name: 'EduGenius', x: 78, y: 42, color: 'bg-primary-500', size: 'w-4 h-4' },
+            { name: "Byju's",    x: 25, y: 28, color: 'bg-red-400',     size: 'w-5 h-5' },
+            { name: 'Unacademy', x: 38, y: 35, color: 'bg-orange-400',  size: 'w-5 h-5' },
+            { name: 'TestBook',  x: 52, y: 55, color: 'bg-amber-400',   size: 'w-4 h-4' },
+            { name: 'Adda247',   x: 60, y: 65, color: 'bg-yellow-400',  size: 'w-3.5 h-3.5' },
+          ].map(p => (
+            <div key={p.name} className="absolute flex flex-col items-center gap-1" style={{ left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)' }}>
+              <div className={clsx('rounded-full', p.color, p.size)} />
+              <span className="text-[9px] text-white font-medium">{p.name}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-surface-400 mt-2">EduGenius: highest AI quotient at mid-premium price — unique position in market</p>
+      </div>
+
+      {/* Top keywords we're winning */}
+      <div className="card">
+        <h3 className="font-semibold mb-3">Trend Radar — Top Opportunities</h3>
+        <div className="space-y-1.5">
+          {MOCK_TREND_KEYWORDS.slice(0, 6).map(kw => (
+            <div key={kw.keyword} className="flex items-center gap-3 p-2 rounded-lg bg-surface-800/40">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{kw.keyword}</p>
+                <p className="text-[10px] text-surface-500">{kw.monthlySearchVolume.toLocaleString()}/mo</p>
+              </div>
+              <span className={clsx('text-xs font-bold', kw.yoyGrowth >= 30 ? 'text-green-400' : 'text-amber-400')}>+{kw.yoyGrowth}% YoY</span>
+              <span className={clsx('text-xs px-2 py-0.5 rounded-full font-bold',
+                kw.opportunityScore >= 80 ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'
+              )}>{kw.opportunityScore}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Agent Command Tab ─────────────────────────────────────────────────────────
+
+const ALL_AGENTS = [
+  { id: 'scout',           name: 'Scout',           emoji: '🔍', role: 'Intelligence',     status: 'active',  tasks: 45,  cost: 95,   revenue: 18000 },
+  { id: 'atlas',           name: 'Atlas',           emoji: '📚', role: 'Content Engine',   status: 'busy',    tasks: 120, cost: 320,  revenue: 60000 },
+  { id: 'sage',            name: 'Sage',            emoji: '🎓', role: 'AI Tutor',         status: 'busy',    tasks: 280, cost: 890,  revenue: 120000 },
+  { id: 'mentor',          name: 'Mentor',          emoji: '👨‍🏫', role: 'Engagement',       status: 'active',  tasks: 85,  cost: 180,  revenue: 35000 },
+  { id: 'herald',          name: 'Herald',          emoji: '📢', role: 'Marketing',        status: 'idle',    tasks: 35,  cost: 145,  revenue: 28000 },
+  { id: 'forge',           name: 'Forge',           emoji: '⚙️', role: 'Deployment',       status: 'idle',    tasks: 22,  cost: 75,   revenue: 0 },
+  { id: 'oracle',          name: 'Oracle',          emoji: '📊', role: 'Analytics',        status: 'active',  tasks: 55,  cost: 110,  revenue: 12000 },
+  { id: 'venture_scout',   name: 'VentureScout',    emoji: '🕵️', role: 'Opp Discovery',    status: 'idle',    tasks: 14,  cost: 32,   revenue: 0 },
+  { id: 'revenue_architect',name:'RevenueArchitect',emoji: '💰', role: 'Revenue Strategy', status: 'active',  tasks: 8,   cost: 18,   revenue: 284000 },
+  { id: 'growth_commander',name: 'GrowthCommander', emoji: '🚀', role: 'Growth Execution', status: 'active',  tasks: 11,  cost: 41,   revenue: 148000 },
+];
+
+function AgentCommandTab() {
+  const [task, setTask] = useState('');
+  const [assignTo, setAssignTo] = useState('sage');
+  const [dispatched, setDispatched] = useState<string[]>([]);
+
+  return (
+    <div className="space-y-4">
+      {/* Deploy Task */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <h3 className="font-semibold text-sm">Deploy Task to Agent</h3>
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={task}
+            onChange={e => setTask(e.target.value)}
+            placeholder="e.g. Write 5 GATE blog posts targeting 'GATE 2026 preparation'"
+            className="flex-1 px-3 py-2 rounded-lg bg-surface-800 border border-surface-700 text-sm text-white placeholder-surface-500 focus:outline-none focus:border-primary-500"
+          />
+          <select
+            value={assignTo}
+            onChange={e => setAssignTo(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-surface-800 border border-surface-700 text-sm text-white"
+          >
+            {ALL_AGENTS.map(a => <option key={a.id} value={a.id}>{a.emoji} {a.name}</option>)}
+          </select>
+          <button
+            onClick={() => { if (task) { setDispatched(p => [...p, `${assignTo}: ${task}`]); setTask(''); } }}
+            disabled={!task}
+            className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-400 disabled:bg-surface-700 disabled:text-surface-400 text-white text-sm font-semibold transition-all"
+          >
+            Deploy
+          </button>
+        </div>
+        {dispatched.length > 0 && (
+          <div className="mt-3 space-y-1">
+            {dispatched.slice(-3).map((d, i) => (
+              <p key={i} className="text-xs text-green-400">✅ {d}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Agent grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {ALL_AGENTS.map(agent => (
+          <div key={agent.id} className="card hover:border-surface-600 transition-colors">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{agent.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{agent.name}</span>
+                  <span className={clsx('w-2 h-2 rounded-full flex-shrink-0',
+                    agent.status === 'active' ? 'bg-green-500' : agent.status === 'busy' ? 'bg-blue-500' : 'bg-surface-500'
+                  )} />
+                </div>
+                <p className="text-[10px] text-surface-400">{agent.role}</p>
+              </div>
+              <div className="text-right text-xs">
+                <p className="font-medium">{agent.tasks} tasks</p>
+                {agent.revenue > 0 && <p className="text-green-400">₹{(agent.revenue/1000).toFixed(0)}K</p>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Business Health Tab ───────────────────────────────────────────────────────
+
+const healthScores = [
+  { label: 'Product Health',   score: 87, icon: Star,          color: 'text-primary-400' },
+  { label: 'Growth Health',    score: 74, icon: TrendingUp,    color: 'text-green-400' },
+  { label: 'Financial Health', score: 68, icon: DollarSign,    color: 'text-amber-400' },
+  { label: 'Agent Health',     score: 93, icon: Cpu,           color: 'text-purple-400' },
+];
+
+const risks = [
+  { risk: 'Unacademy AI launch in Q2', prob: 'High', impact: 'High', owner: 'GrowthCommander', mitigation: 'Publish differentiation content before their launch' },
+  { risk: 'VITE_GEMINI_API_KEY not set', prob: 'Critical', impact: 'Critical', owner: 'Forge', mitigation: 'Giri to set in Netlify env vars (blocks all AI features)' },
+  { risk: 'JEE Main students churn post-exam', prob: 'Medium', impact: 'High', owner: 'Nexus', mitigation: 'Transition JEE users to GATE / NEET offers immediately' },
+  { risk: 'SEO traffic dependent on 3 articles', prob: 'Medium', impact: 'Medium', owner: 'Atlas', mitigation: 'Scale to 20+ articles this month to diversify' },
+  { risk: 'No backend deployed yet', prob: 'High', impact: 'Medium', owner: 'Forge', mitigation: 'Deploy GCP/AWS backend when Giri approves infrastructure' },
+];
+
+function BusinessHealthTab() {
+  return (
+    <div className="space-y-5">
+      {/* NorthStar */}
+      <div className="card bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/20">
+        <div className="flex items-center gap-3">
+          <Star className="w-6 h-6 text-primary-400" />
+          <div>
+            <h3 className="font-semibold">North Star Metric</h3>
+            <p className="text-sm text-surface-300">Students achieving their exam goal</p>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-3xl font-bold text-primary-400">847</p>
+            <p className="text-xs text-surface-400">this quarter · <span className="text-green-400">+18% vs last</span></p>
+          </div>
+        </div>
+      </div>
+
+      {/* Health scores */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {healthScores.map(h => (
+          <div key={h.label} className="card text-center">
+            <h.icon className={clsx('w-5 h-5 mx-auto mb-2', h.color)} />
+            <p className={clsx('text-2xl font-bold', h.score >= 80 ? 'text-green-400' : h.score >= 60 ? 'text-amber-400' : 'text-red-400')}>{h.score}</p>
+            <p className="text-xs text-surface-400 mt-0.5">{h.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Oracle narrative */}
+      <div className="card border border-primary-500/20">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg">📊</span>
+          <h3 className="font-semibold text-sm">Oracle Weekly Narrative</h3>
+        </div>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-start gap-2"><span className="text-green-400 flex-shrink-0">↑</span><p className="text-surface-200">Revenue up 12% this week — JEE Main cohort activation strong. Atlas published 4 high-traffic articles driving 1,200 organic visits.</p></div>
+          <div className="flex items-start gap-2"><span className="text-red-400 flex-shrink-0">↓</span><p className="text-surface-200">3 cancellations cited "too expensive" — price sensitivity signal. RevenueArchitect recommends testing ₹399 mid-tier.</p></div>
+          <div className="flex items-start gap-2"><span className="text-primary-400 flex-shrink-0">→</span><p className="text-surface-200">Recommendation: Launch GATE prep in next 14 days to capture registration-season traffic surge (window closes April).</p></div>
+        </div>
+      </div>
+
+      {/* Risk register */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <h3 className="font-semibold text-sm">Risk Register</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-surface-700 text-surface-400 font-normal">
+                {['Risk', 'Prob', 'Impact', 'Owner', 'Mitigation'].map(h => (
+                  <th key={h} className="text-left pb-2 pr-3 font-normal">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {risks.map((r, i) => (
+                <tr key={i} className="border-b border-surface-800 hover:bg-surface-800/30">
+                  <td className="py-2 pr-3 font-medium max-w-[160px]">{r.risk}</td>
+                  <td className="py-2 pr-3"><span className={clsx('px-1.5 py-0.5 rounded text-[10px]', r.prob === 'Critical' ? 'bg-red-500/20 text-red-400' : r.prob === 'High' ? 'bg-amber-500/20 text-amber-400' : 'bg-surface-700 text-surface-400')}>{r.prob}</span></td>
+                  <td className="py-2 pr-3"><span className={clsx('px-1.5 py-0.5 rounded text-[10px]', r.impact === 'Critical' ? 'bg-red-500/20 text-red-400' : r.impact === 'High' ? 'bg-amber-500/20 text-amber-400' : 'bg-surface-700 text-surface-400')}>{r.impact}</span></td>
+                  <td className="py-2 pr-3 text-primary-400">{r.owner}</td>
+                  <td className="py-2 text-surface-400">{r.mitigation}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
+
+const STRATEGY_TABS = [
+  { id: 'revenue',      label: 'Revenue Engine',     icon: DollarSign, color: 'text-green-400' },
+  { id: 'playbooks',    label: 'Growth Playbooks',   icon: Rocket,     color: 'text-orange-400' },
+  { id: 'opportunity',  label: 'Opportunity Pipeline', icon: Search,   color: 'text-blue-400' },
+  { id: 'competitive',  label: 'Competitive Intel',  icon: Shield,     color: 'text-purple-400' },
+  { id: 'agents',       label: 'Agent Command',      icon: Cpu,        color: 'text-primary-400' },
+  { id: 'health',       label: 'Business Health',    icon: Activity,   color: 'text-amber-400' },
+] as const;
+
+type StrategyTab = typeof STRATEGY_TABS[number]['id'];
+
+export function CEOStrategy() {
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<StrategyTab>('revenue');
+
+  // Track if business agents are used — re-exported for use in CEODashboard
+  void BUSINESS_AGENTS;
+
+  return (
+    <div className="space-y-5 pb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold">Revenue Command Center 💰</h1>
+          <p className="text-surface-400 text-sm mt-0.5">Your strategy, growth, and intelligence hub — all in one place</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => navigate('/opportunity-discovery')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-800 border border-surface-700 text-sm hover:bg-surface-700 transition-all">
+            <Search className="w-4 h-4 text-blue-400" /> Discover
+          </button>
+          <button onClick={() => navigate('/create-exam')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary-500 hover:bg-primary-400 text-white text-sm font-semibold transition-all">
+            <Rocket className="w-4 h-4" /> Launch Exam
+          </button>
+        </div>
+      </div>
+
+      {/* Last sync chip */}
+      <div className="flex items-center gap-2 text-xs text-surface-500">
+        <Clock className="w-3.5 h-3.5" />
+        <span>All agents last synced 15 min ago</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+        <span className="text-green-400">Live</span>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-xl bg-surface-800/50 overflow-x-auto">
+        {STRATEGY_TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0',
+              tab === t.id ? 'bg-surface-700 text-white' : 'text-surface-400 hover:text-white'
+            )}
+          >
+            <t.icon className={clsx('w-4 h-4', tab === t.id ? t.color : 'text-surface-500')} />
+            <span className="hidden sm:inline">{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
+          {tab === 'revenue'     && <RevenueEngineTab />}
+          {tab === 'playbooks'   && <GrowthPlaybooksTab />}
+          {tab === 'opportunity' && <OpportunityPipelineTab onDiscover={() => navigate('/opportunity-discovery')} onLaunch={() => navigate('/create-exam')} />}
+          {tab === 'competitive' && <CompetitiveIntelTab />}
+          {tab === 'agents'      && <AgentCommandTab />}
+          {tab === 'health'      && <BusinessHealthTab />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}

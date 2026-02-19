@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity,
+  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity, Compass,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -18,7 +18,8 @@ import { useAppStore } from '@/stores/appStore';
 const roleNavItems = {
   ceo: [
     { to: '/', icon: Home, label: 'Dashboard' },
-    { to: '/create-exam', icon: Rocket, label: 'Create Exam', highlight: true },
+    { to: '/opportunity-discovery', icon: Compass, label: 'Opportunities 🕵️', highlight: true },
+    { to: '/create-exam', icon: Rocket, label: 'Create Exam' },
     { to: '/strategy', icon: Target, label: 'Strategy' },
     { to: '/agents', icon: Bot, label: 'Agents' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },

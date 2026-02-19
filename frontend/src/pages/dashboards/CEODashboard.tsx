@@ -336,7 +336,7 @@ export function CEODashboard() {
   const avgSuccessRate = agents.reduce((sum, a) => sum + a.metrics.successRate, 0) / agents.length;
 
   const quickActions = [
-    { icon: Rocket, label: 'Launch Exam', desc: 'Start new exam pipeline', color: 'text-primary-400', bg: 'bg-primary-500/10 border-primary-500/30 hover:bg-primary-500/20', action: () => setShowLaunchModal(true) },
+    { icon: Rocket, label: 'Discover → Launch', desc: 'Find opportunity first', color: 'text-primary-400', bg: 'bg-primary-500/10 border-primary-500/30 hover:bg-primary-500/20', action: () => navigate('/opportunity-discovery') },
     { icon: Zap, label: 'Run Daily Ops', desc: 'Execute daily automation', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20', action: () => setShowOpsModal(true) },
     { icon: MessageSquare, label: 'Chat with Agents', desc: 'Direct agent interaction', color: 'text-accent-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/chat') },
     { icon: BarChart3, label: 'View Analytics', desc: 'Platform performance', color: 'text-green-400', bg: 'bg-surface-800 border-surface-700 hover:bg-surface-700', action: () => navigate('/analytics') },

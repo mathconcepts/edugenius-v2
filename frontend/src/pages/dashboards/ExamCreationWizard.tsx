@@ -12,6 +12,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Rocket, Upload, CheckCircle2, Clock, AlertTriangle, X,
@@ -222,7 +223,12 @@ function CEOGateModal({ gate, onDecide }: { gate: CEOGate; onDecide: (approved: 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function ExamCreationWizard() {
-  const [examName, setExamName] = useState('');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const prefilledExam = searchParams.get('exam') || '';
+  const isPreanalysed = searchParams.get('preanalysed') === 'true';
+
+  const [examName, setExamName] = useState(prefilledExam);
   const [pilotMode, setPilotMode] = useState(false);
   const [multilingual, setMultilingual] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
@@ -301,6 +307,35 @@ export function ExamCreationWizard() {
           27-step multi-agent pipeline: market research → source ingestion → content generation → verification → deployment
         </p>
       </div>
+
+      {/* Pre-analysed banner */}
+      {isPreanalysed && prefilledExam && (
+        <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">✅</span>
+            <div>
+              <p className="text-sm font-semibold text-green-400">VentureScout pre-analysis loaded for {prefilledExam}</p>
+              <p className="text-xs text-green-400/70">Demand, competitor, pricing & SEO research complete — skipping Phase 1</p>
+            </div>
+          </div>
+          <button onClick={() => navigate('/opportunity-discovery')} className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors">
+            View Research
+          </button>
+        </div>
+      )}
+
+      {/* No analysis banner — shown only when accessed directly without pre-fill */}
+      {!isPreanalysed && !running && !prefilledExam && (
+        <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🕵️</span>
+            <p className="text-sm text-amber-400">No opportunity analysis yet — run discovery first for better results</p>
+          </div>
+          <button onClick={() => navigate('/opportunity-discovery')} className="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors">
+            Run Discovery First →
+          </button>
+        </div>
+      )}
 
       {/* Config Panel */}
       {!running && !completed && (
