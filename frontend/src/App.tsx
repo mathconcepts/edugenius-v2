@@ -34,6 +34,9 @@ const ExamInsights = lazy(() => import('@/pages/ExamInsights'));
 const FeedbackPage = lazy(() => import('@/pages/Feedback'));
 const AdminFeedback = lazy(() => import('@/pages/dashboards/AdminFeedback'));
 
+// Lazy load user admin
+const UserAdmin = lazy(() => import('@/pages/UserAdmin'));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -42,12 +45,7 @@ const PageLoader = () => (
 );
 
 // Placeholder components for routes
-const Users = () => (
-  <div className="card">
-    <h1 className="text-2xl font-bold mb-4">Users</h1>
-    <p className="text-surface-400">User management and administration.</p>
-  </div>
-);
+// UserAdmin is lazy-loaded from @/pages/UserAdmin
 
 const Events = () => (
   <div className="card">
@@ -94,7 +92,7 @@ export default function App() {
           <Route path="chat" element={<Chat />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="content" element={<Content />} />
-          <Route path="users" element={<Users />} />
+          <Route path="users" element={<UserAdmin />} />
           <Route path="events" element={<Events />} />
           <Route path="settings" element={<Settings />} />
           <Route path="integrations" element={<CEOIntegrations />} />
