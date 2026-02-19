@@ -138,10 +138,25 @@ function IntentBadge({ intent, confidence, targetAgent }: IntentResult) {
 
 // ─── Message Bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({ message, onCopy }: { message: Message; onCopy: () => void }) {
+function MessageBubble({
+  message,
+  onCopy,
+  isExpanded,
+  onToggleExpand,
+  userRole,
+}: {
+  message: Message;
+  onCopy: () => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  userRole: string;
+}) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
   const agent = agentOptions.find(a => a.id === message.agent);
+  const COLLAPSE_THRESHOLD = 600;
+  const PREVIEW_LENGTH = 300;
+  const shouldCollapse = !isUser && userRole === 'student' && message.content.length > COLLAPSE_THRESHOLD;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -203,11 +218,31 @@ function MessageBubble({ message, onCopy }: { message: Message; onCopy: () => vo
           )}>
             {isUser ? (
               <p className="text-sm leading-relaxed">{message.content}</p>
+            ) : shouldCollapse && !isExpanded ? (
+              <>
+                <p className="text-sm leading-relaxed">{message.content.slice(0, PREVIEW_LENGTH)}...</p>
+                <button
+                  onClick={onToggleExpand}
+                  className="mt-2 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors"
+                >
+                  Show full answer ↓
+                </button>
+              </>
             ) : (
-              <OutputBlockRenderer
-                blocks={message.outputBlocks || []}
-                fallback={message.content}
-              />
+              <>
+                <OutputBlockRenderer
+                  blocks={message.outputBlocks || []}
+                  fallback={message.content}
+                />
+                {shouldCollapse && isExpanded && (
+                  <button
+                    onClick={onToggleExpand}
+                    className="mt-2 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors"
+                  >
+                    Show less ↑
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -331,6 +366,7 @@ export function Chat() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [learningMode, setLearningMode] = useState<LearningMode>('deep_learning');
   const [showDrawingCanvas, setShowDrawingCanvas] = useState(false);
@@ -756,8 +792,18 @@ export function Chat() {
           ) : (
             <>
               {currentSession.messages.map(message => (
-                <MessageBubble key={message.id} message={message}
-                  onCopy={() => addNotification({ type: 'success', title: 'Copied', message: 'Message copied to clipboard' })} />
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  onCopy={() => addNotification({ type: 'success', title: 'Copied', message: 'Message copied to clipboard' })}
+                  isExpanded={expandedMessages.has(message.id)}
+                  onToggleExpand={() => setExpandedMessages(prev => {
+                    const n = new Set(prev);
+                    n.has(message.id) ? n.delete(message.id) : n.add(message.id);
+                    return n;
+                  })}
+                  userRole={userRole}
+                />
               ))}
 
               {isTyping && (

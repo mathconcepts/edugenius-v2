@@ -61,7 +61,11 @@ export function TeacherDashboard() {
 
   const needsAttention = students.filter(s => s.status !== 'on-track').length;
   const avgProgress = Math.round(students.reduce((s, st) => s + st.progress, 0) / students.length);
-  const filtered = filter === 'all' ? students : students.filter(s => s.status === filter);
+  const filtered = (filter === 'all' ? students : students.filter(s => s.status === filter))
+    .sort((a, b) => {
+      const urgency: Record<StudentStatus, number> = { 'struggling': 0, 'needs-attention': 1, 'on-track': 2 };
+      return urgency[a.status] - urgency[b.status];
+    });
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-4 md:pb-8">
@@ -80,12 +84,32 @@ export function TeacherDashboard() {
               : 'All students are on track — great work!'}
           </p>
         </div>
-        <button className="btn-primary flex items-center gap-2 text-sm px-3 py-2 md:px-4">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">New Lesson</span>
-          <span className="inline sm:hidden">New</span>
-        </button>
+        <div className="flex gap-2">
+          <Link to="/content?type=quiz" className="btn-primary flex items-center gap-1.5 text-xs px-3 py-2">
+            <Plus className="w-3.5 h-3.5" /> Quiz
+          </Link>
+          <Link to="/chat?q=explain%20a%20concept%20for%20my%20class" className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-surface-700 hover:bg-surface-600 text-white transition-colors">
+            <MessageSquare className="w-3.5 h-3.5" /> Explain
+          </Link>
+        </div>
       </motion.div>
+
+      {/* ── Action Required card ── */}
+      {needsAttention > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.03 }}
+          className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
+        >
+          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-300">{needsAttention} student{needsAttention > 1 ? 's' : ''} need immediate attention</p>
+            <p className="text-xs text-amber-400/70">Sorted to top of your list below</p>
+          </div>
+          <Link to="/chat?q=which+students+need+the+most+help+today" className="text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors flex-shrink-0">Ask AI</Link>
+        </motion.div>
+      )}
 
       {/* ── Stats strip ── */}
       <motion.div
@@ -175,9 +199,9 @@ export function TeacherDashboard() {
 
                   {/* Action — always visible on mobile, hover-only on desktop */}
                   <Link
-                    to="/chat"
+                    to={`/chat?context=${encodeURIComponent(student.name + ' is ' + student.status.replace('-', ' ') + ' on ' + student.topic + ' with ' + student.progress + '% progress')}`}
                     onClick={e => e.stopPropagation()}
-                    title="Get AI help for this student"
+                    title={`Chat with AI about ${student.name}`}
                     className="md:opacity-0 md:group-hover:opacity-100 p-2.5 md:p-2 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 active:scale-95 transition-all flex-shrink-0"
                   >
                     <MessageSquare className="w-4 h-4 text-primary-400" />

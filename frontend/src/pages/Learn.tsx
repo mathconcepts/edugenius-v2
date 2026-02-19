@@ -156,6 +156,17 @@ export default function Learn() {
           </div>
         </div>
 
+        {filteredTopics.length === 0 ? (
+          <div className="text-center py-12">
+            <span className="text-4xl">📚</span>
+            <p className="font-semibold mt-3">No topics loaded yet</p>
+            <p className="text-sm text-surface-400 mt-1">Your AI tutor will suggest what to study next</p>
+            <Link to="/chat?q=what+should+I+study+today" className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-500 text-white text-sm font-semibold hover:bg-primary-400 transition-all">
+              Ask AI what to study
+            </Link>
+          </div>
+        ) : null}
+
         <div className="space-y-3">
           {filteredTopics.map(topic => (
             <Link

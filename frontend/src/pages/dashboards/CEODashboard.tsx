@@ -76,9 +76,10 @@ interface StatCardProps {
   change: number;
   icon: React.ElementType;
   color: string;
+  hero?: boolean;
 }
 
-function StatCard({ title, value, change, icon: Icon, color }: StatCardProps) {
+function StatCard({ title, value, change, icon: Icon, color, hero }: StatCardProps) {
   const isPositive = change >= 0;
   
   return (
@@ -90,7 +91,7 @@ function StatCard({ title, value, change, icon: Icon, color }: StatCardProps) {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-surface-400">{title}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
+          <p className={clsx('font-bold mt-1', hero ? 'text-3xl' : 'text-2xl')}>{value}</p>
           <div className={clsx(
             'flex items-center gap-1 mt-2 text-sm',
             isPositive ? 'text-green-400' : 'text-red-400'
@@ -371,11 +372,12 @@ export function CEODashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Monthly Revenue"
-          value="₹4.2L"
-          change={12.5}
+          title="Today's MRR"
+          value="₹7.24L"
+          change={12}
           icon={DollarSign}
           color="bg-gradient-to-br from-green-500 to-emerald-600"
+          hero
         />
         <StatCard
           title="Active Students"

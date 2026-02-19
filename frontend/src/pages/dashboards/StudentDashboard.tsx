@@ -3,10 +3,10 @@
  * Focus: What to do today + quick access to chat
  * No agent noise, no clutter — just learning momentum
  */
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageSquare, BookOpen, Flame, Target, Trophy, ChevronRight, Play, CheckCircle2, Sparkles, BarChart3, MessageCircle, Send } from 'lucide-react';
+import { BookOpen, Flame, Target, Trophy, Play, CheckCircle2, Sparkles, BarChart3, Send, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AIStudyCoach, ExamReadinessScore, PeerActivity } from '@/components/ux/UXEnhancements';
 
@@ -16,11 +16,6 @@ const todayPlan = [
   { id: '1', title: 'Quadratic Equations', subject: 'Mathematics', duration: '20 min', done: true },
   { id: '2', title: 'Newton\'s Second Law', subject: 'Physics', duration: '25 min', done: false },
   { id: '3', title: 'Organic Chemistry Basics', subject: 'Chemistry', duration: '20 min', done: false },
-];
-
-const recentChats = [
-  { id: '1', preview: 'Explain integration by parts', time: '2h ago' },
-  { id: '2', preview: 'Why does NaCl dissolve in water?', time: 'Yesterday' },
 ];
 
 const examCountdown = { exam: 'JEE Main', daysLeft: 47 };
@@ -68,10 +63,38 @@ function WeekBar({ data }: { data: number[] }) {
 // ── Main component ───────────────────────────────────────────────────────────
 
 export function StudentDashboard() {
+  const navigate = useNavigate();
   const [streak] = useState(12);
+  const [doubtInput, setDoubtInput] = useState('');
+  const [celebrating, setCelebrating] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const doneTasks = todayPlan.filter(t => t.done).length;
   const totalTasks = todayPlan.length;
   const todayPct = Math.round((doneTasks / totalTasks) * 100);
+
+  // First incomplete task gets the "Continue" CTA
+  const firstIncompleteTask = todayPlan.find(t => !t.done);
+
+  // Auto-clear celebration after 1.5s
+  useEffect(() => {
+    if (celebrating) {
+      const t = setTimeout(() => setCelebrating(null), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [celebrating]);
+
+  const handleDoubtSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = doubtInput.trim();
+    if (!q) return;
+    navigate(`/chat?q=${encodeURIComponent(q)}`);
+  };
+
+  const handleTaskPlay = (taskId: string) => {
+    setCelebrating(taskId);
+    navigate('/learn');
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-4 md:pb-8">
@@ -102,41 +125,52 @@ export function StudentDashboard() {
       {/* ── AI Study Coach ── */}
       <AIStudyCoach />
 
-      {/* ── Hero CTA: Ask a question ── */}
+      {/* ── Hero CTA: Instant Doubt Bar ── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
+        className="p-5 rounded-2xl bg-gradient-to-r from-primary-600/30 via-primary-500/20 to-accent-500/20 border border-primary-500/30"
       >
-        <Link
-          to="/chat"
-          className="block group p-5 rounded-2xl bg-gradient-to-r from-primary-600/30 via-primary-500/20 to-accent-500/20 border border-primary-500/30 hover:border-primary-400/50 transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-primary-500/20 group-hover:bg-primary-500/30 transition-colors">
-                <MessageSquare className="w-6 h-6 text-primary-400" />
-              </div>
-              <div>
-                <p className="font-semibold">Ask your AI tutor</p>
-                <p className="text-sm text-surface-400">Type, speak, or snap a photo of your problem</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-surface-400 group-hover:text-primary-400 transition-colors group-hover:translate-x-1 transform" />
-          </div>
+        <form onSubmit={handleDoubtSubmit} className="flex gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={doubtInput}
+            onChange={e => setDoubtInput(e.target.value)}
+            placeholder="Ask any doubt... e.g. 'explain Newton's 3rd law'"
+            className="flex-1 bg-surface-900/60 border border-surface-700/60 rounded-xl px-4 py-2.5 text-sm placeholder-surface-500 text-white focus:outline-none focus:border-primary-500/70 transition-colors"
+          />
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-400 active:scale-95 text-white text-sm font-semibold transition-all"
+          >
+            <Send className="w-4 h-4" />
+            <span className="hidden sm:inline">Send</span>
+          </button>
+        </form>
 
-          {/* Recent questions as quick-tap chips */}
-          {recentChats.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="text-xs text-surface-500 self-center">Recent:</span>
-              {recentChats.map(c => (
-                <span key={c.id} className="text-xs px-2.5 py-1 bg-surface-800/80 rounded-full text-surface-300 hover:text-white cursor-pointer transition-colors truncate max-w-[180px]">
-                  {c.preview}
-                </span>
-              ))}
-            </div>
-          )}
-        </Link>
+        {/* Quick-tap chips */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            onClick={() => navigate('/chat?mode=image')}
+            className="text-xs px-3 py-1.5 bg-surface-800/70 hover:bg-surface-700 active:scale-95 rounded-full text-surface-300 hover:text-white transition-all"
+          >
+            📸 Snap a problem
+          </button>
+          <button
+            onClick={() => navigate('/chat?mode=voice')}
+            className="text-xs px-3 py-1.5 bg-surface-800/70 hover:bg-surface-700 active:scale-95 rounded-full text-surface-300 hover:text-white transition-all"
+          >
+            🎤 Voice
+          </button>
+          <button
+            onClick={() => navigate('/practice')}
+            className="text-xs px-3 py-1.5 bg-surface-800/70 hover:bg-surface-700 active:scale-95 rounded-full text-surface-300 hover:text-white transition-all"
+          >
+            📝 Practice MCQ
+          </button>
+        </div>
       </motion.div>
 
       {/* ── Two-column: today's plan + weekly progress ── */}
@@ -166,28 +200,55 @@ export function StudentDashboard() {
           </div>
 
           <div className="space-y-2.5">
-            {todayPlan.map(task => (
-              <div key={task.id} className={clsx(
-                'flex items-center gap-3 p-2.5 rounded-xl transition-colors',
-                task.done ? 'opacity-50' : 'hover:bg-surface-800/60 cursor-pointer'
-              )}>
-                <div className={clsx(
-                  'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0',
-                  task.done ? 'bg-green-500' : 'border-2 border-surface-600'
+            {todayPlan.map(task => {
+              const isCelebrating = celebrating === task.id;
+              const isFirstIncomplete = !task.done && task.id === firstIncompleteTask?.id;
+              return (
+                <div key={task.id} className={clsx(
+                  'flex items-center gap-3 p-2.5 rounded-xl transition-colors relative',
+                  task.done ? 'opacity-50' : 'hover:bg-surface-800/60 cursor-pointer',
+                  isCelebrating ? 'bg-green-500/10' : ''
                 )}>
-                  {task.done && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                  {/* Celebration overlay */}
+                  {isCelebrating && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl pointer-events-none z-10">
+                      <span className="text-sm font-bold text-green-300 animate-bounce">✅ Done! 🔥 +1 streak</span>
+                    </div>
+                  )}
+                  <div className={clsx(
+                    'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0',
+                    task.done || isCelebrating ? 'bg-green-500' : 'border-2 border-surface-600'
+                  )}>
+                    {(task.done || isCelebrating) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={clsx('text-sm font-medium truncate', task.done && 'line-through')}>{task.title}</p>
+                    <p className="text-xs text-surface-500">{task.subject} · {task.duration}</p>
+                  </div>
+                  {!task.done && (
+                    isFirstIncomplete ? (
+                      /* "Continue" button with green pulsing ring on first incomplete task */
+                      <button
+                        onClick={() => handleTaskPlay(task.id)}
+                        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-semibold transition-all active:scale-95"
+                      >
+                        {/* Pulsing ring */}
+                        <span className="absolute inset-0 rounded-lg ring-2 ring-green-400/60 animate-ping pointer-events-none" />
+                        <ArrowRight className="w-3.5 h-3.5" />
+                        Continue
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleTaskPlay(task.id)}
+                        className="p-1.5 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-colors"
+                      >
+                        <Play className="w-3.5 h-3.5 text-primary-400" />
+                      </button>
+                    )
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={clsx('text-sm font-medium truncate', task.done && 'line-through')}>{task.title}</p>
-                  <p className="text-xs text-surface-500">{task.subject} · {task.duration}</p>
-                </div>
-                {!task.done && (
-                  <Link to="/learn" className="p-1.5 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-colors">
-                    <Play className="w-3.5 h-3.5 text-primary-400" />
-                  </Link>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
 
@@ -221,7 +282,7 @@ export function StudentDashboard() {
             <p className="text-3xl font-bold text-amber-200">{examCountdown.daysLeft}</p>
             <p className="text-xs text-amber-400/70">days remaining</p>
             <Link to="/insights" className="mt-3 text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors">
-              View topper strategies <ChevronRight className="w-3 h-3" />
+              View topper strategies <ArrowRight className="w-3 h-3" />
             </Link>
           </motion.div>
 
@@ -230,7 +291,7 @@ export function StudentDashboard() {
         </div>
       </div>
 
-      {/* ── Bottom row: quick access links ── */}
+      {/* ── Bottom row: quick access links — Practice FIRST ── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -238,8 +299,8 @@ export function StudentDashboard() {
         className="grid grid-cols-2 sm:grid-cols-3 gap-3"
       >
         {[
-          { to: '/learn',    icon: BookOpen,   label: 'Study',    color: 'text-blue-400',   bg: 'bg-blue-500/10' },
           { to: '/practice', icon: Target,     label: 'Practice', color: 'text-red-400',    bg: 'bg-red-500/10' },
+          { to: '/learn',    icon: BookOpen,   label: 'Study',    color: 'text-blue-400',   bg: 'bg-blue-500/10' },
           { to: '/notebook', icon: '📓',       label: 'Notebook', color: 'text-green-400',  bg: 'bg-green-500/10' },
           { to: '/progress', icon: BarChart3,  label: 'Progress', color: 'text-purple-400', bg: 'bg-purple-500/10' },
           { to: '/insights', icon: Trophy,     label: 'Exam Tips',color: 'text-amber-400',  bg: 'bg-amber-500/10' },
@@ -259,26 +320,6 @@ export function StudentDashboard() {
             <span className="text-sm font-medium">{item.label}</span>
           </Link>
         ))}
-      </motion.div>
-
-      {/* ── Chatbot CTA banner ── */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
-        <Link
-          to="/settings/channels"
-          className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 hover:border-green-500/40 transition-all group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex gap-1">
-              <MessageCircle className="w-5 h-5 text-green-400" />
-              <Send className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">Study on WhatsApp or Telegram</p>
-              <p className="text-xs text-surface-400 mt-0.5">Ask doubts anywhere — your AI tutor is always one message away</p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-surface-400 group-hover:text-white transition-colors flex-shrink-0" />
-        </Link>
       </motion.div>
 
       {/* ── Peer Activity ── */}
