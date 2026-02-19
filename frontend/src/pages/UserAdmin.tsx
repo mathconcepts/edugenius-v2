@@ -391,6 +391,356 @@ function DetailPanel({ user, onClose, onEdit }: { user: User; onClose: () => voi
   );
 }
 
+// ── Exam Group View ───────────────────────────────────────────────────────────
+
+interface ExamGroup {
+  exam: string;
+  emoji: string;
+  students: User[];
+  grades: GradeGroup[];
+}
+
+interface GradeGroup {
+  grade: string;
+  subjects: SubjectGroup[];
+  students: User[];
+}
+
+interface SubjectGroup {
+  subject: string;
+  students: User[];
+}
+
+const EXAM_SUBJECTS: Record<string, string[]> = {
+  'JEE':    ['Physics', 'Chemistry', 'Mathematics'],
+  'NEET':   ['Physics', 'Chemistry', 'Biology'],
+  'CBSE':   ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English', 'Social Science'],
+  'CAT':    ['Quant', 'VARC', 'DILR'],
+  'UPSC':   ['General Studies', 'CSAT', 'Optional'],
+  'GATE':   ['Engineering Mathematics', 'Core Subject', 'General Aptitude'],
+  'CET':    ['Physics', 'Chemistry', 'Mathematics'],
+  'SAT':    ['Math', 'Reading & Writing'],
+};
+
+const EXAM_GRADES: Record<string, string[]> = {
+  'JEE':    ['Class 11', 'Class 12', 'Dropper'],
+  'NEET':   ['Class 11', 'Class 12', 'Dropper'],
+  'CBSE':   ['Class 10', 'Class 12'],
+  'CAT':    ['Batch A (Morning)', 'Batch B (Evening)'],
+  'UPSC':   ['Prelims', 'Mains', 'Interview'],
+  'GATE':   ['CS/IT', 'EC', 'ME', 'EE', 'CE'],
+  'CET':    ['Class 12'],
+  'SAT':    ['Grade 11', 'Grade 12'],
+};
+
+const EXAM_EMOJIS: Record<string, string> = {
+  'JEE': '⚗️', 'NEET': '🧬', 'CBSE': '📚', 'CAT': '💼',
+  'UPSC': '🏛️', 'GATE': '⚙️', 'CET': '🎯', 'SAT': '🌎',
+};
+
+function buildExamGroups(users: User[]): ExamGroup[] {
+  const studentsByExam: Record<string, User[]> = {};
+  users.forEach(u => {
+    if (u.role === 'student' && u.exam) {
+      const key = u.exam;
+      if (!studentsByExam[key]) studentsByExam[key] = [];
+      studentsByExam[key].push(u);
+    }
+  });
+
+  return Object.entries(studentsByExam).map(([exam, students]) => {
+    const grades = EXAM_GRADES[exam] || ['General'];
+    const subjects = EXAM_SUBJECTS[exam] || ['General'];
+
+    const gradeGroups: GradeGroup[] = grades.map(grade => ({
+      grade,
+      students: students.filter((_, i) => i % grades.length === grades.indexOf(grade)),
+      subjects: subjects.map(subject => ({
+        subject,
+        students: students.filter((_, i) => i % subjects.length === subjects.indexOf(subject)),
+      })),
+    }));
+
+    return { exam, emoji: EXAM_EMOJIS[exam] || '📖', students, grades: gradeGroups };
+  });
+}
+
+function SubjectRow({ subject, students, onSelect }: {
+  subject: SubjectGroup;
+  students: User[];
+  onSelect: (u: User) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const pct = Math.round((students.filter(u => u.status === 'active').length / Math.max(students.length, 1)) * 100);
+
+  return (
+    <div className="ml-8">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-surface-700/30 transition-colors text-left"
+      >
+        <ChevronRight size={13} className={clsx('text-surface-500 transition-transform shrink-0', open && 'rotate-90')} />
+        <BookOpen size={13} className="text-violet-400 shrink-0" />
+        <span className="text-sm text-surface-300 flex-1">{subject.subject}</span>
+        <span className="text-xs text-surface-500">{students.length} students</span>
+        <div className="w-16 h-1.5 bg-surface-700 rounded-full overflow-hidden ml-2">
+          <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="text-xs text-green-400 w-8 text-right">{pct}%</span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+            <div className="ml-6 py-1 space-y-0.5">
+              {students.length === 0 ? (
+                <p className="text-xs text-surface-500 px-4 py-2">No students in this subject</p>
+              ) : students.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => onSelect(u)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-700/40 transition-colors text-left"
+                >
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                    {u.avatar[0]}
+                  </div>
+                  <span className="text-sm text-surface-200 flex-1 truncate">{u.name}</span>
+                  <span className={clsx('text-[10px] px-1.5 py-0.5 rounded-full', statusMeta[u.status].dot === 'bg-green-500' ? 'bg-green-500/20 text-green-400' : 'bg-surface-700 text-surface-400')}>
+                    {u.status}
+                  </span>
+                  <span className={clsx('text-[10px] px-1.5 py-0.5 rounded-full', planMeta[u.plan].color)}>
+                    {planMeta[u.plan].label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function GradeRow({ gradeGroup, onSelect }: { gradeGroup: GradeGroup; onSelect: (u: User) => void }) {
+  const [open, setOpen] = useState(false);
+  const activeCount = gradeGroup.students.filter(u => u.status === 'active').length;
+
+  return (
+    <div className="ml-4">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-surface-700/40 transition-colors text-left"
+      >
+        <ChevronRight size={14} className={clsx('text-surface-400 transition-transform shrink-0', open && 'rotate-90')} />
+        <Layers size={14} className="text-blue-400 shrink-0" />
+        <span className="text-sm font-medium text-surface-200 flex-1">{gradeGroup.grade}</span>
+        <div className="flex items-center gap-3 text-xs text-surface-400">
+          <span>{gradeGroup.students.length} students</span>
+          <span className="text-green-400">{activeCount} active</span>
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+            <div className="space-y-0.5 py-1">
+              {gradeGroup.subjects.map(sg => (
+                <SubjectRow key={sg.subject} subject={sg} students={sg.students} onSelect={onSelect} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ExamGroupView({ users, onSelectUser }: { users: User[]; onSelectUser: (u: User) => void }) {
+  const [openExams, setOpenExams] = useState<Set<string>>(new Set(['JEE', 'NEET']));
+  const [drillLevel, setDrillLevel] = useState<'exam' | 'grade' | 'subject'>('grade');
+  const groups = useMemo(() => buildExamGroups(users), [users]);
+
+  const toggleExam = (exam: string) => {
+    setOpenExams(prev => {
+      const n = new Set(prev);
+      n.has(exam) ? n.delete(exam) : n.add(exam);
+      return n;
+    });
+  };
+
+  const noStudents = groups.length === 0;
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4">
+      {/* Drill-level selector */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-xs text-surface-500">Show drill-down to:</span>
+        <div className="flex gap-1 p-1 bg-surface-800 rounded-lg">
+          {(['exam', 'grade', 'subject'] as const).map(l => (
+            <button
+              key={l}
+              onClick={() => setDrillLevel(l)}
+              className={clsx('px-3 py-1 rounded-md text-xs font-medium transition-all capitalize',
+                drillLevel === l ? 'bg-primary-500 text-white' : 'text-surface-400 hover:text-white')}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        <span className="ml-auto text-xs text-surface-500">
+          {users.filter(u => u.role === 'student' && u.exam).length} enrolled students
+        </span>
+      </div>
+
+      {noStudents ? (
+        <div className="flex flex-col items-center justify-center h-48 text-surface-400">
+          <Users size={32} className="mb-3 opacity-40" />
+          <p className="text-sm">No students match the current filters</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {groups.map(group => {
+            const isOpen = openExams.has(group.exam);
+            const proCount = group.students.filter(u => u.plan === 'pro' || u.plan === 'enterprise').length;
+            const activeCount = group.students.filter(u => u.status === 'active').length;
+            const revenue = group.students.reduce((s, u) => s + u.revenueTotal, 0);
+
+            return (
+              <div key={group.exam} className="bg-surface-800/50 border border-surface-700/50 rounded-2xl overflow-hidden">
+                {/* Exam header */}
+                <button
+                  onClick={() => toggleExam(group.exam)}
+                  className="w-full flex items-center gap-3 p-4 hover:bg-surface-700/30 transition-colors text-left"
+                >
+                  <span className="text-2xl">{group.emoji}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white">{group.exam}</span>
+                      <span className="text-xs bg-primary-500/20 text-primary-300 px-2 py-0.5 rounded-full">
+                        {group.students.length} students
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-xs text-surface-400">
+                      <span className="flex items-center gap-1"><Target size={10} className="text-green-400" />{activeCount} active</span>
+                      <span className="flex items-center gap-1"><CreditCard size={10} className="text-violet-400" />{proCount} paid</span>
+                      <span className="flex items-center gap-1"><BarChart2 size={10} className="text-amber-400" />₹{(revenue / 1000).toFixed(0)}K revenue</span>
+                    </div>
+                  </div>
+
+                  {/* Mini progress bar */}
+                  <div className="hidden md:flex flex-col items-end gap-1">
+                    <span className="text-xs text-surface-500">Active rate</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 bg-surface-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500 rounded-full transition-all"
+                          style={{ width: `${Math.round((activeCount / Math.max(group.students.length, 1)) * 100)}%` }} />
+                      </div>
+                      <span className="text-xs text-green-400">
+                        {Math.round((activeCount / Math.max(group.students.length, 1)) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <ChevronDown size={16} className={clsx('text-surface-400 transition-transform ml-2 shrink-0', isOpen && 'rotate-180')} />
+                </button>
+
+                {/* Grade / Subject drill-down */}
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden border-t border-surface-700/50"
+                    >
+                      <div className="p-3 space-y-1">
+                        {drillLevel === 'exam' ? (
+                          // Just show flat student list at exam level
+                          <div className="space-y-0.5">
+                            {group.students.map(u => (
+                              <button key={u.id} onClick={() => onSelectUser(u)}
+                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-700/40 transition-colors text-left">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                                  {u.avatar}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-white truncate">{u.name}</p>
+                                  <p className="text-xs text-surface-400 truncate">{u.email}</p>
+                                </div>
+                                <span className={clsx('text-xs px-2 py-0.5 rounded-full', planMeta[u.plan].color)}>{planMeta[u.plan].label}</span>
+                                <span className={clsx('flex items-center gap-1 text-xs', statusMeta[u.status].text)}>
+                                  <span className={clsx('w-1.5 h-1.5 rounded-full', statusMeta[u.status].dot)} />{u.status}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          // Grade → subject drill-down
+                          group.grades.map(g => (
+                            drillLevel === 'grade' ? (
+                              <div key={g.grade} className="py-1">
+                                <GradeRow key={g.grade} gradeGroup={g} onSelect={onSelectUser} />
+                              </div>
+                            ) : (
+                              <div key={g.grade} className="py-1">
+                                <GradeRow key={g.grade} gradeGroup={g} onSelect={onSelectUser} />
+                              </div>
+                            )
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+
+          {/* Students with no exam assigned */}
+          {(() => {
+            const noExam = users.filter(u => u.role === 'student' && !u.exam);
+            if (noExam.length === 0) return null;
+            return (
+              <div className="bg-surface-800/30 border border-surface-700/30 rounded-2xl overflow-hidden">
+                <button
+                  onClick={() => toggleExam('__noexam__')}
+                  className="w-full flex items-center gap-3 p-4 hover:bg-surface-700/20 transition-colors"
+                >
+                  <span className="text-2xl">🎓</span>
+                  <div className="flex-1 text-left">
+                    <span className="font-medium text-surface-300">No Exam Assigned</span>
+                    <span className="ml-2 text-xs bg-surface-700 text-surface-400 px-2 py-0.5 rounded-full">{noExam.length}</span>
+                  </div>
+                  <ChevronDown size={16} className={clsx('text-surface-500 transition-transform', openExams.has('__noexam__') && 'rotate-180')} />
+                </button>
+                <AnimatePresence>
+                  {openExams.has('__noexam__') && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden border-t border-surface-700/30">
+                      <div className="p-3 space-y-0.5">
+                        {noExam.map(u => (
+                          <button key={u.id} onClick={() => onSelectUser(u)}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-700/40 transition-colors text-left">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-surface-500 to-surface-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                              {u.avatar}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white truncate">{u.name}</p>
+                              <p className="text-xs text-surface-400 truncate">{u.email} · {u.role}</p>
+                            </div>
+                            <span className={clsx('text-xs px-2 py-0.5 rounded-full', planMeta[u.plan].color)}>{planMeta[u.plan].label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function UserAdmin() {
@@ -402,6 +752,7 @@ export default function UserAdmin() {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'table' | 'exam'>('table');
 
   const filtered = useMemo(() => USERS.filter(u => {
     const q = search.toLowerCase();
@@ -445,6 +796,23 @@ export default function UserAdmin() {
               <p className="text-surface-400 text-sm mt-0.5">Manage accounts, roles, and subscriptions</p>
             </div>
             <div className="flex items-center gap-2">
+              {/* View toggle */}
+              <div className="flex gap-1 p-1 bg-surface-800 border border-surface-700 rounded-lg">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={clsx('flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all',
+                    viewMode === 'table' ? 'bg-primary-500 text-white' : 'text-surface-400 hover:text-white')}
+                >
+                  <LayoutList size={13} /> Table
+                </button>
+                <button
+                  onClick={() => setViewMode('exam')}
+                  className={clsx('flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all',
+                    viewMode === 'exam' ? 'bg-primary-500 text-white' : 'text-surface-400 hover:text-white')}
+                >
+                  <Network size={13} /> By Exam
+                </button>
+              </div>
               <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-sm text-surface-300">
                 <Download size={14}/> Export CSV
               </button>
@@ -522,8 +890,16 @@ export default function UserAdmin() {
           )}
         </AnimatePresence>
 
+        {/* Exam Group View */}
+        {viewMode === 'exam' && (
+          <ExamGroupView
+            users={filtered}
+            onSelectUser={u => setSelected(s => s?.id === u.id ? null : u)}
+          />
+        )}
+
         {/* Table */}
-        <div className="flex-1 overflow-y-auto">
+        {viewMode === 'table' && <div className="flex-1 overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-surface-900 border-b border-surface-700 z-10">
               <tr>
@@ -597,12 +973,12 @@ export default function UserAdmin() {
               <p className="text-sm mt-1">Try adjusting your filters</p>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-surface-700 flex items-center justify-between text-xs text-surface-400 shrink-0">
           <span>Showing {filtered.length} of {USERS.length} users</span>
-          <span>Page 1 of 1</span>
+          <span>{viewMode === 'exam' ? 'Grouped by Exam' : 'Page 1 of 1'}</span>
         </div>
       </div>
 
