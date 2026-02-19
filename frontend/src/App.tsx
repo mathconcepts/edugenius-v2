@@ -50,6 +50,9 @@ const ManagerDashboard = lazy(() => import('@/pages/dashboards/ManagerDashboard'
 // Lazy load exam creation wizard
 const ExamCreationWizard = lazy(() => import('@/pages/dashboards/ExamCreationWizard').then(m => ({ default: m.ExamCreationWizard })));
 
+// Lazy load system status
+const SystemStatus = lazy(() => import('@/pages/SystemStatus').then(m => ({ default: m.SystemStatus })));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -130,6 +133,9 @@ export default function App() {
           {/* Feedback & Complaints */}
           <Route path="feedback" element={<FeedbackPage />} />
           <Route path="admin/feedback" element={<AdminFeedback />} />
+
+          {/* System Status — CEO/Admin only */}
+          <Route path="status" element={<SystemStatus />} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

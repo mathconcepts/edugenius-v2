@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket,
+  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -32,6 +32,7 @@ const roleNavItems = {
     { to: '/user-attributes', icon: UserCheck, label: 'User Attributes' },
     { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
     { to: '/settings', icon: Settings, label: 'Settings' },
+    { to: '/status', icon: Activity, label: 'System Status' },
   ],
   manager: [
     { to: '/manager', icon: Headphones, label: 'My Dashboard', highlight: true },
@@ -50,6 +51,7 @@ const roleNavItems = {
     { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
     { to: '/analytics', icon: BarChart3, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
+    { to: '/status', icon: Activity, label: 'System Status' },
   ],
   teacher: [
     { to: '/', icon: Home, label: 'Home' },
