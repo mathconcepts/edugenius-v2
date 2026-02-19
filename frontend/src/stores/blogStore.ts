@@ -5,6 +5,8 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { blogAgentBridge, SEED_STRATEGY_SIGNALS } from '@/services/blogAgentBridge';
+import type { StrategySignal, LayoutIntelligence, BlogPerformanceSignal } from '@/services/blogAgentBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,7 +83,17 @@ export interface BlogPost {
   generatedByAI: boolean;
   promptTemplate?: string;
   generatedAt?: string;
-  
+
+  // Agent traceability
+  strategySignalId?: string;                        // which signal triggered this post
+  agentLineage?: import('@/services/blogAgentBridge').AgentLineage;
+  strategyAlignmentScore?: number;                  // 0-100
+  pendingStrategyUpdates?: string[];                 // strategy changes not yet in post
+
+  // Performance signal (computed)
+  performanceTrend?: 'rising' | 'stable' | 'declining';
+  agentRecommendation?: 'amplify' | 'rewrite' | 'retire' | 'keep';
+
   // Versioning
   version: number;
   createdAt: string;
@@ -626,6 +638,10 @@ interface BlogState {
   generationError: string | null;
   selectedPostId: string | null;
 
+  // Agent bridge state
+  strategySignals: import('@/services/blogAgentBridge').StrategySignal[];
+  layoutIntelligence: import('@/services/blogAgentBridge').LayoutIntelligence | null;
+
   // Computed helpers
   getPublished: () => BlogPost[];
   getBySlug: (slug: string) => BlogPost | undefined;
@@ -646,9 +662,19 @@ interface BlogState {
 
   // Re-compute layout (called after any content change)
   recomputeLayout: () => void;
+
+  // Agent bridge actions
+  ingestSignal: (signal: import('@/services/blogAgentBridge').StrategySignal) => void;
+  refreshLayoutIntelligence: () => void;
+  getPerformanceSignals: () => import('@/services/blogAgentBridge').BlogPerformanceSignal[];
 }
 
 let postCounter = seedPosts.length + 1;
+
+// Suppress unused-import lint for types used in interface declarations only
+type _StrategySignal = StrategySignal;
+type _LayoutIntelligence = LayoutIntelligence;
+type _BlogPerformanceSignal = BlogPerformanceSignal;
 
 export const useBlogStore = create<BlogState>()(
   persist(
@@ -658,6 +684,10 @@ export const useBlogStore = create<BlogState>()(
       isGenerating: false,
       generationError: null,
       selectedPostId: null,
+
+      // Agent bridge initial state
+      strategySignals: SEED_STRATEGY_SIGNALS,
+      layoutIntelligence: null,
 
       // ── Computed ──
       getPublished: () => get().posts.filter(p => p.status === 'published'),
@@ -795,6 +825,24 @@ export const useBlogStore = create<BlogState>()(
 
       recomputeLayout: () => {
         set(state => ({ layout: computeLayout(state.posts) }));
+      },
+
+      // ── Agent bridge actions ──
+      ingestSignal: (signal) => {
+        blogAgentBridge.ingestStrategySignal(signal);
+        set({ strategySignals: blogAgentBridge.getPendingSignals() });
+      },
+
+      refreshLayoutIntelligence: () => {
+        const state = get();
+        const pending = blogAgentBridge.getPendingSignals();
+        const intelligence = blogAgentBridge.computeLayoutIntelligence(state.posts, pending);
+        set({ layoutIntelligence: intelligence });
+      },
+
+      getPerformanceSignals: () => {
+        const published = get().posts.filter(p => p.status === 'published');
+        return blogAgentBridge.broadcastPerformance(published);
       },
     }),
     {

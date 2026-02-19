@@ -11,7 +11,7 @@
  *  - Nexus AI assistant sidebar
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Inbox, Users, Megaphone, Zap, BarChart3,
@@ -23,6 +23,13 @@ import {
   Sparkles, Circle, CheckCircle, PlayCircle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import {
+  NexusUrgencyScore,
+  AIMessageDraft,
+  StudentTimelineDrawer,
+  CampaignROICard,
+  SmartRuleWizard,
+} from '@/components/ux/UXEnhancements';
 
 // ─── Mock data types ──────────────────────────────────────────────────────────
 
@@ -557,18 +564,132 @@ function OutreachComposer({ students }: { students: Student[] }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+// ─── Urgency score helper ─────────────────────────────────────────────────────
+
+function ticketUrgencyScore(ticket: Ticket): number {
+  const priorityScore: Record<Priority, number> = { critical: 100, high: 75, medium: 50, low: 25 };
+  const base = priorityScore[ticket.priority];
+  // Add time pressure: overdue tickets score higher
+  const minsLeft = Math.floor((new Date(ticket.dueAt).getTime() - Date.now()) / 60000);
+  const timePenalty = minsLeft < 0 ? 20 : minsLeft < 60 ? 10 : 0;
+  return Math.min(100, base + timePenalty);
+}
+
+// ─── Priority Inbox Row ────────────────────────────────────────────────────────
+
+function PriorityInboxRow({
+  ticket,
+  onViewTimeline,
+  resolvedIds,
+  onResolve,
+  onEscalate,
+}: {
+  ticket: Ticket;
+  onViewTimeline: (name: string) => void;
+  resolvedIds: Set<string>;
+  onResolve: (id: string) => void;
+  onEscalate: (id: string) => void;
+}) {
+  const [showDraft, setShowDraft] = useState(false);
+  const urgency = ticketUrgencyScore(ticket);
+  const tl = timeLeft(ticket.dueAt);
+  const urgencyLabel = urgency >= 80 ? '🔴 High' : urgency >= 50 ? '🟡 Med' : '🟢 Low';
+  const isResolved = resolvedIds.has(ticket.id);
+
+  return (
+    <div className={clsx(
+      'p-4 rounded-xl border transition-all',
+      isResolved
+        ? 'border-green-500/20 bg-green-500/5 opacity-60'
+        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+    )}>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <NexusUrgencyScore score={urgency} reason={`${ticket.priority.toUpperCase()} priority · ${ticket.escalationReason}`} />
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <button
+                onClick={() => onViewTimeline(ticket.studentName)}
+                className="font-semibold text-sm text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {ticket.studentName}
+              </button>
+              <span className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300">{ticket.category}</span>
+              <span className="text-xs font-medium">{urgencyLabel}</span>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">{ticket.subject}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{timeAgo(ticket.createdAt)} · {ticket.examId}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+          <span className={clsx('text-xs', tl.overdue ? 'text-red-500' : 'text-gray-400')}>
+            {tl.overdue && '⚠️ '}{tl.label}
+          </span>
+          <button
+            onClick={() => setShowDraft(v => !v)}
+            className="px-2.5 py-1.5 text-xs rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-colors"
+          >
+            ✨ Draft
+          </button>
+          <button
+            onClick={() => onResolve(ticket.id)}
+            disabled={isResolved}
+            className="px-2.5 py-1.5 text-xs rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors disabled:opacity-40"
+          >
+            {isResolved ? '✅ Resolved' : 'Resolve'}
+          </button>
+          <button
+            onClick={() => onEscalate(ticket.id)}
+            className="px-2.5 py-1.5 text-xs rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 transition-colors"
+          >
+            Escalate
+          </button>
+        </div>
+      </div>
+      {showDraft && (
+        <div className="mt-2 border-t border-gray-100 dark:border-gray-700 pt-2">
+          <AIMessageDraft
+            studentName={ticket.studentName}
+            exam={ticket.examId}
+            riskReason={ticket.escalationReason}
+            onUseDraft={(msg) => {
+              console.log('Draft used:', msg);
+              setShowDraft(false);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ManagerDashboard() {
   const [activeExam, setActiveExam] = useState(EXAM_SCOPES[0]);
-  const [section, setSection] = useState<'tickets' | 'students' | 'outreach' | 'updates' | 'metrics' | 'pipeline'>('tickets');
+  const [section, setSection] = useState<'inbox' | 'tickets' | 'students' | 'outreach' | 'updates' | 'metrics' | 'pipeline'>('inbox');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [ticketFilter, setTicketFilter] = useState<'all' | Priority>('all');
   const [pipelinePhase, setPipelinePhase] = useState<LifecyclePhase | 'all'>('all');
   const [lifecycleRules, setLifecycleRules] = useState(LIFECYCLE_RULES);
+  const [timelineStudent, setTimelineStudent] = useState<string | null>(null);
+  const [resolvedTicketIds, setResolvedTicketIds] = useState<Set<string>>(new Set());
+  const [escalatedTicketIds, setEscalatedTicketIds] = useState<Set<string>>(new Set());
+
+  const handleResolve = useCallback((id: string) => {
+    setResolvedTicketIds(prev => new Set([...prev, id]));
+  }, []);
+
+  const handleEscalate = useCallback((id: string) => {
+    setEscalatedTicketIds(prev => new Set([...prev, id]));
+  }, []);
 
   const examTickets = MOCK_TICKETS.filter(t => t.examId === activeExam);
   const filteredTickets = ticketFilter === 'all' ? examTickets : examTickets.filter(t => t.priority === ticketFilter);
   const examStudents = MOCK_STUDENTS.filter(s => s.exam === activeExam);
   const atRiskStudents = examStudents.filter(s => s.health !== 'healthy');
+  // Priority Inbox: all tickets sorted by urgency, max 10
+  const priorityInboxTickets = useMemo(() =>
+    [...MOCK_TICKETS].sort((a, b) => ticketUrgencyScore(b) - ticketUrgencyScore(a)).slice(0, 10),
+  []);
 
   const PERF: PerfMetric[] = [
     { label: 'Open Tickets',     value: examTickets.filter(t => t.status !== 'resolved').length, color: 'text-orange-600 dark:text-orange-400', icon: <Inbox size={16} /> },
@@ -580,6 +701,7 @@ export function ManagerDashboard() {
   ];
 
   return (
+    <>
     <div className="flex h-full overflow-hidden">
       {/* Main content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
@@ -618,13 +740,36 @@ export function ManagerDashboard() {
 
         {/* Section nav */}
         <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit flex-wrap">
+          <SectionTab active={section==='inbox'}    onClick={() => setSection('inbox')}    icon={<Zap size={14}/>}         label="Priority Inbox" badge={priorityInboxTickets.filter(t=>!resolvedTicketIds.has(t.id)).length} />
           <SectionTab active={section==='tickets'}  onClick={() => setSection('tickets')}  icon={<Inbox size={14}/>}       label="Tickets"    badge={filteredTickets.filter(t=>t.status!=='resolved').length} />
           <SectionTab active={section==='students'} onClick={() => setSection('students')} icon={<Users size={14}/>}       label="Students"   badge={atRiskStudents.length} />
           <SectionTab active={section==='pipeline'} onClick={() => setSection('pipeline')} icon={<GitBranch size={14}/>}   label="Lifecycle"  />
           <SectionTab active={section==='outreach'} onClick={() => setSection('outreach')} icon={<Megaphone size={14}/>}   label="Outreach" />
-          <SectionTab active={section==='updates'}  onClick={() => setSection('updates')}  icon={<Zap size={14}/>}         label="Updates"    badge={MOCK_TRIGGERS.filter(t=>t.status==='pending').length} />
+          <SectionTab active={section==='updates'}  onClick={() => setSection('updates')}  icon={<BarChart3 size={14}/>}   label="Updates"    badge={MOCK_TRIGGERS.filter(t=>t.status==='pending').length} />
           <SectionTab active={section==='metrics'}  onClick={() => setSection('metrics')}  icon={<BarChart3 size={14}/>}   label="Metrics" />
         </div>
+
+        {/* ── PRIORITY INBOX ─────────────────────────────────────── */}
+        {section === 'inbox' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Zap size={16} className="text-yellow-500" /> Priority Inbox
+                <span className="text-xs font-normal text-gray-400">Sorted by urgency score · showing top {priorityInboxTickets.length}</span>
+              </h2>
+            </div>
+            {priorityInboxTickets.map(ticket => (
+              <PriorityInboxRow
+                key={ticket.id}
+                ticket={ticket}
+                onViewTimeline={setTimelineStudent}
+                resolvedIds={resolvedTicketIds}
+                onResolve={handleResolve}
+                onEscalate={handleEscalate}
+              />
+            ))}
+          </div>
+        )}
 
         {/* ── TICKETS ────────────────────────────────────────────── */}
         {section === 'tickets' && (
@@ -677,7 +822,12 @@ export function ManagerDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-900 dark:text-white text-sm">{s.name}</span>
+                        <button
+                          onClick={() => setTimelineStudent(s.name)}
+                          className="font-semibold text-gray-900 dark:text-white text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
+                          {s.name}
+                        </button>
                         <span className="text-xs text-gray-400">Grade {s.grade} · {s.plan}</span>
                         <span className={clsx('text-xs font-medium', HEALTH_CONFIG[s.health].color)}>
                           {HEALTH_CONFIG[s.health].label}
@@ -844,6 +994,9 @@ export function ManagerDashboard() {
               </div>
             )}
 
+            {/* Campaign ROI Card */}
+            <CampaignROICard />
+
             {/* Lifecycle Rules Table */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
               <div className="flex items-center justify-between mb-4">
@@ -905,6 +1058,9 @@ export function ManagerDashboard() {
                 })}
               </div>
             </div>
+
+            {/* Smart Rule Wizard */}
+            <SmartRuleWizard />
           </div>
         )}
 
@@ -1001,6 +1157,15 @@ export function ManagerDashboard() {
         </div>
       </div>
     </div>
+
+    {/* Student Timeline Drawer — slides in from right when student name is clicked */}
+    {timelineStudent && (
+      <StudentTimelineDrawer
+        studentName={timelineStudent}
+        onClose={() => setTimelineStudent(null)}
+      />
+    )}
+    </>
   );
 }
 

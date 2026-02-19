@@ -4,11 +4,11 @@
  * No noise — just students, classes, and AI help
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Users, MessageSquare, AlertCircle, TrendingUp,
-  ChevronRight, Plus, Clock, CheckCircle2
+  ChevronRight, Plus, Clock, CheckCircle2, Phone, BookOpen
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AITriagePanel, QuickQuestionGen, TeachingEffectivenessCard } from '@/components/ux/UXEnhancements';
@@ -57,6 +57,7 @@ function StatChip({ icon: Icon, value, label, color }: {
 // ── Main component ───────────────────────────────────────────────────────────
 
 export function TeacherDashboard() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | StudentStatus>('all');
 
   const needsAttention = students.filter(s => s.status !== 'on-track').length;
@@ -66,6 +67,19 @@ export function TeacherDashboard() {
       const urgency: Record<StudentStatus, number> = { 'struggling': 0, 'needs-attention': 1, 'on-track': 2 };
       return urgency[a.status] - urgency[b.status];
     });
+  // Action Required: score < 60% OR progress < 40% OR flagged (needs-attention / struggling)
+  const actionRequired = students
+    .filter(s => s.progress < 60 || s.status === 'struggling' || s.status === 'needs-attention')
+    .sort((a, b) => {
+      const urgency: Record<StudentStatus, number> = { 'struggling': 0, 'needs-attention': 1, 'on-track': 2 };
+      return urgency[a.status] - urgency[b.status] || a.progress - b.progress;
+    })
+    .slice(0, 3);
+
+  const handleChatAboutStudent = (student: typeof students[0]) => {
+    const issue = student.status === 'struggling' ? 'struggling and may need urgent help' : 'needs attention and progress is below target';
+    navigate(`/chat?studentContext=${encodeURIComponent(student.name)}&exam=${encodeURIComponent('JEE Main')}&progress=${student.progress}&issue=${encodeURIComponent(issue)}`);
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-4 md:pb-8">
@@ -94,20 +108,61 @@ export function TeacherDashboard() {
         </div>
       </motion.div>
 
-      {/* ── Action Required card ── */}
-      {needsAttention > 0 && (
+      {/* ── Action Required section (P0 + P1) ── */}
+      {actionRequired.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.03 }}
-          className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
+          className="rounded-xl border border-red-500/30 bg-red-500/5 overflow-hidden"
         >
-          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-300">{needsAttention} student{needsAttention > 1 ? 's' : ''} need immediate attention</p>
-            <p className="text-xs text-amber-400/70">Sorted to top of your list below</p>
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-red-500/20">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <h2 className="font-semibold text-sm text-red-300">⚡ Action Required</h2>
+            <span className="ml-auto text-xs text-red-400/60">{actionRequired.length} student{actionRequired.length > 1 ? 's' : ''}</span>
           </div>
-          <Link to="/chat?q=which+students+need+the+most+help+today" className="text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors flex-shrink-0">Ask AI</Link>
+          <div className="divide-y divide-red-500/10">
+            {actionRequired.map(student => {
+              const sc = statusConfig[student.status];
+              return (
+                <div key={student.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-orange-400 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                    {student.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <button
+                      onClick={() => handleChatAboutStudent(student)}
+                      className="font-medium text-sm hover:text-primary-400 transition-colors text-left"
+                    >
+                      {student.name}
+                    </button>
+                    <p className={clsx('text-xs', sc.color)}>{sc.label} · {student.progress}% · {student.topic}</p>
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleChatAboutStudent(student)}
+                      title="Chat with AI about this student"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 transition-colors"
+                    >
+                      <MessageSquare className="w-3 h-3" /> Message
+                    </button>
+                    <Link
+                      to={`/content?type=practice&student=${encodeURIComponent(student.name)}`}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors"
+                    >
+                      <BookOpen className="w-3 h-3" /> Assign Practice
+                    </Link>
+                    <button
+                      onClick={() => handleChatAboutStudent(student)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors"
+                    >
+                      <Phone className="w-3 h-3" /> Schedule Call
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </motion.div>
       )}
 
@@ -198,14 +253,13 @@ export function TeacherDashboard() {
                   </div>
 
                   {/* Action — always visible on mobile, hover-only on desktop */}
-                  <Link
-                    to={`/chat?context=${encodeURIComponent(student.name + ' is ' + student.status.replace('-', ' ') + ' on ' + student.topic + ' with ' + student.progress + '% progress')}`}
-                    onClick={e => e.stopPropagation()}
+                  <button
+                    onClick={e => { e.stopPropagation(); handleChatAboutStudent(student); }}
                     title={`Chat with AI about ${student.name}`}
                     className="md:opacity-0 md:group-hover:opacity-100 p-2.5 md:p-2 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 active:scale-95 transition-all flex-shrink-0"
                   >
                     <MessageSquare className="w-4 h-4 text-primary-400" />
-                  </Link>
+                  </button>
                 </div>
               );
             })}

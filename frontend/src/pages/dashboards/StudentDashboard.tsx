@@ -3,7 +3,7 @@
  * Focus: What to do today + quick access to chat
  * No agent noise, no clutter — just learning momentum
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BookOpen, Flame, Target, Trophy, Play, CheckCircle2, Sparkles, BarChart3, Send, ArrowRight } from 'lucide-react';
@@ -21,6 +21,49 @@ const todayPlan = [
 const examCountdown = { exam: 'JEE Main', daysLeft: 47 };
 
 const weekProgress = [40, 65, 50, 80, 70, 30, 60]; // Mon-Sun, percentage
+
+// ── Confetti Burst (CSS-only, no external library) ──────────────────────────
+
+const CONFETTI_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+
+function ConfettiBurst({ active }: { active: boolean }) {
+  const pieces = useMemo(() => Array.from({ length: 16 }, (_, i) => ({
+    key: i,
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    left: `${10 + Math.random() * 80}%`,
+    delay: `${Math.random() * 0.3}s`,
+    size: `${5 + Math.random() * 6}px`,
+    rotate: `${Math.random() * 360}deg`,
+  })), []);
+
+  if (!active) return null;
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-20">
+      {pieces.map(p => (
+        <span
+          key={p.key}
+          style={{
+            position: 'absolute',
+            bottom: '10%',
+            left: p.left,
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            borderRadius: '2px',
+            transform: `rotate(${p.rotate})`,
+            animation: `confettiFly 0.8s ease-out ${p.delay} forwards`,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes confettiFly {
+          0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(-80px) rotate(360deg); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 // ── Tiny streak flame ───────────────────────────────────────────────────────
 
@@ -64,9 +107,14 @@ function WeekBar({ data }: { data: number[] }) {
 
 export function StudentDashboard() {
   const navigate = useNavigate();
-  const [streak] = useState(12);
+  // Persist streak in localStorage
+  const [streak, setStreak] = useState<number>(() => {
+    const stored = localStorage.getItem('edugenius_streak');
+    return stored ? parseInt(stored, 10) : 12;
+  });
   const [doubtInput, setDoubtInput] = useState('');
   const [celebrating, setCelebrating] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const doneTasks = todayPlan.filter(t => t.done).length;
@@ -84,6 +132,14 @@ export function StudentDashboard() {
     }
   }, [celebrating]);
 
+  // Dismiss confetti
+  useEffect(() => {
+    if (showConfetti) {
+      const t = setTimeout(() => setShowConfetti(false), 900);
+      return () => clearTimeout(t);
+    }
+  }, [showConfetti]);
+
   const handleDoubtSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const q = doubtInput.trim();
@@ -93,7 +149,13 @@ export function StudentDashboard() {
 
   const handleTaskPlay = (taskId: string) => {
     setCelebrating(taskId);
-    navigate('/learn');
+    // Increment streak and show confetti
+    const newStreak = streak + 1;
+    setStreak(newStreak);
+    localStorage.setItem('edugenius_streak', String(newStreak));
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 900);
+    setTimeout(() => navigate('/learn'), 600);
   };
 
   return (
@@ -209,10 +271,11 @@ export function StudentDashboard() {
                   task.done ? 'opacity-50' : 'hover:bg-surface-800/60 cursor-pointer',
                   isCelebrating ? 'bg-green-500/10' : ''
                 )}>
-                  {/* Celebration overlay */}
+                  {/* Confetti celebration */}
+                  <ConfettiBurst active={isCelebrating && showConfetti} />
                   {isCelebrating && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-xl pointer-events-none z-10">
-                      <span className="text-sm font-bold text-green-300 animate-bounce">✅ Done! 🔥 +1 streak</span>
+                      <span className="text-sm font-bold text-green-300 animate-bounce">✅ Done! 🔥 {streak} day streak</span>
                     </div>
                   )}
                   <div className={clsx(

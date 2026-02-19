@@ -7,13 +7,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import clsx from 'clsx';
 import {
   Plus, Edit, Trash2, Eye, BarChart2, Pin, PinOff,
   ArrowLeft, Share2, Clock, Tag, ChevronRight,
   Sparkles, Loader2, CheckCircle, AlertCircle,
-  TrendingUp, BookOpen, Search, X,
+  TrendingUp, BookOpen, Search, X, Activity,
+  GitBranch, Zap, RefreshCw, ChevronDown, ChevronUp,
+  LayoutGrid, Signal, Target, AlertTriangle,
 } from 'lucide-react';
 import { useBlogStore, type BlogPost, type BlogSection, type ExamTag, type ContentType, type GenerateRequest } from '@/stores/blogStore';
+import { blogAgentBridge } from '@/services/blogAgentBridge';
+import type { StrategySignal, BlogPerformanceSignal, AgentLineage, BlogGenerationPrompt } from '@/services/blogAgentBridge';
+import { useAppStore } from '@/stores/appStore';
 
 // ─── Section Renderer ──────────────────────────────────────────────────────────
 

@@ -365,6 +365,11 @@ export function Chat() {
   );
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // studentContext injected into system context from URL params
+  const studentContextParam = searchParams.get('studentContext');
+  const studentContextMsg = studentContextParam
+    ? `Context: You are helping teacher with ${studentContextParam} who is studying ${searchParams.get('exam') || 'their exam'} at ${searchParams.get('progress') || '?'}% progress. Issue: ${searchParams.get('issue') || 'general check-in'}`
+    : null;
   const [showAgentPicker, setShowAgentPicker] = useState(false);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [showModeSelector, setShowModeSelector] = useState(false);
@@ -382,10 +387,25 @@ export function Chat() {
 
   const currentSession = getCurrentSession();
 
-  // Auto-create session on mount
+  // Auto-create session on mount; pre-fill ?q= and inject studentContext
   useEffect(() => {
-    if (!currentSessionId) {
-      createSession(selectedAgent, `Chat with ${agentOptions.find(a => a.id === selectedAgent)?.name}`);
+    const q = searchParams.get('q');
+    if (q) {
+      setInput(decodeURIComponent(q));
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = createSession(selectedAgent, `Chat with ${agentOptions.find(a => a.id === selectedAgent)?.name}`);
+    }
+    // If teacher clicked a student, inject system context as first AI message
+    if (studentContextMsg && sessionId) {
+      addMessage(sessionId, {
+        role: 'assistant',
+        content: `📋 **${studentContextMsg}**\n\nHow can I help you with this student?`,
+        agent: 'sage',
+        outputBlocks: [],
+      });
     }
   }, []);
 
