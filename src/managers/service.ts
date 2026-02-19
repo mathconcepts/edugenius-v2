@@ -37,6 +37,12 @@ export class ManagerService extends EventEmitter {
       checkinFrequencyDays: 7,
       atRiskThresholdDays: 5,
       lowScoreThreshold: 40,
+      // Lifecycle-aware defaults
+      lifecycleRulesEnabled: true,
+      customRules: [],
+      acquisitionEnabled: true,
+      onboardingEnabled: true,
+      deliveryNudgesEnabled: true,
     };
   }
 
