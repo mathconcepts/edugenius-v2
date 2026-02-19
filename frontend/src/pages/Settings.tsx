@@ -15,6 +15,7 @@ import {
   Mail, Phone, Globe, Sun, Moon, Volume2, VolumeX,
   LogOut, Trash2, Download, Key, Fingerprint,
   Check, ChevronRight, AlertTriangle, ExternalLink,
+  MessageCircle, Send, Video, Link2, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppStore } from '@/stores/appStore';
@@ -22,7 +23,7 @@ import PasskeyManager from '@/pages/PasskeyManager';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'profile' | 'security' | 'preferences' | 'billing' | 'advanced';
+type Tab = 'profile' | 'security' | 'channels' | 'preferences' | 'billing' | 'advanced';
 
 // ─── Toggle Switch ─────────────────────────────────────────────────────────────
 
@@ -525,6 +526,225 @@ function AdvancedTab() {
   );
 }
 
+// ─── Channels Tab ─────────────────────────────────────────────────────────────
+
+type ChannelLinkStatus = 'linked' | 'unlinked' | 'pending';
+
+function ChannelRow({
+  icon: Icon,
+  iconColor,
+  name,
+  description,
+  status,
+  linkedValue,
+  planNote,
+  onLink,
+  onUnlink,
+}: {
+  icon: typeof MessageCircle;
+  iconColor: string;
+  name: string;
+  description: string;
+  status: ChannelLinkStatus;
+  linkedValue?: string;
+  planNote?: string;
+  onLink: () => void;
+  onUnlink: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-4 border-b border-surface-700/50 last:border-0 gap-4 flex-wrap">
+      <div className="flex items-center gap-3">
+        <Icon className={clsx('w-5 h-5', iconColor)} />
+        <div>
+          <p className="font-medium text-sm text-white">{name}</p>
+          <p className="text-xs text-surface-400 mt-0.5">{description}</p>
+          {linkedValue && <p className="text-xs text-primary-400 mt-0.5">Connected: {linkedValue}</p>}
+          {planNote && <p className="text-xs text-amber-400 mt-0.5">⚠ {planNote}</p>}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {status === 'linked' && (
+          <>
+            <span className="flex items-center gap-1 text-xs text-green-400"><CheckCircle2 className="w-3.5 h-3.5" /> Linked</span>
+            <button onClick={onUnlink} className="text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-colors">Unlink</button>
+          </>
+        )}
+        {status === 'unlinked' && (
+          <button onClick={onLink} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary-500/20 border border-primary-500/30 text-primary-400 hover:bg-primary-500/30 transition-colors">
+            <Link2 className="w-3.5 h-3.5" /> Connect
+          </button>
+        )}
+        {status === 'pending' && (
+          <span className="flex items-center gap-1 text-xs text-amber-400"><XCircle className="w-3.5 h-3.5" /> Needs plan</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChannelsTab({ role }: { role: string }) {
+  const [whatsappLinked, setWhatsappLinked] = useState(false);
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [whatsappNum, setWhatsappNum] = useState('');
+  const [showWhatsappForm, setShowWhatsappForm] = useState(false);
+  const [showTelegramInstr, setShowTelegramInstr] = useState(false);
+
+  // Mock plan — in production from useAppStore
+  const plan = 'pro' as string;
+  const hasWhatsapp = plan === 'premium' || plan === 'elite';
+  const hasTelegram = plan === 'premium' || plan === 'elite';
+  const hasMeet = plan === 'premium' || plan === 'elite';
+
+  return (
+    <div className="space-y-5">
+      {/* Plan overview */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-sm">Your Plan: Pro</h3>
+          <a href="/website/pricing" className="text-xs text-primary-400 hover:underline flex items-center gap-1">Upgrade <ExternalLink className="w-3 h-3" /></a>
+        </div>
+        <p className="text-xs text-surface-400 mb-3">
+          Web portal included. Add chatbot channels to study from WhatsApp or Telegram.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { label: 'WhatsApp', included: hasWhatsapp, addon: '₹99/mo' },
+            { label: 'Telegram', included: hasTelegram, addon: '₹99/mo' },
+            { label: 'Meet', included: hasMeet, addon: 'Premium+' },
+          ].map(c => (
+            <span key={c.label} className={clsx(
+              'text-xs px-2.5 py-1 rounded-full border',
+              c.included ? 'border-green-500/30 bg-green-500/10 text-green-400' : 'border-surface-700 text-surface-500'
+            )}>
+              {c.included ? '✓' : '+'} {c.label} {!c.included && c.addon}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Channel connections */}
+      <div className="card">
+        <h3 className="font-semibold text-sm mb-1">Linked Channels</h3>
+        <p className="text-xs text-surface-400 mb-4">Connect your accounts so you can chat with your AI tutor from anywhere.</p>
+
+        {/* WhatsApp */}
+        <ChannelRow
+          icon={MessageCircle}
+          iconColor="text-green-400"
+          name="WhatsApp"
+          description="Ask doubts, get reminders, practise MCQs — in your favourite app."
+          status={!hasWhatsapp ? 'pending' : whatsappLinked ? 'linked' : 'unlinked'}
+          linkedValue={whatsappLinked ? whatsappNum : undefined}
+          planNote={!hasWhatsapp ? 'Requires WhatsApp add-on (₹99/mo) or Premium plan' : undefined}
+          onLink={() => setShowWhatsappForm(true)}
+          onUnlink={() => { setWhatsappLinked(false); setWhatsappNum(''); }}
+        />
+        {showWhatsappForm && !whatsappLinked && hasWhatsapp && (
+          <div className="mb-4 p-4 rounded-xl bg-green-500/5 border border-green-500/20">
+            <p className="text-xs font-semibold text-green-400 mb-2">📱 Link WhatsApp Number</p>
+            <p className="text-xs text-surface-400 mb-3">Enter your WhatsApp number. We'll send you a 6-digit OTP to verify.</p>
+            <div className="flex gap-2">
+              <input
+                value={whatsappNum}
+                onChange={e => setWhatsappNum(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="flex-1 px-3 py-2 rounded-lg bg-surface-800 border border-surface-700 text-sm text-white"
+              />
+              <button
+                onClick={() => { if (whatsappNum) { setWhatsappLinked(true); setShowWhatsappForm(false); } }}
+                className="px-3 py-2 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-400"
+              >Verify</button>
+            </div>
+          </div>
+        )}
+
+        {/* Telegram */}
+        <ChannelRow
+          icon={Send}
+          iconColor="text-blue-400"
+          name="Telegram"
+          description="Rich media, inline quizzes, formula rendering — full AI tutor on Telegram."
+          status={!hasTelegram ? 'pending' : telegramLinked ? 'linked' : 'unlinked'}
+          linkedValue={telegramLinked ? '@yourhandle' : undefined}
+          planNote={!hasTelegram ? 'Requires Telegram add-on (₹99/mo) or Premium plan' : undefined}
+          onLink={() => setShowTelegramInstr(true)}
+          onUnlink={() => setTelegramLinked(false)}
+        />
+        {showTelegramInstr && !telegramLinked && hasTelegram && (
+          <div className="mb-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
+            <p className="text-xs font-semibold text-blue-400 mb-2">📲 Link Telegram</p>
+            <ol className="text-xs text-surface-300 space-y-1.5 list-decimal list-inside">
+              <li>Open Telegram and search for <strong>@EduGeniusBot</strong></li>
+              <li>Send the command: <code className="bg-surface-700 px-1 rounded">/link</code></li>
+              <li>Send the code shown: <strong className="text-blue-400 font-mono">EDG-{Math.random().toString(36).slice(2,8).toUpperCase()}</strong></li>
+            </ol>
+            <button
+              onClick={() => { setTelegramLinked(true); setShowTelegramInstr(false); }}
+              className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors"
+            >I've sent the code ✓</button>
+          </div>
+        )}
+
+        {/* Google Meet */}
+        <ChannelRow
+          icon={Video}
+          iconColor="text-red-400"
+          name="Google Meet (AI sessions)"
+          description="Live AI-guided doubt sessions via Google Meet. Available on Premium and Elite."
+          status={hasMeet ? 'unlinked' : 'pending'}
+          planNote={!hasMeet ? 'Available on Premium (2/month) and Elite (4/month) plans' : undefined}
+          onLink={() => window.open('https://accounts.google.com/o/oauth2/auth', '_blank')}
+          onUnlink={() => {}}
+        />
+      </div>
+
+      {/* Usage this month */}
+      {(whatsappLinked || telegramLinked) && (
+        <div className="card">
+          <h3 className="font-semibold text-sm mb-3">Chatbot Usage — February 2026</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {whatsappLinked && (
+              <div className="text-center p-3 bg-surface-800/50 rounded-xl border border-surface-700/50">
+                <MessageCircle className="w-5 h-5 text-green-400 mx-auto mb-1" />
+                <p className="text-xl font-bold">47</p>
+                <p className="text-xs text-surface-400">WhatsApp interactions</p>
+              </div>
+            )}
+            {telegramLinked && (
+              <div className="text-center p-3 bg-surface-800/50 rounded-xl border border-surface-700/50">
+                <Send className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                <p className="text-xl font-bold">23</p>
+                <p className="text-xs text-surface-400">Telegram interactions</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade nudge for students on free/no channel */}
+      {role === 'student' && !hasWhatsapp && (
+        <div className="card border-amber-500/20 bg-amber-500/5">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">💬</span>
+            <div>
+              <p className="font-semibold text-sm">Study on WhatsApp or Telegram</p>
+              <p className="text-xs text-surface-400 mt-0.5">Ask doubts between classes, get daily reminders, practise MCQs — all in your chat app.</p>
+              <div className="flex gap-2 mt-3">
+                <a href="/website/pricing?highlight=pro" className="text-xs px-3 py-1.5 rounded-lg bg-primary-500/20 border border-primary-500/30 text-primary-400 hover:bg-primary-500/30 transition-colors">
+                  Add WhatsApp — ₹99/mo
+                </a>
+                <a href="/website/pricing" className="text-xs px-3 py-1.5 rounded-lg bg-surface-700 hover:bg-surface-600 text-white transition-colors">
+                  See all plans
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Settings Page ───────────────────────────────────────────────────────
 
 export default function Settings() {
@@ -534,6 +754,7 @@ export default function Settings() {
   const tabs: { id: Tab; label: string; icon: typeof User; roles?: string[] }[] = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Shield },
+    { id: 'channels', label: 'Channels', icon: MessageCircle },
     { id: 'preferences', label: 'Preferences', icon: Bell },
     { id: 'billing', label: 'Billing', icon: CreditCard, roles: ['ceo', 'admin'] },
     { id: 'advanced', label: 'Advanced', icon: Sliders, roles: ['ceo'] },
@@ -579,6 +800,7 @@ export default function Settings() {
         >
           {activeTab === 'profile' && <ProfileTab role={userRole} />}
           {activeTab === 'security' && <SecurityTab />}
+          {activeTab === 'channels' && <ChannelsTab role={userRole} />}
           {activeTab === 'preferences' && <PreferencesTab />}
           {activeTab === 'billing' && <BillingTab />}
           {activeTab === 'advanced' && <AdvancedTab />}

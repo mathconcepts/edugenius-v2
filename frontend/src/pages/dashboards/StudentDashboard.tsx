@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageSquare, BookOpen, Flame, Target, Trophy, ChevronRight, Play, CheckCircle2, Sparkles, BarChart3 } from 'lucide-react';
+import { MessageSquare, BookOpen, Flame, Target, Trophy, ChevronRight, Play, CheckCircle2, Sparkles, BarChart3, MessageCircle, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AIStudyCoach, ExamReadinessScore, PeerActivity } from '@/components/ux/UXEnhancements';
 
@@ -259,6 +259,26 @@ export function StudentDashboard() {
             <span className="text-sm font-medium">{item.label}</span>
           </Link>
         ))}
+      </motion.div>
+
+      {/* ── Chatbot CTA banner ── */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
+        <Link
+          to="/settings/channels"
+          className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 hover:border-green-500/40 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              <MessageCircle className="w-5 h-5 text-green-400" />
+              <Send className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">Study on WhatsApp or Telegram</p>
+              <p className="text-xs text-surface-400 mt-0.5">Ask doubts anywhere — your AI tutor is always one message away</p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-surface-400 group-hover:text-white transition-colors flex-shrink-0" />
+        </Link>
       </motion.div>
 
       {/* ── Peer Activity ── */}

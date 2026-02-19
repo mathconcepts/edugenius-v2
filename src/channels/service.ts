@@ -1,7 +1,12 @@
 // @ts-nocheck
 /**
  * Channel Service
- * Unified multi-channel message handling
+ * Unified multi-channel message handling with chatbot access gating.
+ * 
+ * All outbound WhatsApp/Telegram messages pass through ChatbotAccessService
+ * before reaching the channel provider. If a student lacks entitlement, the
+ * message is silently dropped for outreach (Mentor/Herald) or a denial
+ * response is returned for inbound-triggered sessions (Sage).
  */
 
 import * as crypto from 'crypto';
@@ -13,6 +18,29 @@ import * as whatsapp from './whatsapp';
 import * as telegram from './telegram';
 import * as meet from './meet';
 import { EventBus } from '../events/event-bus';
+import { ChatbotAccessService, type StudentChannelProfile, type ChatbotChannel } from './chatbot-access';
+
+// Student channel profiles lookup — in production this comes from DB
+const studentChannelProfiles = new Map<string, StudentChannelProfile>();
+
+/** Register/update a student's channel profile (called by users service on plan change). */
+export function updateStudentChannelProfile(profile: StudentChannelProfile): void {
+  studentChannelProfiles.set(profile.userId, profile);
+}
+
+/** Check if a student can receive messages on a chatbot channel before sending. */
+export function checkChatbotAccess(
+  userId: string,
+  channel: ChatbotChannel
+): { allowed: boolean; upgradeMessage?: string } {
+  const profile = studentChannelProfiles.get(userId);
+  if (!profile) return { allowed: false, upgradeMessage: 'No channel profile found for user.' };
+  const result = ChatbotAccessService.checkAccess(profile, channel);
+  return {
+    allowed: result.allowed,
+    upgradeMessage: result.upgradeHint?.message,
+  };
+}
 
 // In-memory stores
 const conversations = new Map<string, Conversation>();

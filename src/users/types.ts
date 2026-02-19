@@ -279,11 +279,24 @@ export interface EduGeniusUser {
   privacySettings: PrivacySettings;
   accessibilitySettings: AccessibilitySettings;
   
-  // Subscription
+  // Subscription & plan
   subscriptionId?: string;
-  planId: string;
+  planId: string;                         // 'free' | 'pro' | 'premium' | 'elite'
   planName: string;
   planExpiresAt?: Date;
+  activeAddOns?: string[];                // e.g. ['chatbot_whatsapp', 'chatbot_all']
+
+  // Chatbot channel connections
+  whatsappNumber?: string;               // E.164 e.g. +919876543210
+  whatsappVerified?: boolean;
+  whatsappLinkedAt?: Date;
+  telegramUserId?: string;               // Telegram numeric ID
+  telegramUsername?: string;
+  telegramVerified?: boolean;
+  telegramLinkedAt?: Date;
+  preferredChannel?: 'web' | 'whatsapp' | 'telegram';
+  chatbotInteractionsThisMonth?: number;
+  meetSessionsUsed?: number;             // resets monthly
   
   // Gamification
   points: number;

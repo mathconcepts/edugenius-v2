@@ -246,13 +246,15 @@ const REGISTRY: Connection[] = [
 
   /* ── Chat Channels ───────────────────────────────────────────────────────── */
   { id:'whatsapp', name:'WhatsApp Business', type:'api', category:'Chat Channels', mandatory:false, status:'inactive',
-    purpose:"WhatsApp tutoring — students get AI tutor, reminders, study material via India's #1 messaging platform.",
-    fallback:'Web chat only. Students must use portal.',
-    tags:['messaging','india','channels'],
+    purpose:"WhatsApp tutoring — students get AI tutor, reminders, study material via India's #1 messaging platform. Access gated by student plan: Premium/Elite included; Pro via ₹99/mo add-on.",
+    fallback:'Web portal only. Students on eligible plans prompted to connect via Settings → Channels.',
+    tags:['messaging','india','channels','chatbot'],
     impactedAgents:[
+      {id:'chatbot_access', name:'ChatbotAccessService', emoji:'🔐', impact:'critical', subAgents:['Plan Gating Layer','Add-on Checker']},
       {id:'sage',   name:'Sage',   emoji:'🧠', impact:'high',   subAgents:['Multi-Channel Tutor','WhatsApp Handler']},
-      {id:'mentor', name:'Mentor', emoji:'🎯', impact:'high',   subAgents:['WhatsApp Reminder','Push Notifier']},
-      {id:'herald', name:'Herald', emoji:'📣', impact:'medium', subAgents:['Broadcast Manager']},
+      {id:'mentor', name:'Mentor', emoji:'🎯', impact:'high',   subAgents:['WhatsApp Reminder','Push Notifier','Lifecycle Outreach']},
+      {id:'herald', name:'Herald', emoji:'📣', impact:'medium', subAgents:['Broadcast Manager','Campaign Delivery']},
+      {id:'nexus',  name:'Nexus',  emoji:'🔗', impact:'medium', subAgents:['Support Ticket Notifier']},
     ],
     fields:[
       {key:'WHATSAPP_PHONE_NUMBER_ID',  label:'Phone Number ID',       type:'text',     placeholder:'1234567890', required:true,  hint:'Meta Business Suite → WhatsApp'},
@@ -263,13 +265,15 @@ const REGISTRY: Connection[] = [
     docsUrl:'https://business.facebook.com/',
   },
   { id:'telegram', name:'Telegram Bot', type:'api', category:'Chat Channels', mandatory:false, status:'inactive',
-    purpose:'Telegram tutoring. Popular with JEE/NEET students — inline keyboards, math rendering, group study rooms.',
-    fallback:'Web chat only.',
-    tags:['messaging','channels'],
+    purpose:'Telegram tutoring. Popular with JEE/NEET students — inline keyboards, LaTeX math rendering, group study rooms. Access gated by student plan: Premium/Elite included; Pro via ₹99/mo add-on.',
+    fallback:'Web portal only. Students connect via Settings → Channels using /link bot command.',
+    tags:['messaging','channels','chatbot'],
     impactedAgents:[
-      {id:'sage',   name:'Sage',   emoji:'🧠', impact:'high',   subAgents:['Multi-Channel Tutor','Telegram Handler']},
-      {id:'mentor', name:'Mentor', emoji:'🎯', impact:'medium', subAgents:['Telegram Reminder']},
-      {id:'herald', name:'Herald', emoji:'📣', impact:'medium', subAgents:['Broadcast Manager']},
+      {id:'chatbot_access', name:'ChatbotAccessService', emoji:'🔐', impact:'critical', subAgents:['Plan Gating Layer','Add-on Checker']},
+      {id:'sage',   name:'Sage',   emoji:'🧠', impact:'high',   subAgents:['Multi-Channel Tutor','Telegram Handler','LaTeX Renderer']},
+      {id:'mentor', name:'Mentor', emoji:'🎯', impact:'high',   subAgents:['Telegram Reminder','Lifecycle Outreach']},
+      {id:'herald', name:'Herald', emoji:'📣', impact:'medium', subAgents:['Broadcast Manager','Announcement Publisher']},
+      {id:'forge',  name:'Forge',  emoji:'⚙️', impact:'high',   subAgents:['Webhook Configurator','Bot Router']},
     ],
     fields:[
       {key:'TELEGRAM_BOT_TOKEN',      label:'Bot Token',         type:'password', placeholder:'123456:ABC-DEF...', required:true,  hint:'@BotFather on Telegram → /newbot'},

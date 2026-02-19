@@ -96,12 +96,24 @@ export const mentorHooks: AgentHook[] = [
   {
     agentId: 'mentor',
     eventType: 'channel:connected',
-    handler: async (payload: { userId: string; channel: string }) => {
+    handler: async (payload: { userId: string; channel: string; planId: string; addOns: string[] }) => {
       console.log(`[Mentor] User ${payload.userId} connected ${payload.channel}`);
-      // Mentor would:
-      // 1. Update notification preferences
-      // 2. Send welcome via new channel
-      // 3. Set up channel-specific nudges
+      // Mentor checks ChatbotAccessService before any outreach:
+      // 1. Import { ChatbotAccessService } from '../channels/chatbot-access'
+      // 2. const result = ChatbotAccessService.checkAccess(profile, channel)
+      // 3. if (!result.allowed) → skip send; optionally emit upgrade nudge event
+      // 4. If allowed: send personalised welcome via the new channel
+      // 5. Set up channel-specific nudges (daily reminder, streak alert)
+      // 6. Emit 'mentor:channel_activated' event for Oracle tracking
+    },
+  },
+  {
+    agentId: 'mentor',
+    eventType: 'chatbot:access_denied',
+    handler: async (payload: { userId: string; channel: string; reason: string; upgradeHint: string }) => {
+      console.log(`[Mentor] Access denied for ${payload.userId} on ${payload.channel}: ${payload.reason}`);
+      // Mentor sends an in-app notification with the upgrade hint
+      // RevenueArchitect.UpSellEngine is notified to add this user to upsell segment
     },
   },
   {

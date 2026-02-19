@@ -1,20 +1,32 @@
 /**
  * Public Website - Pricing Page
- * Dynamic pricing with exam-specific plans
+ * Plans + chatbot channel add-ons
  */
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, X } from 'lucide-react';
+import { Check, X, MessageCircle, Send, Video, Zap, Plus } from 'lucide-react';
+import { clsx } from 'clsx';
+
+interface Feature {
+  text: string;
+  included: boolean;
+}
 
 interface Plan {
   id: string;
   name: string;
   price: { monthly: number; yearly: number };
   description: string;
-  features: { text: string; included: boolean }[];
+  features: Feature[];
+  chatbotAccess: {
+    whatsapp: 'included' | 'addon' | false;
+    telegram: 'included' | 'addon' | false;
+    meet: number;  // 0 = no, N = sessions/month
+  };
   popular?: boolean;
   cta: string;
+  ctaVariant?: 'primary' | 'outline';
 }
 
 const plans: Plan[] = [
@@ -22,7 +34,7 @@ const plans: Plan[] = [
     id: 'free',
     name: 'Free',
     price: { monthly: 0, yearly: 0 },
-    description: 'Get started with basic features',
+    description: 'Start learning with AI assistance',
     features: [
       { text: '50 AI tutor interactions/month', included: true },
       { text: 'Access to free practice questions', included: true },
@@ -33,13 +45,15 @@ const plans: Plan[] = [
       { text: 'Video solutions', included: false },
       { text: 'Parent dashboard', included: false },
     ],
+    chatbotAccess: { whatsapp: false, telegram: false, meet: 0 },
     cta: 'Get Started Free',
+    ctaVariant: 'outline',
   },
   {
     id: 'pro',
     name: 'Pro',
     price: { monthly: 499, yearly: 3999 },
-    description: 'Everything you need to crack exams',
+    description: 'Everything to crack competitive exams',
     features: [
       { text: 'Unlimited AI tutor interactions', included: true },
       { text: 'Full question bank access', included: true },
@@ -50,8 +64,10 @@ const plans: Plan[] = [
       { text: 'Parent dashboard', included: true },
       { text: 'Priority support', included: false },
     ],
+    chatbotAccess: { whatsapp: 'addon', telegram: 'addon', meet: 0 },
     popular: true,
     cta: 'Start Pro Trial',
+    ctaVariant: 'primary',
   },
   {
     id: 'premium',
@@ -65,182 +81,323 @@ const plans: Plan[] = [
       { text: 'Live doubt clearing sessions', included: true },
       { text: 'Priority AI responses', included: true },
       { text: 'Exclusive content & tips', included: true },
-      { text: 'WhatsApp support group', included: true },
+      { text: 'WhatsApp + Telegram AI tutor', included: true },
       { text: '24/7 priority support', included: true },
     ],
+    chatbotAccess: { whatsapp: 'included', telegram: 'included', meet: 2 },
     cta: 'Go Premium',
+    ctaVariant: 'primary',
+  },
+  {
+    id: 'elite',
+    name: 'Elite',
+    price: { monthly: 1499, yearly: 11999 },
+    description: 'Concierge AI learning — study anywhere, anytime',
+    features: [
+      { text: 'Everything in Premium', included: true },
+      { text: '1-on-1 mentor sessions (4/month)', included: true },
+      { text: 'Dedicated study manager', included: true },
+      { text: 'Exam-day strategy call', included: true },
+      { text: 'Offline content downloads', included: true },
+      { text: 'First access to new features', included: true },
+      { text: 'WhatsApp + Telegram AI tutor', included: true },
+      { text: 'Google Meet AI sessions (4/month)', included: true },
+    ],
+    chatbotAccess: { whatsapp: 'included', telegram: 'included', meet: 4 },
+    cta: 'Go Elite',
+    ctaVariant: 'primary',
+  },
+];
+
+interface AddOn {
+  id: string;
+  name: string;
+  icon: typeof MessageCircle;
+  iconColor: string;
+  priceMonthly: number;
+  priceYearly: number;
+  description: string;
+  eligiblePlans: string[];
+  badge?: string;
+}
+
+const addOns: AddOn[] = [
+  {
+    id: 'chatbot_whatsapp',
+    name: 'WhatsApp Access',
+    icon: MessageCircle,
+    iconColor: 'text-green-400',
+    priceMonthly: 99,
+    priceYearly: 799,
+    description: 'Ask doubts, get reminders, practise MCQs — all inside WhatsApp.',
+    eligiblePlans: ['pro'],
+  },
+  {
+    id: 'chatbot_telegram',
+    name: 'Telegram Access',
+    icon: Send,
+    iconColor: 'text-blue-400',
+    priceMonthly: 99,
+    priceYearly: 799,
+    description: 'Full AI tutor on Telegram — rich media, inline quizzes, formula rendering.',
+    eligiblePlans: ['pro'],
+  },
+  {
+    id: 'chatbot_all',
+    name: 'All Chatbots',
+    icon: Zap,
+    iconColor: 'text-yellow-400',
+    priceMonthly: 149,
+    priceYearly: 1199,
+    description: 'WhatsApp + Telegram in one bundle. Best value for mobile-first learners.',
+    eligiblePlans: ['pro'],
+    badge: 'Best Value',
   },
 ];
 
 const faqs = [
-  { q: 'Can I change plans anytime?', a: 'Yes! Upgrade or downgrade anytime. Changes take effect immediately.' },
-  { q: 'Is there a refund policy?', a: 'Yes, 7-day money-back guarantee on all paid plans. No questions asked.' },
-  { q: 'Do you offer student discounts?', a: 'Yes! Verified students get 20% off. Email us with your student ID.' },
-  { q: 'Can I pause my subscription?', a: 'Yes, you can pause for up to 2 months per year without losing progress.' },
+  { q: 'Can I use EduGenius on WhatsApp without changing my plan?', a: 'Yes! Pro plan users can add WhatsApp or Telegram access for just ₹99/month each, or both for ₹149/month. Premium and Elite plans include both channels at no extra cost.' },
+  { q: 'How does the WhatsApp/Telegram tutor work?', a: 'Just message our bot your doubt, topic, or question. Sage (your AI tutor) responds with explanations, MCQs, formula help, and even study reminders — all within the chat app.' },
+  { q: 'Can I change plans anytime?', a: 'Yes! Upgrade or downgrade anytime. Changes take effect immediately. Add-ons can be cancelled monthly.' },
+  { q: 'Is there a refund policy?', a: 'Yes, 7-day money-back guarantee on all paid plans and add-ons. No questions asked.' },
+  { q: 'Can I pause my subscription?', a: 'Yes, pause for up to 2 months per year without losing progress or linked chatbot accounts.' },
+  { q: 'What happens to my WhatsApp/Telegram access if I downgrade?', a: 'You will keep access until the end of your billing period. After that, you will need to add the chatbot add-on or upgrade to Premium.' },
 ];
+
+function ChannelBadge({ type }: { type: 'included' | 'addon' | false | number }) {
+  if (type === false || type === 0) {
+    return <X className="w-4 h-4 text-surface-600 flex-shrink-0" />;
+  }
+  if (type === 'included' || (typeof type === 'number' && type > 0)) {
+    return <Check className="w-4 h-4 text-green-400 flex-shrink-0" />;
+  }
+  // addon
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 font-semibold flex-shrink-0">+Add-on</span>
+  );
+}
 
 export default function Pricing() {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('yearly');
+  const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
 
   return (
-    <div className="min-h-screen bg-surface-900">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-surface-700/50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/website" className="flex items-center gap-2">
-            <span className="text-2xl">🎓</span>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
-              EduGenius
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/" className="btn btn-sm bg-surface-700 hover:bg-surface-600">Login</Link>
-            <Link to="/website/signup" className="btn btn-sm bg-gradient-to-r from-primary-600 to-accent-600">Start Free</Link>
+    <div className="min-h-screen bg-surface-900 text-white">
+      <div className="max-w-7xl mx-auto px-4 py-20">
+
+        {/* Hero */}
+        <div className="text-center mb-14">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
+          <p className="text-xl text-surface-400 mb-8">Choose the plan that fits your exam goals. Study on portal, WhatsApp, or Telegram.</p>
+
+          {/* Billing toggle */}
+          <div className="inline-flex items-center bg-surface-800 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setBilling('monthly')}
+              className={clsx('px-5 py-2 rounded-lg text-sm font-medium transition-all', billing === 'monthly' ? 'bg-primary-600 text-white' : 'text-surface-400 hover:text-white')}
+            >Monthly</button>
+            <button
+              onClick={() => setBilling('yearly')}
+              className={clsx('px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2', billing === 'yearly' ? 'bg-primary-600 text-white' : 'text-surface-400 hover:text-white')}
+            >
+              Yearly <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">Save 33%</span>
+            </button>
           </div>
         </div>
-      </nav>
 
-      {/* Header */}
-      <section className="pt-32 pb-12 px-6 text-center">
-        <h1 className="text-5xl font-bold text-white mb-4">Simple, Transparent Pricing</h1>
-        <p className="text-xl text-surface-400 mb-8">Choose the plan that fits your exam goals</p>
-
-        {/* Billing Toggle */}
-        <div className="inline-flex items-center gap-4 p-1 bg-surface-800 rounded-full">
-          <button
-            onClick={() => setBilling('monthly')}
-            className={`px-6 py-2 rounded-full transition-colors ${
-              billing === 'monthly' ? 'bg-primary-600 text-white' : 'text-surface-400'
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBilling('yearly')}
-            className={`px-6 py-2 rounded-full transition-colors ${
-              billing === 'yearly' ? 'bg-primary-600 text-white' : 'text-surface-400'
-            }`}
-          >
-            Yearly
-            <span className="ml-2 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Save 33%</span>
-          </button>
-        </div>
-      </section>
-
-      {/* Plans */}
-      <section className="pb-20 px-6">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+        {/* Plans */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-16">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`relative p-8 rounded-2xl border ${
+              className={clsx(
+                'rounded-2xl border p-6 flex flex-col',
                 plan.popular
-                  ? 'bg-gradient-to-b from-primary-900/30 to-surface-800 border-primary-500'
-                  : 'bg-surface-800 border-surface-700'
-              }`}
+                  ? 'border-primary-500 bg-primary-500/5 relative'
+                  : 'border-surface-700 bg-surface-800/50'
+              )}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary-600 text-white text-sm rounded-full">
-                  Most Popular
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-primary-500 text-white text-xs font-bold px-3 py-1 rounded-full">Most Popular</span>
                 </div>
               )}
 
-              <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-              <p className="text-surface-400 mt-1">{plan.description}</p>
-
-              <div className="my-6">
-                <span className="text-4xl font-bold text-white">
-                  ₹{billing === 'monthly' ? plan.price.monthly : Math.round(plan.price.yearly / 12)}
-                </span>
-                <span className="text-surface-400">/month</span>
-                {billing === 'yearly' && plan.price.yearly > 0 && (
-                  <p className="text-sm text-surface-500 mt-1">
-                    ₹{plan.price.yearly} billed yearly
-                  </p>
-                )}
+              <div className="mb-5">
+                <h3 className="text-xl font-bold">{plan.name}</h3>
+                <p className="text-surface-400 text-sm mt-1">{plan.description}</p>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold">
+                    ₹{billing === 'monthly' ? plan.price.monthly : Math.round(plan.price.yearly / 12)}
+                  </span>
+                  {plan.price.monthly > 0 && (
+                    <span className="text-surface-400 text-sm">/month</span>
+                  )}
+                  {billing === 'yearly' && plan.price.yearly > 0 && (
+                    <p className="text-xs text-green-400 mt-1">₹{plan.price.yearly} billed yearly</p>
+                  )}
+                </div>
               </div>
 
               <Link
                 to={`/website/signup?plan=${plan.id}`}
-                className={`btn w-full py-3 ${
-                  plan.popular
-                    ? 'bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700'
-                    : 'bg-surface-700 hover:bg-surface-600'
-                }`}
-              >
-                {plan.cta}
-              </Link>
+                className={clsx(
+                  'block text-center py-2.5 rounded-xl font-semibold text-sm mb-6 transition-all',
+                  plan.ctaVariant === 'primary'
+                    ? 'bg-primary-500 hover:bg-primary-400 text-white'
+                    : 'border border-surface-600 hover:border-surface-500 text-surface-300 hover:text-white'
+                )}
+              >{plan.cta}</Link>
 
-              <ul className="mt-8 space-y-3">
+              {/* Core features */}
+              <div className="space-y-2 mb-5 flex-1">
                 {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    {feature.included ? (
-                      <Check className="w-5 h-5 text-green-400" />
-                    ) : (
-                      <X className="w-5 h-5 text-surface-600" />
-                    )}
-                    <span className={feature.included ? 'text-surface-300' : 'text-surface-500'}>
-                      {feature.text}
-                    </span>
-                  </li>
+                  <div key={i} className="flex items-start gap-2">
+                    {feature.included
+                      ? <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                      : <X className="w-4 h-4 text-surface-600 flex-shrink-0 mt-0.5" />}
+                    <span className={clsx('text-sm', feature.included ? 'text-surface-200' : 'text-surface-500')}>{feature.text}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
+
+              {/* Chatbot access section */}
+              <div className="border-t border-surface-700 pt-4 mt-2">
+                <p className="text-xs text-surface-500 font-semibold uppercase tracking-wide mb-2">Study via</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-surface-300"><span className="text-base">🌐</span> Web Portal</span>
+                    <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-surface-300"><MessageCircle className="w-3.5 h-3.5 text-green-400" /> WhatsApp</span>
+                    <ChannelBadge type={plan.chatbotAccess.whatsapp} />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-surface-300"><Send className="w-3.5 h-3.5 text-blue-400" /> Telegram</span>
+                    <ChannelBadge type={plan.chatbotAccess.telegram} />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-surface-300"><Video className="w-3.5 h-3.5 text-red-400" /> Google Meet</span>
+                    {plan.chatbotAccess.meet > 0
+                      ? <span className="text-xs text-green-400">{plan.chatbotAccess.meet}/month</span>
+                      : <X className="w-4 h-4 text-surface-600 flex-shrink-0" />}
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
-      </section>
 
-      {/* Exam-Specific Note */}
-      <section className="py-12 px-6 bg-surface-800/30">
-        <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-2xl font-bold text-white mb-4">🎯 Exam-Specific Bundles</h3>
-          <p className="text-surface-400 mb-6">
-            Get targeted preparation with exam-specific content, mock tests, and strategies.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {['JEE Main', 'JEE Advanced', 'NEET UG', 'CBSE 12', 'CBSE 10', 'CAT'].map((exam) => (
-              <Link
-                key={exam}
-                to={`/website/exams/${exam.toLowerCase().replace(' ', '-')}`}
-                className="px-4 py-2 bg-surface-700 rounded-full text-surface-300 hover:bg-surface-600 hover:text-white transition-colors"
-              >
-                {exam}
-              </Link>
-            ))}
+        {/* Add-ons section */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Chatbot Add-ons for Pro</h2>
+            <p className="text-surface-400">On the Pro plan? Add WhatsApp or Telegram access to study in your favourite chat app.</p>
           </div>
-        </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-20 px-6">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">Frequently Asked Questions</h2>
-          <div className="space-y-6">
-            {faqs.map((faq, i) => (
-              <div key={i} className="p-6 bg-surface-800 rounded-xl border border-surface-700">
-                <h4 className="text-lg font-semibold text-white mb-2">{faq.q}</h4>
-                <p className="text-surface-400">{faq.a}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto">
+            {addOns.map(addon => (
+              <div key={addon.id} className={clsx('rounded-2xl border p-5 relative', addon.badge ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-surface-700 bg-surface-800/50')}>
+                {addon.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full">{addon.badge}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-3">
+                  <addon.icon className={clsx('w-6 h-6', addon.iconColor)} />
+                  <h3 className="font-bold">{addon.name}</h3>
+                </div>
+                <p className="text-surface-400 text-sm mb-4">{addon.description}</p>
+                <div className="mb-4">
+                  <span className="text-2xl font-bold">₹{billing === 'monthly' ? addon.priceMonthly : Math.round(addon.priceYearly / 12)}</span>
+                  <span className="text-surface-400 text-sm">/month</span>
+                  {billing === 'yearly' && <p className="text-xs text-green-400 mt-0.5">₹{addon.priceYearly} billed yearly</p>}
+                </div>
+                <button
+                  onClick={() => setSelectedAddOns(prev => {
+                    const next = new Set(prev);
+                    next.has(addon.id) ? next.delete(addon.id) : next.add(addon.id);
+                    return next;
+                  })}
+                  className={clsx(
+                    'w-full py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2',
+                    selectedAddOns.has(addon.id)
+                      ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+                      : 'bg-surface-700 hover:bg-surface-600 text-white'
+                  )}
+                >
+                  {selectedAddOns.has(addon.id) ? <><Check className="w-4 h-4" /> Added</> : <><Plus className="w-4 h-4" /> Add to Pro</>}
+                </button>
+                <p className="text-[10px] text-surface-500 text-center mt-2">Requires Pro plan · Cancel anytime</p>
               </div>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Footer CTA */}
-      <section className="py-16 px-6 bg-gradient-to-r from-primary-900/30 to-accent-900/30">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Still have questions?</h2>
-          <p className="text-surface-400 mb-8">Talk to our team and find the perfect plan for you.</p>
-          <div className="flex justify-center gap-4">
-            <Link to="/website/contact" className="btn px-6 py-3 bg-surface-700 hover:bg-surface-600">
-              Contact Sales
-            </Link>
-            <Link to="/website/demo" className="btn px-6 py-3 bg-gradient-to-r from-primary-600 to-accent-600">
-              Book a Demo
-            </Link>
+        {/* Channel comparison table */}
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold text-center mb-6">Where can you study?</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full max-w-3xl mx-auto text-sm">
+              <thead>
+                <tr className="border-b border-surface-700">
+                  <th className="text-left py-3 pr-4 text-surface-400 font-normal">Channel</th>
+                  {plans.map(p => (
+                    <th key={p.id} className={clsx('text-center py-3 px-3 font-semibold', p.popular ? 'text-primary-400' : 'text-white')}>{p.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: '🌐 Web Portal', key: 'portal' },
+                  { label: '💬 WhatsApp', key: 'whatsapp' },
+                  { label: '📱 Telegram', key: 'telegram' },
+                  { label: '🎥 Google Meet', key: 'meet' },
+                ].map(row => (
+                  <tr key={row.key} className="border-b border-surface-800">
+                    <td className="py-3 pr-4 text-surface-300">{row.label}</td>
+                    {plans.map(p => (
+                      <td key={p.id} className="py-3 px-3 text-center">
+                        {row.key === 'portal' && <Check className="w-4 h-4 text-green-400 mx-auto" />}
+                        {row.key === 'whatsapp' && <ChannelBadge type={p.chatbotAccess.whatsapp} />}
+                        {row.key === 'telegram' && <ChannelBadge type={p.chatbotAccess.telegram} />}
+                        {row.key === 'meet' && (
+                          p.chatbotAccess.meet > 0
+                            ? <span className="text-xs text-green-400">{p.chatbotAccess.meet}/mo</span>
+                            : <X className="w-4 h-4 text-surface-600 mx-auto" />
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-center text-xs text-surface-500 mt-3">+Add-on = available as optional add-on for Pro plan (from ₹99/month)</p>
+        </div>
+
+        {/* FAQ */}
+        <div className="max-w-2xl mx-auto mb-16">
+          <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions</h2>
+          <div className="space-y-4">
+            {faqs.map((faq, i) => (
+              <div key={i} className="rounded-xl bg-surface-800 border border-surface-700 p-5">
+                <h3 className="font-semibold mb-2">{faq.q}</h3>
+                <p className="text-surface-400 text-sm">{faq.a}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </section>
+
+        {/* Enterprise CTA */}
+        <div className="text-center rounded-2xl bg-surface-800 border border-surface-700 p-10">
+          <h2 className="text-2xl font-bold mb-2">Coaching centres & schools?</h2>
+          <p className="text-surface-400 mb-6">Custom plans for institutions — bulk student accounts, teacher dashboards, and dedicated WhatsApp/Telegram bot numbers for your brand.</p>
+          <Link to="/website/contact" className="inline-block bg-white text-surface-900 px-8 py-3 rounded-xl font-semibold hover:bg-surface-100 transition-colors">
+            Talk to our team
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
