@@ -47,6 +47,9 @@ const UserAttributeRegistry = lazy(() => import('@/pages/UserAttributeRegistry')
 // Lazy load manager dashboard
 const ManagerDashboard = lazy(() => import('@/pages/dashboards/ManagerDashboard').then(m => ({ default: m.ManagerDashboard })));
 
+// Lazy load exam creation wizard
+const ExamCreationWizard = lazy(() => import('@/pages/dashboards/ExamCreationWizard').then(m => ({ default: m.ExamCreationWizard })));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -109,6 +112,7 @@ export default function App() {
           <Route path="connections" element={<ConnectionRegistry />} />
           <Route path="user-attributes" element={<UserAttributeRegistry />} />
           <Route path="manager" element={<ManagerDashboard />} />
+          <Route path="create-exam" element={<ExamCreationWizard />} />
           <Route path="strategy" element={<CEOStrategy />} />
           <Route path="blog" element={<WebsiteBlog adminMode />} />
           
