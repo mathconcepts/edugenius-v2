@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageSquare, BookOpen, Flame, Target, Trophy, ChevronRight, Play, CheckCircle2, Sparkles } from 'lucide-react';
+import { MessageSquare, BookOpen, Flame, Target, Trophy, ChevronRight, Play, CheckCircle2, Sparkles, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 // ── Mock data (real data comes from backend) ────────────────────────────────
@@ -73,7 +73,7 @@ export function StudentDashboard() {
   const todayPct = Math.round((doneTasks / totalTasks) * 100);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 pb-8">
+    <div className="max-w-3xl mx-auto space-y-4 pb-4 md:pb-8">
 
       {/* ── Top row: greeting + streak ── */}
       <motion.div
@@ -82,12 +82,20 @@ export function StudentDashboard() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-xl font-bold">Good morning! 👋</h1>
-          <p className="text-surface-400 text-sm mt-0.5">
+          <h1 className="text-lg md:text-xl font-bold">Good morning! 👋</h1>
+          <p className="text-surface-400 text-xs md:text-sm mt-0.5">
             {examCountdown.daysLeft} days to {examCountdown.exam} · Let's make today count
           </p>
         </div>
-        <StreakPill streak={streak} />
+        {/* Streak hidden on mobile (shown in top bar) */}
+        <div className="hidden md:block">
+          <StreakPill streak={streak} />
+        </div>
+        {/* Compact countdown pill on mobile */}
+        <div className="flex md:hidden items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
+          <Trophy className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-xs font-bold text-amber-300">{examCountdown.daysLeft}d</span>
+        </div>
       </motion.div>
 
       {/* ── Hero CTA: Ask a question ── */}
@@ -220,23 +228,24 @@ export function StudentDashboard() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.18 }}
-        className="grid grid-cols-3 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-3 gap-3"
       >
         {[
-          { to: '/learn', icon: BookOpen, label: 'Study', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          { to: '/notebook', icon: '📓', label: 'Notebook', color: 'text-green-400', bg: 'bg-green-500/10' },
-          { to: '/progress', icon: '📈', label: 'Progress', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+          { to: '/learn',    icon: BookOpen,   label: 'Study',    color: 'text-blue-400',   bg: 'bg-blue-500/10' },
+          { to: '/notebook', icon: '📓',       label: 'Notebook', color: 'text-green-400',  bg: 'bg-green-500/10' },
+          { to: '/progress', icon: BarChart3,  label: 'Progress', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+          { to: '/insights', icon: Trophy,     label: 'Exam Tips',color: 'text-amber-400',  bg: 'bg-amber-500/10' },
         ].map(item => (
           <Link
             key={item.to}
             to={item.to}
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 transition-colors text-center group"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 active:scale-95 transition-all text-center group"
           >
-            <div className={clsx('p-2.5 rounded-xl', item.bg)}>
+            <div className={clsx('p-3 rounded-xl', item.bg)}>
               {typeof item.icon === 'string' ? (
-                <span className="text-xl">{item.icon}</span>
+                <span className="text-2xl">{item.icon}</span>
               ) : (
-                <item.icon className={clsx('w-5 h-5', item.color)} />
+                <item.icon className={clsx('w-6 h-6', item.color)} />
               )}
             </div>
             <span className="text-sm font-medium">{item.label}</span>

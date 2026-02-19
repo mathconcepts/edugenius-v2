@@ -41,13 +41,13 @@ function StatChip({ icon: Icon, value, label, color }: {
   icon: React.ElementType; value: string | number; label: string; color: string;
 }) {
   return (
-    <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-800/50">
-      <div className={clsx('p-2 rounded-lg', color)}>
-        <Icon className="w-5 h-5" />
+    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 p-3 sm:p-4 rounded-xl bg-surface-800/50 text-center sm:text-left">
+      <div className={clsx('p-1.5 sm:p-2 rounded-lg shrink-0', color)}>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
       </div>
       <div>
-        <p className="text-xl font-bold">{value}</p>
-        <p className="text-xs text-surface-400">{label}</p>
+        <p className="text-lg sm:text-xl font-bold">{value}</p>
+        <p className="text-[10px] sm:text-xs text-surface-400 leading-tight">{label}</p>
       </div>
     </div>
   );
@@ -63,7 +63,7 @@ export function TeacherDashboard() {
   const filtered = filter === 'all' ? students : students.filter(s => s.status === filter);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5 pb-8">
+    <div className="max-w-4xl mx-auto space-y-4 pb-4 md:pb-8">
 
       {/* ── Header ── */}
       <motion.div
@@ -72,16 +72,17 @@ export function TeacherDashboard() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-xl font-bold">Good morning! 👋</h1>
-          <p className="text-surface-400 text-sm mt-0.5">
+          <h1 className="text-lg md:text-xl font-bold">Good morning! 👋</h1>
+          <p className="text-surface-400 text-xs md:text-sm mt-0.5">
             {needsAttention > 0
               ? `${needsAttention} student${needsAttention > 1 ? 's' : ''} need your attention today`
               : 'All students are on track — great work!'}
           </p>
         </div>
-        <button className="btn-primary flex items-center gap-2 text-sm">
+        <button className="btn-primary flex items-center gap-2 text-sm px-3 py-2 md:px-4">
           <Plus className="w-4 h-4" />
-          New Lesson
+          <span className="hidden sm:inline">New Lesson</span>
+          <span className="inline sm:hidden">New</span>
         </button>
       </motion.div>
 
@@ -90,7 +91,7 @@ export function TeacherDashboard() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="grid grid-cols-3 gap-3"
+        className="grid grid-cols-3 gap-2 md:gap-3"
       >
         <StatChip icon={Users} value={students.length} label="My Students" color="bg-primary-500/20 text-primary-400" />
         <StatChip icon={TrendingUp} value={`${avgProgress}%`} label="Avg Progress" color="bg-green-500/20 text-green-400" />
@@ -168,12 +169,12 @@ export function TeacherDashboard() {
                     </div>
                   </div>
 
-                  {/* Action (visible on hover) */}
+                  {/* Action — always visible on mobile, hover-only on desktop */}
                   <Link
                     to="/chat"
                     onClick={e => e.stopPropagation()}
                     title="Get AI help for this student"
-                    className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-all flex-shrink-0"
+                    className="md:opacity-0 md:group-hover:opacity-100 p-2.5 md:p-2 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 active:scale-95 transition-all flex-shrink-0"
                   >
                     <MessageSquare className="w-4 h-4 text-primary-400" />
                   </Link>

@@ -550,7 +550,7 @@ export function Chat() {
     : suggestions;
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex gap-5">
+    <div className="h-[calc(100vh-7rem)] md:h-[calc(100vh-7rem)] h-[calc(100dvh-7.5rem)] flex gap-5">
       {/* Hidden file inputs */}
       <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = ''; }} />
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageFile(e.target.files[0]); e.target.value = ''; }} />
@@ -784,8 +784,8 @@ export function Chat() {
         {/* Attachment previews */}
         <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
 
-        {/* Input area */}
-        <div className="p-3 border-t border-surface-700/50">
+        {/* Input area — extra bottom padding on mobile for thumb zone */}
+        <div className="p-3 pb-3 md:pb-3 border-t border-surface-700/50">
           <div className="flex items-end gap-2">
             {/* Attach menu */}
             <div className="relative">
