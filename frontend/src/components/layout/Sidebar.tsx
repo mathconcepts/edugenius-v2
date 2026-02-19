@@ -246,7 +246,13 @@ export function Sidebar() {
 
         {/* Student extra nav when expanded */}
         {userRole === 'student' && sidebarOpen && (
-          <div className="pt-2 border-t border-surface-700/30 mt-2">
+          <div className="pt-2 border-t border-surface-700/30 mt-2 space-y-0.5">
+            <NavLink to="/practice" className={({ isActive }) =>
+              clsx('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm',
+                isActive ? 'bg-primary-500/20 text-primary-400' : 'text-surface-400 hover:bg-surface-800/60 hover:text-white')}>
+              <Target className="w-5 h-5" />
+              <span>Practice MCQs</span>
+            </NavLink>
             <NavLink to="/insights" className={({ isActive }) =>
               clsx('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm',
                 isActive ? 'bg-primary-500/20 text-primary-400' : 'text-surface-400 hover:bg-surface-800/60 hover:text-white')}>

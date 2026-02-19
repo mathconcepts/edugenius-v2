@@ -239,6 +239,7 @@ export function StudentDashboard() {
       >
         {[
           { to: '/learn',    icon: BookOpen,   label: 'Study',    color: 'text-blue-400',   bg: 'bg-blue-500/10' },
+          { to: '/practice', icon: Target,     label: 'Practice', color: 'text-red-400',    bg: 'bg-red-500/10' },
           { to: '/notebook', icon: '📓',       label: 'Notebook', color: 'text-green-400',  bg: 'bg-green-500/10' },
           { to: '/progress', icon: BarChart3,  label: 'Progress', color: 'text-purple-400', bg: 'bg-purple-500/10' },
           { to: '/insights', icon: Trophy,     label: 'Exam Tips',color: 'text-amber-400',  bg: 'bg-amber-500/10' },
