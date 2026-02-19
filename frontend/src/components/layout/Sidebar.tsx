@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp,
+  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -27,6 +27,7 @@ const roleNavItems = {
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/events', icon: Zap, label: 'Events' },
     { to: '/integrations', icon: Plug, label: 'Integrations' },
+    { to: '/connections', icon: Network, label: 'Connections' },
     { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
@@ -36,6 +37,7 @@ const roleNavItems = {
     { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
     { to: '/blog', icon: PenTool, label: 'Blog' },
+    { to: '/connections', icon: Network, label: 'Connections' },
     { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
     { to: '/analytics', icon: BarChart3, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
@@ -47,6 +49,7 @@ const roleNavItems = {
     { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Stats' },
     { to: '/content', icon: BookOpen, label: 'Lessons' },
     { to: '/analytics', icon: BarChart3, label: 'Progress' },
+    { to: '/connections', icon: Network, label: 'Connections' },
   ],
   student: [
     { to: '/', icon: Home, label: 'Home' },
