@@ -589,11 +589,27 @@ function ChannelsTab({ role }: { role: string }) {
   const [showWhatsappForm, setShowWhatsappForm] = useState(false);
   const [showTelegramInstr, setShowTelegramInstr] = useState(false);
 
+  // Add-on purchase state
+  const [addonPurchasing, setAddonPurchasing] = useState<string | null>(null);
+  const [addonSuccess, setAddonSuccess] = useState<string | null>(null);
+
   // Mock plan — in production from useAppStore
   const plan = 'pro' as string;
   const hasWhatsapp = plan === 'premium' || plan === 'elite';
   const hasTelegram = plan === 'premium' || plan === 'elite';
   const hasMeet = plan === 'premium' || plan === 'elite';
+
+  // Add-on purchase handler
+  const handleBuyAddon = async (addonId: string, price: number, name: string) => {
+    setAddonPurchasing(addonId);
+    // In production: call API to create Razorpay checkout session
+    // For now: show success after 1.5s (mock flow)
+    setTimeout(() => {
+      setAddonPurchasing(null);
+      setAddonSuccess(`${name} activated! You can now link your account above.`);
+      setTimeout(() => setAddonSuccess(null), 4000);
+    }, 1500);
+  };
 
   return (
     <div className="space-y-5">
@@ -621,6 +637,44 @@ function ChannelsTab({ role }: { role: string }) {
           ))}
         </div>
       </div>
+
+      {/* Add Chatbot Channels — upgrade / add-on purchase cards */}
+      {!hasWhatsapp && (
+        <div className="card">
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-surface-300 mb-3">📦 Add Chatbot Channels</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                { id: 'chatbot_whatsapp', name: 'WhatsApp Study Bot', price: 99, icon: '💬', desc: 'Ask doubts via WhatsApp 24/7' },
+                { id: 'chatbot_telegram', name: 'Telegram Study Bot', price: 99, icon: '✈️', desc: 'Full tutor on Telegram' },
+                { id: 'chatbot_all', name: 'WhatsApp + Telegram Bundle', price: 149, icon: '🎁', desc: 'Both channels, save ₹49/mo' },
+              ].map(addon => (
+                <div key={addon.id} className="flex items-center justify-between p-4 rounded-xl bg-surface-800 border border-surface-700">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{addon.icon}</span>
+                    <div>
+                      <p className="text-white font-medium text-sm">{addon.name}</p>
+                      <p className="text-surface-400 text-xs">{addon.desc}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleBuyAddon(addon.id, addon.price, addon.name)}
+                    disabled={addonPurchasing === addon.id}
+                    className="btn-primary text-xs px-4 py-2 whitespace-nowrap"
+                  >
+                    {addonPurchasing === addon.id ? 'Processing...' : `₹${addon.price}/mo`}
+                  </button>
+                </div>
+              ))}
+            </div>
+            {addonSuccess && (
+              <div className="mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm">
+                ✅ {addonSuccess}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Channel connections */}
       <div className="card">
