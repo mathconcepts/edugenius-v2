@@ -27,6 +27,8 @@ export interface LLMRequest {
   intent?: IntentCategory;
   mode?: string;
   conversationHistory?: LLMMessage[];
+  /** Optional: override the agent's default system prompt (used by Student Persona Engine) */
+  customSystemPrompt?: string;
 }
 
 export interface LLMMessage {
@@ -233,7 +235,8 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   const model = 'gemini-2.0-flash'; // Fast + cheap, good for edtech
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
-  const systemPrompt = AGENT_SYSTEM_PROMPTS[req.agent];
+  // Use custom system prompt (e.g. from Student Persona Engine) if provided
+  const systemPrompt = req.customSystemPrompt ?? AGENT_SYSTEM_PROMPTS[req.agent];
   
   // Build conversation history
   const contents: Array<{ role: string; parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> }> = [];
@@ -364,7 +367,8 @@ async function callAnthropic(req: LLMRequest): Promise<LLMResponse> {
     ? `${API_BASE_URL}/api/anthropic/chat`
     : '/api/anthropic/chat';
 
-  const systemPrompt = AGENT_SYSTEM_PROMPTS[req.agent];
+  // Use custom system prompt (e.g. from Student Persona Engine) if provided
+  const systemPrompt = req.customSystemPrompt ?? AGENT_SYSTEM_PROMPTS[req.agent];
   const messages: Array<{ role: string; content: string }> = [];
   
   if (req.conversationHistory) {

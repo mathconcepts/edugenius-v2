@@ -24,6 +24,9 @@ import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
+import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
+import { buildSageSystemPrompt, getSageOpener } from '@/services/sagePersonaPrompts';
+import type { StudentPersona } from '@/services/studentPersonaEngine';
 import type { AgentType, Message, MediaAttachment, IntentResult } from '@/types';
 import type { LearningMode } from '@/types/personalization';
 import { clsx } from 'clsx';
@@ -353,6 +356,37 @@ const SUGGESTIONS_BY_AGENT: Record<AgentType, string[]> = {
   ],
 };
 
+// ── Contextual suggestions based on persona ───────────────────────────────────
+
+function getContextualSuggestions(persona: StudentPersona): string[] {
+  const base: string[] = [];
+
+  if (persona.emotionalState === 'frustrated') {
+    base.push(`I'm stuck and frustrated — can we start from scratch?`);
+    base.push(`Explain this like I'm completely new to it`);
+  } else if (persona.emotionalState === 'anxious') {
+    base.push(`What should I focus on in the next ${persona.daysToExam} days?`);
+    base.push(`Am I on track for my target?`);
+  } else {
+    if (persona.weakSubjects.length > 0) {
+      base.push(`Help me with ${persona.weakSubjects[0]}`);
+      if (persona.weakSubjects.length > 1) base.push(`Quick revision: ${persona.weakSubjects[1]}`);
+    }
+    if (persona.exam === 'JEE_MAIN' || persona.exam === 'JEE_ADVANCED') {
+      base.push('Give me a tricky Physics MCQ to solve');
+      base.push('Explain the most common Integration trick in JEE');
+    } else if (persona.exam === 'NEET') {
+      base.push('What are the highest-weightage Biology chapters?');
+      base.push('Quick revision: Cell Division');
+    } else if (persona.exam === 'CAT') {
+      base.push('Give me a Data Interpretation set to solve');
+      base.push('Shortcuts for Percentage problems');
+    }
+  }
+
+  return base.slice(0, 4);
+}
+
 // ─── Main Chat Component ──────────────────────────────────────────────────────
 
 export function Chat() {
@@ -365,6 +399,8 @@ export function Chat() {
   );
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // Student persona — loaded from localStorage, updated live during session
+  const [persona, setPersona] = useState<StudentPersona>(() => loadPersona());
   // studentContext injected into system context from URL params
   const studentContextParam = searchParams.get('studentContext');
   const studentContextMsg = studentContextParam
@@ -517,6 +553,20 @@ export function Chat() {
       content: m.content,
     })) ?? [];
 
+    // ── Student Persona: update emotion + build adaptive system prompt ──
+    let sageSystemPrompt: string | undefined;
+    if (isStudent) {
+      const updatedPersona = updatePersonaAfterMessage(persona, userText, 'neutral');
+      setPersona(updatedPersona);
+      // Prepend opener to the message context for first turn
+      const opener = getSageOpener(updatedPersona, history.length === 0);
+      sageSystemPrompt = buildSageSystemPrompt(updatedPersona);
+      if (opener) {
+        // Inject opener as a preamble hint into the system prompt
+        sageSystemPrompt = `${sageSystemPrompt}\n\nOPENER (use this as your first sentence): "${opener}"`;
+      }
+    }
+
     // Try real LLM first, fall back to mock
     const tryRealLLM = async () => {
       const llmResponse = await callLLM({
@@ -526,6 +576,7 @@ export function Chat() {
         intent: intent.intent as import('@/services/intentEngine').IntentCategory,
         mode: learningMode,
         conversationHistory: history,
+        customSystemPrompt: sageSystemPrompt,
       });
       return llmResponse;
     };
@@ -633,6 +684,7 @@ export function Chat() {
 
   // Frugal mode: student & teacher see a clean single-tutor UI (no agent sidebar)
   const isSimpleMode = userRole === 'student' || userRole === 'teacher';
+  const isStudent = userRole === 'student';
   // For simple mode, always route to sage (tutor) — teacher gets sage too but can ask anything
   const simpleAgent = userRole === 'teacher' ? agentOptions.find(a => a.id === 'sage') : agentOptions.find(a => a.id === 'sage');
   const displayAgent = isSimpleMode ? simpleAgent : currentAgent;
@@ -706,21 +758,42 @@ export function Chat() {
           {/* Simple mode: clean tutor header, no picker */}
           {isSimpleMode ? (
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-lg flex-shrink-0">
-                🎓
-              </div>
-              <div>
-                <p className="font-semibold text-sm">{userRole === 'teacher' ? 'AI Assistant' : 'Your Tutor'}</p>
-                <p className="text-xs text-surface-400">{userRole === 'teacher' ? 'Ask anything about your class' : 'Ask any question, snap a photo, or draw your problem'}</p>
-              </div>
+              {/* Student: live persona indicator instead of static header */}
+              {isStudent ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-800 rounded-xl border border-surface-700">
+                  <span className="text-lg">
+                    {persona.emotionalState === 'frustrated' ? '🤝' :
+                     persona.emotionalState === 'anxious' ? '🫂' :
+                     persona.emotionalState === 'motivated' ? '🔥' :
+                     persona.emotionalState === 'exhausted' ? '😴' :
+                     persona.emotionalState === 'confident' ? '⚡' : '🎓'}
+                  </span>
+                  <div>
+                    <p className="text-xs font-medium text-white">Sage</p>
+                    <p className="text-xs text-surface-400">
+                      {persona.daysToExam}d to exam · {persona.syllabusCompletion}% done
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-lg flex-shrink-0">
+                    🎓
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">AI Assistant</p>
+                    <p className="text-xs text-surface-400">Ask anything about your class</p>
+                  </div>
+                </>
+              )}
               {/* New chat button for simple mode */}
               <button onClick={() => handleNewChat('sage')}
-                className="ml-4 p-2 rounded-lg hover:bg-surface-800 transition-colors text-surface-400 hover:text-white"
+                className="ml-2 p-2 rounded-lg hover:bg-surface-800 transition-colors text-surface-400 hover:text-white"
                 title="New chat">
                 <Plus className="w-4 h-4" />
               </button>
               {/* ── Smart Memory Chip ── */}
-              {userRole === 'student' && <SmartMemoryChip />}
+              {isStudent && <SmartMemoryChip />}
             </div>
           ) : (
           <div className="relative">
@@ -809,22 +882,58 @@ export function Chat() {
               <div className={clsx('w-20 h-20 rounded-2xl bg-gradient-to-br flex items-center justify-center text-4xl mb-4', displayAgent?.color || 'from-primary-500 to-accent-500')}>
                 {displayAgent?.emoji || '🎓'}
               </div>
-              {isSimpleMode && userRole === 'student' ? (
-                <>
-                  <h2 className="text-xl font-bold text-white mb-1">Hi! I'm Sage, your AI tutor</h2>
-                  <p className="text-surface-400 text-sm max-w-md mb-4">Ask me anything about JEE, NEET, or any concept you're stuck on</p>
-                  <div className="grid grid-cols-2 gap-3 mt-2 max-w-md w-full">
-                    {["Explain Newton's laws simply", 'How do I solve integration by parts?', 'What topics to prioritise for NEET?', 'Give me a quick formula sheet for Chemistry'].map(q => (
+              {isStudent ? (
+                /* ── Persona-aware student welcome ── */
+                <div className="flex flex-col items-center gap-6 w-full max-w-lg">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">
+                      {persona.emotionalState === 'frustrated' ? '🤝' :
+                       persona.emotionalState === 'anxious' ? '🫂' :
+                       persona.tier === 'advanced' ? '⚡' : '🎓'}
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-1">
+                      {persona.emotionalState === 'frustrated'
+                        ? `Hey ${persona.name}, let's figure this out together`
+                        : persona.emotionalState === 'anxious'
+                        ? `Take a breath, ${persona.name}. I've got you.`
+                        : persona.emotionalState === 'motivated'
+                        ? `Let's go, ${persona.name} 🔥`
+                        : `What's on your mind, ${persona.name}?`}
+                    </h2>
+                    <p className="text-surface-400 text-sm">
+                      {persona.daysToExam} days to {persona.exam.replace(/_/g, ' ')} ·{' '}
+                      {persona.streakDays > 0 ? `${persona.streakDays} day streak 🔥` : 'Start your streak today'}
+                    </p>
+                  </div>
+                  {/* Persona indicator chip */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-800 rounded-xl border border-surface-700">
+                    <span className="text-lg">
+                      {persona.emotionalState === 'frustrated' ? '🤝' :
+                       persona.emotionalState === 'anxious' ? '🫂' :
+                       persona.emotionalState === 'motivated' ? '🔥' :
+                       persona.emotionalState === 'exhausted' ? '😴' :
+                       persona.emotionalState === 'confident' ? '⚡' : '🎓'}
+                    </span>
+                    <div>
+                      <p className="text-xs font-medium text-white">Sage — your adaptive mentor</p>
+                      <p className="text-xs text-surface-400">
+                        {persona.syllabusCompletion}% syllabus done · {persona.tier} tier
+                      </p>
+                    </div>
+                  </div>
+                  {/* Contextual quick questions */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                    {getContextualSuggestions(persona).map(q => (
                       <button
                         key={q}
                         onClick={() => handleSendSuggestion(q)}
-                        className="text-left p-3 rounded-xl bg-surface-800 border border-surface-700 text-sm text-surface-300 hover:border-primary-500 hover:text-white transition-colors"
+                        className="text-left p-3 rounded-xl bg-surface-800 border border-surface-700 text-sm text-surface-300 hover:border-primary-500 hover:text-white transition-all"
                       >
                         {q}
                       </button>
                     ))}
                   </div>
-                </>
+                </div>
               ) : isSimpleMode ? (
                 <>
                   <h2 className="text-xl font-semibold mb-1">Your AI Teaching Assistant</h2>
