@@ -1,0 +1,20 @@
+{
+  "maxSpendAutonomous": 7500,
+  "maxPriceChangePercent": 10,
+  "maxDiscountPercent": 25,
+  "maxBlogPostsPerDay": 4,
+  "maxEmailsPerWeek": 4,
+  "maxWhatsAppBlastsPerWeek": 3,
+  "maxNewStudentsAutoOnboard": 500,
+  "maxTicketsAutoResolve": 150,
+  "requireApprovalForNewExam": true,
+  "requireApprovalForPriceIncrease": true,
+  "requireApprovalForNewAgent": true,
+  "minConfidenceToAct": 0.80,
+  "_meta": {
+    "appliedBy": "Jarvis (Lead Agent)",
+    "appliedAt": "2026-02-20T09:35:00Z",
+    "source": "agent_recommendations",
+    "notes": "All 8 agent recommendations applied per Giri's instruction. Agents: Scout, Oracle, Herald, Atlas, Mentor, Nexus."
+  }
+}
