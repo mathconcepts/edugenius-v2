@@ -10,7 +10,7 @@ import {
   Search, TrendingUp, Newspaper, Zap, BarChart3,
   ChevronRight, Play, CheckCircle2, AlertCircle,
   Clock, RefreshCw, ArrowRight, Star, DollarSign,
-  Target, X, Cpu,
+  Target, X, Cpu, Network, ExternalLink, Layers, Brain,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
@@ -23,6 +23,11 @@ import {
   OPPORTUNITY_STEPS, OPPORTUNITY_PHASES,
   type OppStep,
 } from '@/services/opportunityWorkflow';
+import {
+  generateConnectionManifest, saveConnectionManifest, loadConnectionManifest, applyManifestDefaults,
+  type ConnectionManifest, type RequiredConnection,
+} from '@/services/opportunityConnections';
+import { DEFAULT_HEURISTICS, resolveLLM, type LLMHeuristicRule } from '@/services/llmHeuristics';
 
 // ─── Tiny helpers ─────────────────────────────────────────────────────────────
 
@@ -439,13 +444,295 @@ function WorkflowRunner({ onComplete }: { onComplete: (exam: string) => void }) 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'feed',     label: 'Intelligence Feed',   icon: Newspaper },
-  { id: 'matrix',  label: 'Opportunity Matrix',   icon: BarChart3 },
-  { id: 'pipeline',label: 'Business Pipeline',    icon: Target },
-  { id: 'workflow', label: 'Run Discovery',        icon: Cpu },
+  { id: 'feed',        label: 'Intelligence Feed',   icon: Newspaper },
+  { id: 'matrix',     label: 'Opportunity Matrix',   icon: BarChart3 },
+  { id: 'pipeline',   label: 'Business Pipeline',    icon: Target },
+  { id: 'workflow',   label: 'Run Discovery',         icon: Cpu },
+  { id: 'connections',label: 'Required Connections',  icon: Network },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
+
+// ─── Required Connections Panel ───────────────────────────────────────────────
+
+const PRIORITY_STYLE: Record<string, string> = {
+  critical:    'bg-red-500/10 border-red-500/30 text-red-400',
+  recommended: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400',
+  optional:    'bg-surface-700/50 border-surface-600 text-surface-400',
+};
+
+const LLM_PROVIDER_COLOR: Record<string, string> = {
+  gemini:    'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  anthropic: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  openai:    'bg-green-500/10 text-green-400 border-green-500/30',
+  groq:      'bg-orange-500/10 text-orange-400 border-orange-500/30',
+  learnlm:   'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+  mock:      'bg-surface-700 text-surface-400 border-surface-600',
+};
+
+function RequiredConnectionsPanel() {
+  const [exam, setExam] = useState('GATE');
+  const [manifest, setManifest] = useState<ConnectionManifest | null>(loadConnectionManifest);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'critical' | 'recommended'>('all');
+  const [activeSection, setActiveSection] = useState<'connections' | 'llm'>('connections');
+
+  const EXAM_OPTIONS = ['JEE', 'NEET', 'GATE', 'CAT', 'UPSC', 'CBSE', 'CLAT', 'NDA', 'ICSE'];
+
+  function generate() {
+    const stored = (() => { try { return JSON.parse(localStorage.getItem('edugenius_connections') || '{}'); } catch { return {}; } })();
+    const m = generateConnectionManifest(exam, 89, stored);
+    saveConnectionManifest(m);
+    setManifest(m);
+    setApplied(false);
+  }
+
+  function applyDefaults() {
+    if (!manifest) return;
+    setApplying(true);
+    const existing = (() => { try { return JSON.parse(localStorage.getItem('edugenius_connections') || '{}'); } catch { return {}; } })();
+    const updated = applyManifestDefaults(manifest, existing);
+    localStorage.setItem('edugenius_connections', JSON.stringify(updated));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'edugenius_connections', newValue: JSON.stringify(updated) }));
+    setTimeout(() => { setApplying(false); setApplied(true); }, 800);
+  }
+
+  const filtered = manifest?.requiredConnections.filter(c =>
+    priorityFilter === 'all' || c.priority === priorityFilter
+  ) ?? [];
+
+  // LLM heuristics summary for this exam
+  const llmRules: LLMHeuristicRule[] = DEFAULT_HEURISTICS;
+
+  return (
+    <div className="space-y-5">
+      {/* Exam selector + generate */}
+      <div className="card flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Brain className="w-5 h-5 text-primary-400 shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">What you'll need to launch</p>
+            <p className="text-xs text-surface-400">Select an exam → get the exact connection requirements + LLM setup guide</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={exam}
+            onChange={e => { setExam(e.target.value); setApplied(false); }}
+            className="input text-sm px-3 py-1.5"
+          >
+            {EXAM_OPTIONS.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
+          <button
+            onClick={generate}
+            className="btn-primary text-sm px-4 py-1.5 flex items-center gap-1.5"
+          >
+            <Network className="w-3.5 h-3.5" /> Generate Manifest
+          </button>
+        </div>
+      </div>
+
+      {!manifest && (
+        <div className="py-12 text-center text-surface-500">
+          <Network className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">Select an exam and generate the connection manifest to see what's required.</p>
+        </div>
+      )}
+
+      {manifest && (
+        <>
+          {/* Executive summary */}
+          <div className={`card border ${manifest.criticalMissing > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">{manifest.criticalMissing > 0 ? '⚠️' : '✅'}</span>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-white">{manifest.exam} Connection Manifest</p>
+                <p className="text-xs text-surface-300 mt-0.5">{manifest.executiveSummary}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <span className={`text-lg font-bold ${manifest.launchReadinessScore >= 70 ? 'text-green-400' : 'text-red-400'}`}>
+                  {manifest.launchReadinessScore}/100
+                </span>
+                <span className="text-[10px] text-surface-500">readiness</span>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              {[
+                { label: 'Critical missing', value: manifest.criticalMissing, color: manifest.criticalMissing > 0 ? 'text-red-400' : 'text-green-400' },
+                { label: 'Recommended missing', value: manifest.recommendedMissing, color: 'text-yellow-400' },
+                { label: 'Est. cost/mo', value: `$${manifest.estimatedTotalMonthlyCostUSD}`, color: 'text-surface-300' },
+              ].map(s => (
+                <div key={s.label} className="bg-surface-800/60 rounded-xl p-2.5 text-center">
+                  <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+                  <p className="text-[10px] text-surface-500 mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+            {manifest.requiredConnections.some(c => c.defaultValue) && (
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-xs text-surface-400">
+                  {manifest.requiredConnections.filter(c => c.defaultValue).length} fields have default values ready to pre-fill
+                </p>
+                <button
+                  onClick={applyDefaults}
+                  disabled={applying || applied}
+                  className={`text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 ${applied ? 'bg-green-600 text-white' : 'btn-primary'}`}
+                >
+                  {applying ? <><RefreshCw className="w-3 h-3 animate-spin" /> Applying…</> :
+                   applied  ? <><CheckCircle2 className="w-3 h-3" /> Applied to Registry</> :
+                   <><Layers className="w-3 h-3" /> Apply Defaults to Registry</>}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Section tabs */}
+          <div className="flex gap-1 bg-surface-800/50 p-1 rounded-xl w-fit">
+            {[
+              { id: 'connections', label: `🔌 Connections (${manifest.requiredConnections.length})` },
+              { id: 'llm',        label: `🧠 LLM Heuristics (${llmRules.length})` },
+            ].map(s => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id as typeof activeSection)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeSection === s.id ? 'bg-primary-600 text-white' : 'text-surface-400 hover:text-white'}`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Connections section ── */}
+          {activeSection === 'connections' && (
+            <div className="space-y-3">
+              {/* Filter */}
+              <div className="flex gap-2">
+                {(['all', 'critical', 'recommended'] as const).map(f => (
+                  <button key={f} onClick={() => setPriorityFilter(f)}
+                    className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors capitalize ${priorityFilter === f ? 'bg-primary-600 text-white' : 'bg-surface-800 text-surface-400 hover:text-white'}`}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              {filtered.map((conn, i) => (
+                <motion.div
+                  key={`${conn.envKey}-${i}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="bg-surface-900 border border-surface-800 rounded-2xl p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${PRIORITY_STYLE[conn.priority]}`}>
+                          {conn.priority.toUpperCase()}
+                        </span>
+                        <span className="text-xs bg-surface-800 text-surface-400 px-2 py-0.5 rounded-full">{conn.category}</span>
+                        {conn.alreadyConfigured && (
+                          <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Configured
+                          </span>
+                        )}
+                        {conn.examEnvKey && (
+                          <span className="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Layers className="w-3 h-3" /> Exam-scoped
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-white text-sm font-semibold">{conn.name}</p>
+                      <p className="text-surface-400 text-xs mt-0.5">{conn.purpose}</p>
+
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                        <span className="font-mono text-surface-500">
+                          {conn.examEnvKey ?? conn.envKey}
+                        </span>
+                        {conn.defaultValue && (
+                          <span className="text-primary-400">
+                            default: <code className="font-mono">{conn.defaultValue}</code>
+                          </span>
+                        )}
+                        {conn.estimatedMonthlyCostUSD > 0 && (
+                          <span className="text-surface-400">${conn.estimatedMonthlyCostUSD}/mo</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <a href={conn.docsUrl} target="_blank" rel="noreferrer"
+                      className="shrink-0 p-1.5 rounded-lg hover:bg-surface-700 transition-colors text-surface-400 hover:text-white">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* ── LLM Heuristics section ── */}
+          {activeSection === 'llm' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-surface-800/50 rounded-xl text-xs text-surface-400 flex items-start gap-2">
+                <Brain className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
+                <span>
+                  These are the <strong className="text-white">default LLM choices</strong> for each agent task type.
+                  CEO can override any rule marked <span className="text-primary-400">overridable</span> via{' '}
+                  <strong className="text-white">/autonomy-settings</strong>.
+                  Rules marked <span className="text-red-400">locked</span> protect product quality (e.g., Socratic tutoring always uses LearnLM).
+                </span>
+              </div>
+
+              {llmRules.map((rule, i) => {
+                const decision = resolveLLM({ task: rule.task });
+                const providerKey = decision.provider;
+                return (
+                  <motion.div
+                    key={rule.task}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="bg-surface-900 border border-surface-800 rounded-2xl p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${LLM_PROVIDER_COLOR[providerKey] ?? LLM_PROVIDER_COLOR.mock}`}>
+                            {decision.provider} / {decision.model}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${rule.ceoOverridable ? 'bg-surface-700/50 text-surface-400 border-surface-600' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
+                            {rule.ceoOverridable ? '⚙️ overridable' : '🔒 locked'}
+                          </span>
+                          <span className="text-xs text-surface-500">Q:{rule.qualityScore}/10 · {rule.targetLatencyMs}ms · ${rule.estimatedCostPer1KTokens.toFixed(5)}/1K tok</span>
+                        </div>
+                        <p className="text-white text-sm font-semibold capitalize">{rule.task.replace(/_/g, ' ')}</p>
+                        <p className="text-surface-400 text-xs mt-0.5">{rule.rationale.split('.')[0]}.</p>
+                        {rule.fallbacks.length > 0 && (
+                          <p className="text-xs text-surface-600 mt-1">
+                            Fallbacks: {rule.fallbacks.map(f => `${f.provider}/${f.model}`).join(' → ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+
+              <div className="p-3 bg-primary-500/5 border border-primary-500/20 rounded-xl flex items-center justify-between">
+                <p className="text-xs text-surface-400">Override LLM defaults in Autonomy Settings</p>
+                <a href="/autonomy-settings" className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1">
+                  ⚙️ Autonomy Settings →
+                </a>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export function OpportunityDiscovery() {
   const navigate = useNavigate();
@@ -598,6 +885,18 @@ export function OpportunityDiscovery() {
               </p>
             </div>
             <WorkflowRunner onComplete={handleWorkflowComplete} />
+          </motion.div>
+        )}
+
+        {tab === 'connections' && (
+          <motion.div key="connections" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="mb-3">
+              <h2 className="font-semibold">Required Connections & LLM Heuristics</h2>
+              <p className="text-xs text-surface-400 mt-0.5">
+                After scouting an exam opportunity, see exactly what API keys, MCPs, and infra you need — with defaults pre-filled.
+              </p>
+            </div>
+            <RequiredConnectionsPanel />
           </motion.div>
         )}
       </AnimatePresence>
