@@ -53,6 +53,7 @@ const ManagerDashboard = lazy(() => import('@/pages/dashboards/ManagerDashboard'
 const ExamCreationWizard = lazy(() => import('@/pages/dashboards/ExamCreationWizard').then(m => ({ default: m.ExamCreationWizard })));
 const OpportunityDiscovery = lazy(() => import('@/pages/dashboards/OpportunityDiscovery').then(m => ({ default: m.OpportunityDiscovery })));
 const CEOBriefing = lazy(() => import('@/pages/dashboards/CEOBriefing').then(m => ({ default: m.CEOBriefing })));
+const CEOThresholdConfig = lazy(() => import('@/pages/dashboards/CEOThresholdConfig').then(m => ({ default: m.CEOThresholdConfig })));
 
 // Lazy load system status
 const SystemStatus = lazy(() => import('@/pages/SystemStatus').then(m => ({ default: m.SystemStatus })));
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="create-exam" element={<ExamCreationWizard />} />
           <Route path="opportunity-discovery" element={<OpportunityDiscovery />} />
           <Route path="briefing" element={<CEOBriefing />} />
+          <Route path="autonomy-settings" element={<CEOThresholdConfig />} />
           <Route path="strategy" element={<CEOStrategy />} />
           <Route path="blog" element={<WebsiteBlog adminMode />} />
           

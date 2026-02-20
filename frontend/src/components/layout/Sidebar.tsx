@@ -18,6 +18,7 @@ import { useAppStore } from '@/stores/appStore';
 const roleNavItems = {
   ceo: [
     { to: '/briefing', icon: ClipboardList, label: '📋 Daily Brief', highlight: true },
+    { to: '/autonomy-settings', icon: Settings, label: '⚙️ Autonomy Settings' },
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/opportunity-discovery', icon: Compass, label: 'Opportunities 🕵️', highlight: false },
     { to: '/create-exam', icon: Rocket, label: 'Create Exam' },

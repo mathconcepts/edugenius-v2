@@ -7,6 +7,7 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -24,6 +25,7 @@ import {
   ChevronRight,
   Sparkles,
   IndianRupee,
+  Settings,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -293,6 +295,7 @@ const alertConfig = {
 
 export function CEOBriefing() {
   const brief = mockBrief;
+  const navigate = useNavigate();
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
@@ -451,6 +454,28 @@ export function CEOBriefing() {
           })}
         </section>
       )}
+
+      {/* ── Autonomy Settings Link ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.75 }}
+        className="flex items-center justify-between rounded-xl border border-surface-700/30 bg-surface-800/20 px-4 py-3"
+      >
+        <div className="flex items-center gap-2">
+          <Settings className="w-4 h-4 text-surface-500" />
+          <span className="text-xs text-surface-400">
+            Control what your agents decide autonomously vs escalate to you
+          </span>
+        </div>
+        <button
+          onClick={() => navigate('/autonomy-settings')}
+          className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
+        >
+          Configure autonomy thresholds
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </motion.div>
 
       {/* ── Footer ── */}
       <motion.div
