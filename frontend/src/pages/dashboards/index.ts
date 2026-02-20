@@ -5,3 +5,4 @@ export { StudentDashboard } from './StudentDashboard';
 export { CEOIntegrations } from './CEOIntegrations';
 export { CEOStrategy } from './CEOStrategy';
 export { CEOBriefing } from './CEOBriefing';
+export { ContentIntelligence } from './ContentIntelligence';

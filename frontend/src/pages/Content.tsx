@@ -3,13 +3,15 @@
  * Generation sources: Prompt | Document Upload | External API/MCP | AI Agent
  */
 import { useState, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, Globe, Bot, Sparkles,
-  X, Check, Loader2, Eye, Edit3, BarChart3, Plus,
+  X, Check, Loader2, Eye, Edit3, BarChart3, Plus, Brain,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
+import { getCohortInsights } from '@/services/personaContentBridge';
 
 // ── Types & data ─────────────────────────────────────────────────────────────
 
@@ -424,8 +426,38 @@ export default function Content() {
     ? mockContent
     : mockContent.filter(c => c.status === filter || c.type === filter);
 
+  // Load cohort insight for the student signals banner
+  const cohortInsight = getCohortInsights();
+
   return (
     <div className="space-y-6 pb-8">
+
+      {/* Student Signals Banner */}
+      <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-gradient-to-r from-primary-600/10 to-accent-600/10 border border-primary-500/20 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <Brain className="w-5 h-5 text-primary-400 flex-shrink-0" />
+          <div>
+            <p className="text-white text-sm font-medium">
+              Content driven by{' '}
+              <span className="text-primary-300">{cohortInsight.totalStudents.toLocaleString('en-IN')} student signals</span>
+              {' '}· Top pain point:{' '}
+              <span className="text-white font-semibold">{cohortInsight.topWeakTopics[0]?.topic.split('—')[0].trim() ?? '—'}</span>
+            </p>
+            <p className="text-surface-400 text-xs mt-0.5">
+              {cohortInsight.contentOpportunities.filter(c => c.urgency === 'publish_now').length} urgent content pieces queued
+              · Dominant emotion: {cohortInsight.dominantEmotion}
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/content-intelligence"
+          className="btn-primary text-xs px-4 py-2 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          View Atlas Queue →
+        </Link>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card"><p className="text-surface-400 text-sm">Total Content</p><p className="text-2xl font-bold">{contentStats.totalContent.toLocaleString()}</p></div>

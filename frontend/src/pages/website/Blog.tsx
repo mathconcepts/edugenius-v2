@@ -20,6 +20,7 @@ import { useBlogStore, type BlogPost, type BlogSection, type ExamTag, type Conte
 import { blogAgentBridge } from '@/services/blogAgentBridge';
 import type { StrategySignal, BlogPerformanceSignal, AgentLineage, BlogGenerationPrompt } from '@/services/blogAgentBridge';
 import { useAppStore } from '@/stores/appStore';
+import { loadPersona } from '@/services/studentPersonaEngine';
 
 // ─── Section Renderer ──────────────────────────────────────────────────────────
 
@@ -672,14 +673,51 @@ export default function Blog({ adminMode = false }: BlogProps) {
   if (adminMode) return <AdminBlogManager />;
   if (selectedPost) return <PostReader post={selectedPost} onBack={goBack} />;
 
+  // Persona-aware content sorting
+  // Only activate if student has an explicitly saved persona (not default)
+  const studentPersona = (() => {
+    try {
+      const stored = localStorage.getItem('edugenius_student_persona');
+      if (!stored) return null;
+      return loadPersona();
+    } catch { return null; }
+  })();
+  const personaExam = studentPersona?.exam; // e.g. 'JEE_MAIN'
+  const personaWeakSubjects = studentPersona?.weakSubjects ?? [];
+
+  function personaRelevanceScore(post: BlogPost): number {
+    let score = 0;
+    // Exam match
+    if (personaExam) {
+      const examNorm = personaExam.replace('_', '').toLowerCase();
+      const postExams = post.examTags.map(t => t.toLowerCase().replace('_', ''));
+      if (postExams.some(t => t.includes(examNorm) || examNorm.includes(t))) score += 3;
+    }
+    // Weak subject match
+    for (const subj of personaWeakSubjects) {
+      const subjLower = subj.toLowerCase();
+      if (post.title.toLowerCase().includes(subjLower) || post.excerpt.toLowerCase().includes(subjLower)) {
+        score += 2;
+      }
+    }
+    // Pinned bonus
+    if (post.pinned) score += 1;
+    return score;
+  }
+
   // Filter
-  const filtered = published.filter(p => {
-    const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
-    const matchesSearch = !searchQuery ||
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  const filtered = published
+    .filter(p => {
+      const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
+      const matchesSearch = !searchQuery ||
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCat && matchesSearch;
+    })
+    .sort((a, b) => personaRelevanceScore(b) - personaRelevanceScore(a));
+
+  // If persona is active, show a "personalised for you" banner
+  const isPersonalised = !!studentPersona;
 
   const heroPost = layout.heroPostId ? published.find(p => p.id === layout.heroPostId) : null;
   const featuredPosts = layout.featuredPostIds.map(id => published.find(p => p.id === id)).filter(Boolean) as BlogPost[];
@@ -715,6 +753,20 @@ export default function Blog({ adminMode = false }: BlogProps) {
                 placeholder="Search articles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
           </div>
+
+          {/* Persona-aware banner */}
+          {isPersonalised && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-2.5 bg-primary-500/10 border border-primary-500/20 rounded-xl text-sm">
+              <span className="text-primary-400">🎯</span>
+              <span className="text-primary-300">
+                Showing content personalised for{' '}
+                <strong>{String(studentPersona!.exam).replace(/_/g, ' ')}</strong>
+                {personaWeakSubjects.length > 0 && (
+                  <> · Prioritising <strong>{personaWeakSubjects[0]}</strong> (your top focus area)</>
+                )}
+              </span>
+            </div>
+          )}
 
           {/* Category filter */}
           <div className="flex gap-2 flex-wrap">

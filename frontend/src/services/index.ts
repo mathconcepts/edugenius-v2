@@ -20,6 +20,22 @@ export { TeachingStrategyService, default as teachingStrategy } from './teaching
 export { MarketingIntegration, default as marketingIntegration } from './marketingIntegration';
 export { BlogPromptModifiers, default as blogPromptModifiers } from './blogPromptModifiers';
 
+// Persona Content Bridge — StudentPersonaEngine → Atlas → Herald
+export {
+  getCohortInsights,
+  getAtlasTopicQueue,
+  getHeraldContentCalendar,
+  generateContentOpportunities,
+  generateOutreachTriggers,
+  aggregatePersonasToCohort,
+  pushCohortInsights,
+} from './personaContentBridge';
+export type {
+  CohortInsight,
+  ContentOpportunity,
+  OutreachTrigger,
+} from './personaContentBridge';
+
 // Type re-exports for convenience
 export * from '@/types/personalization';
 export * from '@/types/teaching';

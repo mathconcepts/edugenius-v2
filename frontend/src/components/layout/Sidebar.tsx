@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity, Compass, ClipboardList,
+  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity, Compass, ClipboardList, Sparkles,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -27,6 +27,7 @@ const roleNavItems = {
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
+    { to: '/content-intelligence', icon: Sparkles, label: '🧠 Content Intel', highlight: false },
     { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/events', icon: Zap, label: 'Events' },
@@ -48,6 +49,7 @@ const roleNavItems = {
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
+    { to: '/content-intelligence', icon: Sparkles, label: '🧠 Content Intel' },
     { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/connections', icon: Network, label: 'Connections' },
     { to: '/user-attributes', icon: UserCheck, label: 'User Attributes' },
@@ -60,6 +62,7 @@ const roleNavItems = {
     { to: '/', icon: Home, label: 'Home' },
     { to: '/chat', icon: MessageSquare, label: 'AI Chat', highlight: true },
     { to: '/students', icon: Users, label: 'Students' },
+    { to: '/content-intelligence', icon: Sparkles, label: '🧠 Content Intel' },
     { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Stats' },
     { to: '/content', icon: BookOpen, label: 'Lessons' },
     { to: '/analytics', icon: BarChart3, label: 'Progress' },
