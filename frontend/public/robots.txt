@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /website/
+Allow: /website/blog/
+Allow: /website/pricing
+Allow: /website/exams/
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /chat
+Disallow: /practice
+Disallow: /admin
+Disallow: /manager
+Disallow: /connections
+Disallow: /user-attributes
+Disallow: /create-exam
+Disallow: /status
+Disallow: /opportunity-discovery
+Sitemap: https://edugenius.in/sitemap.xml
