@@ -52,6 +52,7 @@ const ManagerDashboard = lazy(() => import('@/pages/dashboards/ManagerDashboard'
 // Lazy load exam creation wizard
 const ExamCreationWizard = lazy(() => import('@/pages/dashboards/ExamCreationWizard').then(m => ({ default: m.ExamCreationWizard })));
 const OpportunityDiscovery = lazy(() => import('@/pages/dashboards/OpportunityDiscovery').then(m => ({ default: m.OpportunityDiscovery })));
+const CEOBriefing = lazy(() => import('@/pages/dashboards/CEOBriefing').then(m => ({ default: m.CEOBriefing })));
 
 // Lazy load system status
 const SystemStatus = lazy(() => import('@/pages/SystemStatus').then(m => ({ default: m.SystemStatus })));
@@ -120,6 +121,7 @@ export default function App() {
           <Route path="manager" element={<ManagerDashboard />} />
           <Route path="create-exam" element={<ExamCreationWizard />} />
           <Route path="opportunity-discovery" element={<OpportunityDiscovery />} />
+          <Route path="briefing" element={<CEOBriefing />} />
           <Route path="strategy" element={<CEOStrategy />} />
           <Route path="blog" element={<WebsiteBlog adminMode />} />
           
