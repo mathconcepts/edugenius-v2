@@ -134,6 +134,14 @@ export interface Message {
     processingMs?: number;
     provider?: string;  // e.g. 'gemini', 'anthropic', 'mock'
   };
+
+  // Traceability
+  traceId?: string;        // rootTraceId of the TraceTree for this message
+  promptId?: string;       // which prompt template was used
+  promptVersion?: string;  // version string e.g. '2.1.0'
+  subAgentId?: string;     // e.g. 'Socratic', 'EmotionReader'
+  entryPoint?: string;     // how user got to chat
+  sourceUrl?: string;      // URL they came from (blog slug etc)
 }
 
 export interface ChatSession {
@@ -143,6 +151,11 @@ export interface ChatSession {
   agent: AgentType;
   createdAt: Date;
   updatedAt: Date;
+
+  // Entry traceability
+  entryPoint?: string;
+  referrerUrl?: string;
+  utmParams?: Record<string, string>;
 }
 
 // Analytics

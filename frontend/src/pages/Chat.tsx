@@ -6,7 +6,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, Plus, Trash2, User, Sparkles, Copy, Check, RefreshCw,
@@ -26,6 +26,13 @@ import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
 import { buildSageSystemPrompt, getSageOpener } from '@/services/sagePersonaPrompts';
+import {
+  createRootTrace,
+  addNode,
+  storeTrace,
+  loadTrace,
+} from '@/services/traceabilityEngine';
+import type { TraceTree } from '@/services/traceabilityEngine';
 import type { StudentPersona } from '@/services/studentPersonaEngine';
 import type { AgentType, Message, MediaAttachment, IntentResult } from '@/types';
 import type { LearningMode } from '@/types/personalization';
@@ -260,6 +267,16 @@ function MessageBubble({
             {message.metadata?.processingMs && (
               <span className="text-xs text-surface-600">{message.metadata.processingMs}ms</span>
             )}
+            {/* Trace badge — visible to CEO/admin */}
+            {message.traceId && userRole !== 'student' && userRole !== 'teacher' && (
+              <Link
+                to={`/trace/${message.traceId}`}
+                className="flex items-center gap-1 text-xs text-surface-600 hover:text-primary-400 transition-colors font-mono"
+                title="View full trace"
+              >
+                🔗 {message.traceId.slice(0, 8)}
+              </Link>
+            )}
           </div>
         )}
 
@@ -416,6 +433,18 @@ export function Chat() {
   const [lastIntent, setLastIntent] = useState<IntentResult | null>(null);
   const [autoRoutedAgent, setAutoRoutedAgent] = useState<AgentType | null>(null);
 
+  // ── Traceability — session-level trace tree ──
+  const [sessionTrace, setSessionTrace] = useState<TraceTree | null>(null);
+
+  // ── UTM / entry params from URL ──
+  const urlSource = searchParams.get('source');     // 'blog', 'blog_internal', 'practice'
+  const urlSlug   = searchParams.get('slug');       // blog slug
+  const urlTopic  = searchParams.get('topic');      // pre-filled topic
+  const urlExam   = searchParams.get('exam');       // exam tag
+  const utmSource   = searchParams.get('utm_source');
+  const utmMedium   = searchParams.get('utm_medium');
+  const utmCampaign = searchParams.get('utm_campaign');
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -423,16 +452,45 @@ export function Chat() {
 
   const currentSession = getCurrentSession();
 
-  // Auto-create session on mount; pre-fill ?q= and inject studentContext
+  // Auto-create session on mount; pre-fill ?q= / ?topic= and inject studentContext
   useEffect(() => {
     const q = searchParams.get('q');
     if (q) {
       setInput(decodeURIComponent(q));
       setTimeout(() => inputRef.current?.focus(), 100);
     }
+    // Pre-fill from blog topic param
+    if (urlTopic && !q) {
+      setInput(decodeURIComponent(urlTopic));
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+
+    // Derive entryPoint from source param
+    const resolvedEntry = urlSource === 'blog'
+      ? 'blog_cta'
+      : urlSource === 'blog_internal'
+        ? 'blog_internal'
+        : urlSource === 'practice'
+          ? 'practice'
+          : 'chat_direct';
+
+    // Collect UTM params
+    const utmParams: Record<string, string> = {};
+    if (utmSource) utmParams.utm_source = utmSource;
+    if (utmMedium) utmParams.utm_medium = utmMedium;
+    if (utmCampaign) utmParams.utm_campaign = utmCampaign;
+
     let sessionId = currentSessionId;
     if (!sessionId) {
-      sessionId = createSession(selectedAgent, `Chat with ${agentOptions.find(a => a.id === selectedAgent)?.name}`);
+      sessionId = createSession(
+        selectedAgent,
+        `Chat with ${agentOptions.find(a => a.id === selectedAgent)?.name}`,
+        {
+          entryPoint: resolvedEntry,
+          referrerUrl: urlSlug ? `/website/blog/${urlSlug}` : document.referrer || undefined,
+          utmParams: Object.keys(utmParams).length ? utmParams : undefined,
+        },
+      );
     }
     // If teacher clicked a student, inject system context as first AI message
     if (studentContextMsg && sessionId) {
@@ -519,7 +577,9 @@ export function Chat() {
     }
 
     // Detect intent from text + attachments
+    const intentStart = Date.now();
     const intent = detectIntent(userText, attachments, selectedAgent);
+    const intentLatency = Date.now() - intentStart;
     setLastIntent(intent);
 
     // Auto-route to best agent if confidence is high and different from current
@@ -531,13 +591,77 @@ export function Chat() {
       setAutoRoutedAgent(null);
     }
 
-    // Add user message
+    // ── Traceability: create or retrieve session trace tree ──
+    const resolvedEntry = urlSource === 'blog'
+      ? 'blog_cta'
+      : urlSource === 'blog_internal'
+        ? 'blog_internal'
+        : urlSource === 'practice'
+          ? 'practice'
+          : 'chat_direct';
+
+    let activeTrace = sessionTrace;
+    if (!activeTrace) {
+      const utmParams: Record<string, string> = {};
+      if (utmSource) utmParams.utm_source = utmSource;
+      if (utmMedium) utmParams.utm_medium = utmMedium;
+      if (utmCampaign) utmParams.utm_campaign = utmCampaign;
+
+      activeTrace = createRootTrace({
+        sessionId: sessionId!,
+        entryPoint: resolvedEntry as TraceTree['context']['entryPoint'],
+        referrerUrl: urlSlug ? `/website/blog/${urlSlug}` : document.referrer || undefined,
+        utmSource: utmSource ?? undefined,
+        utmMedium: utmMedium ?? undefined,
+        utmCampaign: utmCampaign ?? undefined,
+        blogSlug: urlSlug ?? undefined,
+        blogTopic: urlTopic ? decodeURIComponent(urlTopic) : undefined,
+        examType: urlExam ?? undefined,
+      });
+      setSessionTrace(activeTrace);
+    }
+
+    // Add intent node
+    const entryNode = activeTrace.nodes[0];
+    addNode(activeTrace, {
+      traceId: `${sessionId}-intent-${Date.now()}`,
+      parentTraceId: entryNode?.traceId,
+      nodeType: 'intent',
+      action: intent.intent,
+      inputSummary: userText.slice(0, 100),
+      outputSummary: `→ ${intent.targetAgent} (confidence ${intent.confidence.toFixed(2)})`,
+      latencyMs: intentLatency,
+      timestamp: new Date().toISOString(),
+    });
+
+    const promptId = 'sage-adaptive-v1';
+    const promptVersion = '1.0.0';
+
+    // Add agent call node
+    const agentNodeId = `${sessionId}-agent-${Date.now()}`;
+    addNode(activeTrace, {
+      traceId: agentNodeId,
+      parentTraceId: entryNode?.traceId,
+      nodeType: 'agent_call',
+      agentId: activeAgent,
+      promptId,
+      promptVersion,
+      action: `route:${activeAgent}`,
+      inputSummary: userText.slice(0, 100),
+      outputSummary: `agent selected; prompt=${promptId}@${promptVersion}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Add user message (with traceId)
     addMessage(sessionId, {
       role: 'user',
       content: userText,
       agent: activeAgent,
       attachments: attachments.length > 0 ? [...attachments] : undefined,
       intent,
+      traceId: activeTrace.rootTraceId,
+      entryPoint: resolvedEntry,
+      sourceUrl: urlSlug ? `/website/blog/${urlSlug}` : undefined,
     });
 
     setInput('');
@@ -582,6 +706,42 @@ export function Chat() {
     };
 
     const deliverResponse = (responseText: string, provider?: string) => {
+      const latency = Date.now() - start;
+
+      // Add LLM call node to trace
+      const llmNodeId = `${sessionId}-llm-${Date.now()}`;
+      addNode(activeTrace!, {
+        traceId: llmNodeId,
+        parentTraceId: agentNodeId,
+        nodeType: 'llm_call',
+        agentId: activeAgent,
+        promptId,
+        promptVersion,
+        action: `llm:${provider ?? 'unknown'}`,
+        inputSummary: userText.slice(0, 100),
+        outputSummary: responseText.slice(0, 100),
+        latencyMs: latency,
+        timestamp: new Date().toISOString(),
+        metadata: { provider },
+      });
+
+      // Add output node
+      addNode(activeTrace!, {
+        traceId: `${sessionId}-out-${Date.now()}`,
+        parentTraceId: llmNodeId,
+        nodeType: 'output',
+        agentId: activeAgent,
+        action: 'output:delivered',
+        inputSummary: `LLM response (${responseText.length} chars)`,
+        outputSummary: responseText.slice(0, 100),
+        latencyMs: 5,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Persist trace
+      storeTrace(activeTrace!);
+      setSessionTrace({ ...activeTrace! });
+
       const outputBlocks = generateOutputBlocks(responseText, intent.intent);
       addMessage(sessionId!, {
         role: 'assistant',
@@ -589,8 +749,11 @@ export function Chat() {
         agent: activeAgent,
         outputBlocks,
         intent,
+        traceId: activeTrace!.rootTraceId,
+        promptId,
+        promptVersion,
         metadata: {
-          processingMs: Date.now() - start,
+          processingMs: latency,
           confidence: intent.confidence,
           provider,
         },
@@ -1007,6 +1170,15 @@ export function Chat() {
 
         {/* Attachment previews */}
         <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
+
+        {/* Blog source badge — shown when chat was opened from a blog post */}
+        {urlSlug && (
+          <div className="px-3 pt-2 flex items-center gap-2">
+            <span className="text-xs text-accent-400 bg-accent-500/10 border border-accent-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+              📖 From blog: <span className="font-medium truncate max-w-[200px]">{urlSlug}</span>
+            </span>
+          </div>
+        )}
 
         {/* Input area — extra bottom padding on mobile for thumb zone */}
         <div className="p-3 pb-3 md:pb-3 border-t border-surface-700/50">

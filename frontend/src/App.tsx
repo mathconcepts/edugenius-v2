@@ -59,6 +59,9 @@ const ContentIntelligence = lazy(() => import('@/pages/dashboards/ContentIntelli
 // Lazy load system status
 const SystemStatus = lazy(() => import('@/pages/SystemStatus').then(m => ({ default: m.SystemStatus })));
 
+// Lazy load trace viewer
+const TraceViewer = lazy(() => import('@/pages/TraceViewer').then(m => ({ default: m.TraceViewer })));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -147,6 +150,10 @@ export default function App() {
 
           {/* System Status — CEO/Admin only */}
           <Route path="status" element={<SystemStatus />} />
+
+          {/* Trace Explorer — CEO/Admin only */}
+          <Route path="trace" element={<Suspense fallback={<PageLoader />}><TraceViewer /></Suspense>} />
+          <Route path="trace/:traceId" element={<Suspense fallback={<PageLoader />}><TraceViewer /></Suspense>} />
           
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

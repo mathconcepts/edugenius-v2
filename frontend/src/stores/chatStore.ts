@@ -1,13 +1,19 @@
 import { create } from 'zustand';
 import type { Message, ChatSession, AgentType } from '@/types';
 
+interface EntryMeta {
+  entryPoint?: string;
+  referrerUrl?: string;
+  utmParams?: Record<string, string>;
+}
+
 interface ChatState {
   sessions: ChatSession[];
   currentSessionId: string | null;
   isStreaming: boolean;
   
   // Session management
-  createSession: (agent: AgentType, title?: string) => string;
+  createSession: (agent: AgentType, title?: string, entryMeta?: EntryMeta) => string;
   setCurrentSession: (id: string | null) => void;
   deleteSession: (id: string) => void;
   
@@ -27,7 +33,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentSessionId: null,
   isStreaming: false,
   
-  createSession: (agent, title) => {
+  createSession: (agent, title, entryMeta) => {
     const id = Math.random().toString(36).slice(2);
     const session: ChatSession = {
       id,
@@ -36,6 +42,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       agent,
       createdAt: new Date(),
       updatedAt: new Date(),
+      // Traceability fields
+      entryPoint: entryMeta?.entryPoint,
+      referrerUrl: entryMeta?.referrerUrl,
+      utmParams: entryMeta?.utmParams,
     };
     
     set((state) => ({

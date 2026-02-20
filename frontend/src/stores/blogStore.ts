@@ -94,6 +94,11 @@ export interface BlogPost {
   performanceTrend?: 'rising' | 'stable' | 'declining';
   agentRecommendation?: 'amplify' | 'rewrite' | 'retire' | 'keep';
 
+  // Chat entry URL — CTA that opens chat pre-filled for this post's topic
+  chatEntryUrl?: string;  // /chat?source=blog&slug={slug}&topic={title}&exam={exam}&utm_source=blog&utm_medium=cta
+  // Posts that link TO this post (backlinks from other blog posts)
+  backlinkedFrom?: string[];  // array of slugs
+
   // Versioning
   version: number;
   createdAt: string;
@@ -400,6 +405,7 @@ JEE Main 2026 preparation requires a structured plan. This guide covers everythi
     version: 1,
     createdAt: '2026-02-14T10:00:00Z',
     updatedAt: '2026-02-15T08:00:00Z',
+    chatEntryUrl: '/chat?source=blog&slug=jee-main-2026-complete-strategy&topic=JEE%20Main%202026%3A%20Complete%20Strategy%20Guide%20for%20250%2B%20Score&exam=JEE&utm_source=blog&utm_medium=cta&utm_campaign=JEE',
   },
   {
     id: 'post-2',
@@ -458,6 +464,7 @@ Human Physiology consistently contributes 15–20% of NEET Biology questions. Ge
     version: 1,
     createdAt: '2026-02-13T09:00:00Z',
     updatedAt: '2026-02-14T08:00:00Z',
+    chatEntryUrl: '/chat?source=blog&slug=neet-biology-human-physiology&topic=NEET%20Biology%3A%20Human%20Physiology%20High-Yield%20Topics%202026&exam=NEET&utm_source=blog&utm_medium=cta&utm_campaign=NEET',
   },
   {
     id: 'post-3',
@@ -512,6 +519,7 @@ Memorizing organic reactions doesn't work long-term. Understanding the electron-
     version: 1,
     createdAt: '2026-02-12T09:00:00Z',
     updatedAt: '2026-02-13T08:00:00Z',
+    chatEntryUrl: '/chat?source=blog&slug=organic-chemistry-reaction-mechanisms&topic=Organic%20Chemistry%3A%20Master%20Reaction%20Mechanisms%20in%207%20Days&exam=JEE&utm_source=blog&utm_medium=cta&utm_campaign=JEE',
   },
   {
     id: 'post-4',
@@ -567,6 +575,7 @@ Rahul was an average student from Pune who struggled with Physics. After 6 month
     version: 1,
     createdAt: '2026-02-11T09:00:00Z',
     updatedAt: '2026-02-12T08:00:00Z',
+    chatEntryUrl: '/chat?source=blog&slug=student-success-story-rahul-jee-air-1247&topic=How%20Rahul%20Cracked%20JEE%20with%20AIR%201247%20Using%20AI%20Tutoring&exam=JEE&utm_source=blog&utm_medium=cta&utm_campaign=Success%20Stories',
   },
   {
     id: 'post-5',
@@ -626,6 +635,7 @@ Map all chapters by your confidence level: Strong / Moderate / Weak
     version: 1,
     createdAt: '2026-02-10T09:00:00Z',
     updatedAt: '2026-02-11T08:00:00Z',
+    chatEntryUrl: '/chat?source=blog&slug=cbse-board-exam-last-30-days&topic=CBSE%20Board%20Exams%3A%20Last%2030%20Days%20Game%20Plan&exam=CBSE_12&utm_source=blog&utm_medium=cta&utm_campaign=CBSE',
   },
 ];
 
