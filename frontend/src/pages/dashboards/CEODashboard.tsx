@@ -355,6 +355,42 @@ export function CEODashboard() {
         {showOpsModal && <RunOpsModal onClose={() => setShowOpsModal(false)} />}
       </AnimatePresence>
 
+      {/* ── Hero Revenue Strip ── */}
+      <div className="bg-gradient-to-r from-primary-600/20 to-emerald-600/20 border border-primary-500/30 rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-surface-400 text-sm font-medium uppercase tracking-wider">Monthly Recurring Revenue</p>
+            <div className="flex items-baseline gap-3 mt-1">
+              <span className="text-5xl font-bold text-white">₹4,82,000</span>
+              <span className="text-emerald-400 text-lg font-semibold">+23% ↑</span>
+            </div>
+            <p className="text-surface-400 text-sm mt-1">1,240 active students · 89 new this month</p>
+          </div>
+          <div className="text-right">
+            <p className="text-surface-400 text-sm">Next milestone</p>
+            <p className="text-white font-bold text-xl">₹10L MRR</p>
+            <div className="w-32 bg-surface-700 rounded-full h-2 mt-2">
+              <div className="bg-primary-500 h-2 rounded-full" style={{width: '48%'}} />
+            </div>
+            <p className="text-surface-400 text-xs mt-1">48% there</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-surface-700">
+          {[
+            {label:'Today\'s Revenue', value:'₹16,400', change:'+12%'},
+            {label:'Churn Rate', value:'2.1%', change:'-0.3%'},
+            {label:'LTV', value:'₹8,200', change:'+5%'},
+            {label:'CAC', value:'₹340', change:'-8%'},
+          ].map(m => (
+            <div key={m.label}>
+              <p className="text-surface-400 text-xs">{m.label}</p>
+              <p className="text-white font-bold">{m.value}</p>
+              <p className={m.change.startsWith('+') || m.change.startsWith('-0') ? 'text-emerald-400 text-xs' : 'text-red-400 text-xs'}>{m.change}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -555,7 +591,13 @@ export function CEODashboard() {
                     <p className="font-medium text-sm">{action.label}</p>
                     <p className="text-xs text-surface-400">{action.desc}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-surface-600 group-hover:text-surface-400 transition-colors" />
+                  {i === 0 ? (
+                    <span className="text-xs font-semibold text-primary-400 bg-primary-500/10 px-2 py-1 rounded-lg border border-primary-500/20 flex-shrink-0">
+                      Do it →
+                    </span>
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-surface-600 group-hover:text-surface-400 transition-colors" />
+                  )}
                 </button>
               ))}
             </div>
@@ -616,6 +658,9 @@ export function CEODashboard() {
                 <p className="text-sm font-medium">{action.label}</p>
                 <p className="text-[10px] text-surface-500 mt-0.5">{action.desc}</p>
               </div>
+              <span className="text-[10px] font-semibold text-surface-400 group-hover:text-white bg-surface-700 group-hover:bg-primary-500/20 group-hover:text-primary-400 px-2 py-0.5 rounded-md transition-colors">
+                ▶ Execute
+              </span>
             </button>
           ))}
         </div>

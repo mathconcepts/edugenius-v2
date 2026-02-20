@@ -261,6 +261,15 @@ export function StudentDashboard() {
             />
           </div>
 
+          {todayPlan.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-3">🎯</div>
+              <h3 className="text-white font-semibold">Ready to start your prep?</h3>
+              <p className="text-surface-400 text-sm mt-1">Your study plan will appear here once you set up your exam</p>
+              <button onClick={() => navigate('/settings')} className="btn-primary mt-4">Set Up My Exam →</button>
+            </div>
+          )}
+
           <div className="space-y-2.5">
             {todayPlan.map(task => {
               const isCelebrating = celebrating === task.id;

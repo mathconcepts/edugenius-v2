@@ -653,7 +653,7 @@ function PriorityInboxRow({
             exam={ticket.examId}
             riskReason={ticket.escalationReason}
             onUseDraft={(msg) => {
-              console.log('Draft used:', msg);
+              void msg; // draft applied;
               setShowDraft(false);
             }}
           />
@@ -758,16 +758,24 @@ export function ManagerDashboard() {
                 <span className="text-xs font-normal text-gray-400">Sorted by urgency score · showing top {priorityInboxTickets.length}</span>
               </h2>
             </div>
-            {priorityInboxTickets.map(ticket => (
-              <PriorityInboxRow
-                key={ticket.id}
-                ticket={ticket}
-                onViewTimeline={setTimelineStudent}
-                resolvedIds={resolvedTicketIds}
-                onResolve={handleResolve}
-                onEscalate={handleEscalate}
-              />
-            ))}
+            {priorityInboxTickets.filter(t => !resolvedTicketIds.has(t.id)).length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-3">✅</div>
+                <h3 className="text-white font-semibold">All clear!</h3>
+                <p className="text-surface-400 text-sm">No urgent tickets right now. Your team is doing great.</p>
+              </div>
+            ) : (
+              priorityInboxTickets.map(ticket => (
+                <PriorityInboxRow
+                  key={ticket.id}
+                  ticket={ticket}
+                  onViewTimeline={setTimelineStudent}
+                  resolvedIds={resolvedTicketIds}
+                  onResolve={handleResolve}
+                  onEscalate={handleEscalate}
+                />
+              ))
+            )}
           </div>
         )}
 

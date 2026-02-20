@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
   UserPlus,
@@ -11,6 +12,7 @@ import {
   Clock,
   Download,
   Filter,
+  X,
 } from 'lucide-react';
 import { LiveHealthPanel, OnboardingFunnelCard, ContentQualityHeatmap, QuickUserActions, ActionableAlerts } from '@/components/ux/UXEnhancements';
 import {
@@ -55,8 +57,73 @@ const contentStats = [
 ];
 
 export function AdminDashboard() {
+  const navigate = useNavigate();
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'student' | 'teacher' | 'admin'>('student');
+  const [toast, setToast] = useState<string | null>(null);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteName.trim() || !inviteEmail.trim()) return;
+    setShowInviteModal(false);
+    setInviteName(''); setInviteEmail(''); setInviteRole('student');
+    setToast(`Invite sent to ${inviteEmail} as ${inviteRole}`);
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const getAlertAction = (alert: typeof systemAlerts[0]) => {
+    if (alert.type === 'warning') return { label: 'Investigate', onClick: () => navigate('/status') };
+    if (alert.type === 'error' || alert.type === 'critical') return { label: 'Fix Now', onClick: () => navigate('/status') };
+    if (alert.type === 'info') return { label: 'View Details', onClick: () => setDismissedAlerts(p => new Set([...p, alert.id])) };
+    return { label: '✓ Dismiss', onClick: () => setDismissedAlerts(p => new Set([...p, alert.id])) };
+  };
+
   return (
     <div className="space-y-6">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 bg-surface-800 border border-surface-700 rounded-xl p-4 text-sm text-white shadow-xl z-50 flex items-center gap-3">
+          <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          {toast}
+          <button onClick={() => setToast(null)} className="ml-2 text-surface-400 hover:text-white"><X className="w-4 h-4" /></button>
+        </div>
+      )}
+
+      {/* Quick Invite Modal */}
+      {showInviteModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowInviteModal(false)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-surface-800 border border-surface-700 rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Quick Invite</h3>
+              <button onClick={() => setShowInviteModal(false)} className="p-1.5 hover:bg-surface-700 rounded-lg"><X className="w-4 h-4 text-surface-400" /></button>
+            </div>
+            <form onSubmit={handleInviteSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs text-surface-400 mb-1 block">Name</label>
+                <input type="text" value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Full name" className="input w-full" required />
+              </div>
+              <div>
+                <label className="text-xs text-surface-400 mb-1 block">Email</label>
+                <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="email@example.com" className="input w-full" required />
+              </div>
+              <div>
+                <label className="text-xs text-surface-400 mb-1 block">Role</label>
+                <select value={inviteRole} onChange={e => setInviteRole(e.target.value as 'student' | 'teacher' | 'admin')} className="input w-full">
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <button type="submit" className="btn-primary w-full mt-2">Send Invite</button>
+            </form>
+          </div>
+        </>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -64,13 +131,19 @@ export function AdminDashboard() {
           <p className="text-surface-400">Platform management and user administration</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* System Health Indicators */}
+          <div className="flex items-center gap-2 text-sm mr-2">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400"/>API</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400"/>DB</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"/>AI</span>
+          </div>
           <button className="btn-secondary flex items-center gap-2">
             <Download className="w-4 h-4" />
             Export Report
           </button>
-          <button className="btn-primary flex items-center gap-2">
+          <button onClick={() => setShowInviteModal(true)} className="btn-primary flex items-center gap-2">
             <UserPlus className="w-4 h-4" />
-            Add User
+            Quick Invite
           </button>
         </div>
       </div>
@@ -200,8 +273,38 @@ export function AdminDashboard() {
           </ResponsiveContainer>
         </motion.div>
 
-        {/* Actionable Alerts (AI-powered) */}
-        <ActionableAlerts />
+        {/* System Alerts with Inline Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="card"
+        >
+          <h2 className="font-semibold text-lg mb-4">System Alerts</h2>
+          <div className="space-y-3">
+            {systemAlerts.filter(a => !dismissedAlerts.has(a.id)).map(alert => {
+              const alertAction = getAlertAction(alert);
+              const iconColor = alert.type === 'warning' ? 'text-yellow-400' : alert.type === 'error' || alert.type === 'critical' ? 'text-red-400' : alert.type === 'success' ? 'text-green-400' : 'text-blue-400';
+              const borderColor = alert.type === 'warning' ? 'border-yellow-500/20 bg-yellow-500/5' : alert.type === 'error' || alert.type === 'critical' ? 'border-red-500/20 bg-red-500/5' : alert.type === 'success' ? 'border-green-500/20 bg-green-500/5' : 'border-blue-500/20 bg-blue-500/5';
+              const btnColor = alert.type === 'warning' ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20' : alert.type === 'error' || alert.type === 'critical' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-surface-700 text-surface-300 hover:bg-surface-600';
+              return (
+                <div key={alert.id} className={clsx('flex items-center gap-3 p-3 rounded-xl border', borderColor)}>
+                  <AlertTriangle className={clsx('w-4 h-4 flex-shrink-0', iconColor)} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{alert.message}</p>
+                    <p className="text-xs text-surface-500">{alert.time}</p>
+                  </div>
+                  <button onClick={alertAction.onClick} className={clsx('text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex-shrink-0', btnColor)}>
+                    {alertAction.label}
+                  </button>
+                </div>
+              );
+            })}
+            {systemAlerts.every(a => dismissedAlerts.has(a.id)) && (
+              <div className="text-center py-6 text-surface-400 text-sm">✅ No active alerts</div>
+            )}
+          </div>
+        </motion.div>
       </div>
 
       {/* Recent Users & Content Stats */}

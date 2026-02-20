@@ -32,6 +32,7 @@ export default function FeedbackWidget() {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const reset = () => {
     setStep('select');
@@ -39,6 +40,7 @@ export default function FeedbackWidget() {
     setTitle('');
     setDescription('');
     setResult(null);
+    setSubmitError(null);
   };
 
   const handleOpen = () => {
@@ -88,12 +90,13 @@ export default function FeedbackWidget() {
       if (response.ok) {
         const data = await response.json();
         setResult(data);
+        setSubmitError(null);
         setStep('success');
       } else {
-        alert('Failed to submit. Please try again.');
+        setSubmitError('Failed to submit. Please try again.');
       }
     } catch (error) {
-      console.error('Feedback submit error:', error);
+      void error;
       // Mock success for demo
       setResult({
         id: `TKT-2026-${Math.floor(Math.random() * 999999).toString().padStart(6, '0')}`,
@@ -199,6 +202,11 @@ export default function FeedbackWidget() {
                   <p className="text-surface-500 text-xs">
                     📍 Context captured: {location.pathname}
                   </p>
+                  {submitError && (
+                    <div className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg p-2.5">
+                      {submitError}
+                    </div>
+                  )}
                   <button
                     onClick={handleSubmit}
                     disabled={!description.trim() || submitting}

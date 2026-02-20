@@ -970,6 +970,7 @@ export const CEOIntegrations: React.FC = () => {
   const [configuringIntegration, setConfiguringIntegration] = useState<IntegrationConfig | null>(null);
   const [integrationsState, setIntegrationsState] = useState(integrations);
   const [searchQuery, setSearchQuery] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
 
   // Get unique categories
   const categories = ['all', ...new Set(integrations.map(i => i.category))];
@@ -1003,25 +1004,32 @@ export const CEOIntegrations: React.FC = () => {
   };
 
   const handleSave = (id: string, values: Record<string, string>) => {
-    // In real implementation, this would save to backend
-    console.log('Saving configuration for', id, values);
-    
+    void values; // used in real implementation
     // Update local state to show as active
     setIntegrationsState(prev => prev.map(i => 
       i.id === id 
         ? { ...i, status: 'active' as IntegrationStatus, health: 100, lastChecked: 'just now' }
         : i
     ));
+    setToast(`Configuration saved for ${id}`);
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handleTest = (id: string) => {
-    // In real implementation, this would test the connection
-    console.log('Testing connection for', id);
-    alert(`Testing ${id} connection...`);
+    setToast(`Testing ${id} connection...`);
+    setTimeout(() => setToast(null), 3000);
   };
 
   return (
     <div className="space-y-6">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 bg-surface-800 border border-surface-700 rounded-xl p-4 text-sm text-white shadow-xl z-50 flex items-center gap-3">
+          {toast}
+          <button onClick={() => setToast(null)} className="ml-3 text-surface-400 hover:text-white">✕</button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>

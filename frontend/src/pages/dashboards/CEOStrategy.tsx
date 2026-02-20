@@ -347,17 +347,17 @@ function CompetitiveIntelTab() {
 // ─── Agent Command Tab ─────────────────────────────────────────────────────────
 
 const ALL_AGENTS = [
-  { id: 'scout',           name: 'Scout',           emoji: '🔍', role: 'Intelligence',     status: 'active',  tasks: 45,  cost: 95,   revenue: 18000 },
-  { id: 'atlas',           name: 'Atlas',           emoji: '📚', role: 'Content Engine',   status: 'busy',    tasks: 120, cost: 320,  revenue: 60000 },
-  { id: 'sage',            name: 'Sage',            emoji: '🎓', role: 'AI Tutor',         status: 'busy',    tasks: 280, cost: 890,  revenue: 120000 },
-  { id: 'mentor',          name: 'Mentor',          emoji: '👨‍🏫', role: 'Engagement',       status: 'active',  tasks: 85,  cost: 180,  revenue: 35000 },
-  { id: 'herald',          name: 'Herald',          emoji: '📢', role: 'Marketing',        status: 'idle',    tasks: 35,  cost: 145,  revenue: 28000 },
-  { id: 'forge',           name: 'Forge',           emoji: '⚙️', role: 'Deployment',       status: 'idle',    tasks: 22,  cost: 75,   revenue: 0 },
-  { id: 'oracle',          name: 'Oracle',          emoji: '📊', role: 'Analytics',        status: 'active',  tasks: 55,  cost: 110,  revenue: 12000 },
-  { id: 'venture_scout',   name: 'VentureScout',    emoji: '🕵️', role: 'Opp Discovery',    status: 'idle',    tasks: 14,  cost: 32,   revenue: 0 },
-  { id: 'revenue_architect',name:'RevenueArchitect',emoji: '💰', role: 'Revenue Strategy', status: 'active',  tasks: 8,   cost: 18,   revenue: 284000 },
-  { id: 'growth_commander',name: 'GrowthCommander', emoji: '🚀', role: 'Growth Execution', status: 'active',  tasks: 11,  cost: 41,   revenue: 148000 },
-];
+  { id: 'scout',           name: 'Scout',           emoji: '🔍', role: 'Intelligence',     status: 'active',  tasks: 45,  cost: 95,   revenue: 18000,  revenueGenerated: 18000 },
+  { id: 'atlas',           name: 'Atlas',           emoji: '📚', role: 'Content Engine',   status: 'busy',    tasks: 120, cost: 320,  revenue: 60000,  revenueGenerated: 60000 },
+  { id: 'sage',            name: 'Sage',            emoji: '🎓', role: 'AI Tutor',         status: 'busy',    tasks: 280, cost: 890,  revenue: 120000, revenueGenerated: 120000 },
+  { id: 'mentor',          name: 'Mentor',          emoji: '👨‍🏫', role: 'Engagement',       status: 'active',  tasks: 85,  cost: 180,  revenue: 35000,  revenueGenerated: 35000 },
+  { id: 'herald',          name: 'Herald',          emoji: '📢', role: 'Marketing',        status: 'idle',    tasks: 35,  cost: 145,  revenue: 28000,  revenueGenerated: 28000 },
+  { id: 'forge',           name: 'Forge',           emoji: '⚙️', role: 'Deployment',       status: 'idle',    tasks: 22,  cost: 75,   revenue: 0,      revenueGenerated: 0 },
+  { id: 'oracle',          name: 'Oracle',          emoji: '📊', role: 'Analytics',        status: 'active',  tasks: 55,  cost: 110,  revenue: 12000,  revenueGenerated: 12000 },
+  { id: 'venture_scout',   name: 'VentureScout',    emoji: '🕵️', role: 'Opp Discovery',    status: 'idle',    tasks: 14,  cost: 32,   revenue: 0,      revenueGenerated: 0 },
+  { id: 'revenue_architect',name:'RevenueArchitect',emoji: '💰', role: 'Revenue Strategy', status: 'active',  tasks: 8,   cost: 18,   revenue: 284000, revenueGenerated: 284000 },
+  { id: 'growth_commander',name: 'GrowthCommander', emoji: '🚀', role: 'Growth Execution', status: 'active',  tasks: 11,  cost: 41,   revenue: 148000, revenueGenerated: 148000 },
+].sort((a, b) => b.revenueGenerated - a.revenueGenerated);
 
 function AgentCommandTab() {
   const [task, setTask] = useState('');
@@ -525,12 +525,10 @@ function BusinessHealthTab() {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 const STRATEGY_TABS = [
-  { id: 'revenue',      label: 'Revenue Engine',     icon: DollarSign, color: 'text-green-400' },
-  { id: 'playbooks',    label: 'Growth Playbooks',   icon: Rocket,     color: 'text-orange-400' },
-  { id: 'opportunity',  label: 'Opportunity Pipeline', icon: Search,   color: 'text-blue-400' },
-  { id: 'competitive',  label: 'Competitive Intel',  icon: Shield,     color: 'text-purple-400' },
-  { id: 'agents',       label: 'Agent Command',      icon: Cpu,        color: 'text-primary-400' },
-  { id: 'health',       label: 'Business Health',    icon: Activity,   color: 'text-amber-400' },
+  { id: 'revenue',      label: 'Revenue Engine',       icon: DollarSign, color: 'text-green-400' },
+  { id: 'opportunity',  label: 'Opportunity Pipeline', icon: Search,     color: 'text-blue-400' },
+  { id: 'competitive',  label: 'Competitive Intel',    icon: Shield,     color: 'text-purple-400' },
+  { id: 'agents',       label: 'Agent ROI',            icon: Cpu,        color: 'text-primary-400' },
 ] as const;
 
 type StrategyTab = typeof STRATEGY_TABS[number]['id'];
@@ -588,11 +586,9 @@ export function CEOStrategy() {
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
           {tab === 'revenue'     && <RevenueEngineTab />}
-          {tab === 'playbooks'   && <GrowthPlaybooksTab />}
           {tab === 'opportunity' && <OpportunityPipelineTab onDiscover={() => navigate('/opportunity-discovery')} onLaunch={() => navigate('/create-exam')} />}
           {tab === 'competitive' && <CompetitiveIntelTab />}
           {tab === 'agents'      && <AgentCommandTab />}
-          {tab === 'health'      && <BusinessHealthTab />}
         </motion.div>
       </AnimatePresence>
     </div>

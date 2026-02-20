@@ -212,6 +212,15 @@ export function TeacherDashboard() {
             </div>
           </div>
 
+          {students.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-3">👩‍🎓</div>
+              <h3 className="text-white font-semibold">No students yet</h3>
+              <p className="text-surface-400 text-sm">Once students enroll in your batch, they'll appear here</p>
+              <button className="btn-primary mt-4">Invite Students →</button>
+            </div>
+          )}
+
           <div className="space-y-2">
             {filtered.map(student => {
               const sc = statusConfig[student.status];

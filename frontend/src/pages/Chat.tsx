@@ -592,6 +592,42 @@ export function Chat() {
     setAutoRoutedAgent(null);
   };
 
+  const handleSendSuggestion = (q: string) => {
+    setInput(q);
+    // Auto-send after state update
+    setTimeout(() => {
+      inputRef.current?.focus();
+      handleSendWithText(q);
+    }, 50);
+  };
+
+  const handleSendWithText = async (text: string) => {
+    const userText = text.trim();
+    if (!userText) return;
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = createSession(selectedAgent, userText.slice(0, 40));
+    }
+    const intent = detectIntent(userText, [], selectedAgent);
+    setLastIntent(intent);
+    let activeAgent = selectedAgent;
+    if (intent.confidence > 0.80 && intent.targetAgent !== selectedAgent) {
+      setAutoRoutedAgent(intent.targetAgent);
+      activeAgent = intent.targetAgent;
+    } else {
+      setAutoRoutedAgent(null);
+    }
+    addMessage(sessionId, { role: 'user', content: userText, agent: activeAgent, intent });
+    setInput('');
+    setIsTyping(true);
+    setTimeout(() => {
+      const response = getMockResponse(intent.intent, activeAgent);
+      const blocks = generateOutputBlocks(response, intent.intent);
+      addMessage(sessionId!, { role: 'assistant', content: response, agent: activeAgent, outputBlocks: blocks, metadata: { provider: 'mock' } });
+      setIsTyping(false);
+    }, 1000 + Math.random() * 800);
+  };
+
   const currentAgent = agentOptions.find(a => a.id === selectedAgent);
   const suggestions = SUGGESTIONS_BY_AGENT[selectedAgent] || SUGGESTIONS_BY_AGENT.sage;
 
@@ -773,16 +809,26 @@ export function Chat() {
               <div className={clsx('w-20 h-20 rounded-2xl bg-gradient-to-br flex items-center justify-center text-4xl mb-4', displayAgent?.color || 'from-primary-500 to-accent-500')}>
                 {displayAgent?.emoji || '🎓'}
               </div>
-              {isSimpleMode ? (
+              {isSimpleMode && userRole === 'student' ? (
                 <>
-                  <h2 className="text-xl font-semibold mb-1">
-                    {userRole === 'teacher' ? 'Your AI Teaching Assistant' : 'What would you like to learn today?'}
-                  </h2>
-                  <p className="text-surface-400 text-sm max-w-md mb-6">
-                    {userRole === 'teacher'
-                      ? 'Ask about your students, get lesson plans, generate questions'
-                      : 'Ask any question. Type it, say it, or snap a photo of your problem.'}
-                  </p>
+                  <h2 className="text-xl font-bold text-white mb-1">Hi! I'm Sage, your AI tutor</h2>
+                  <p className="text-surface-400 text-sm max-w-md mb-4">Ask me anything about JEE, NEET, or any concept you're stuck on</p>
+                  <div className="grid grid-cols-2 gap-3 mt-2 max-w-md w-full">
+                    {["Explain Newton's laws simply", 'How do I solve integration by parts?', 'What topics to prioritise for NEET?', 'Give me a quick formula sheet for Chemistry'].map(q => (
+                      <button
+                        key={q}
+                        onClick={() => handleSendSuggestion(q)}
+                        className="text-left p-3 rounded-xl bg-surface-800 border border-surface-700 text-sm text-surface-300 hover:border-primary-500 hover:text-white transition-colors"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : isSimpleMode ? (
+                <>
+                  <h2 className="text-xl font-semibold mb-1">Your AI Teaching Assistant</h2>
+                  <p className="text-surface-400 text-sm max-w-md mb-6">Ask about your students, get lesson plans, generate questions</p>
                 </>
               ) : (
                 <>
