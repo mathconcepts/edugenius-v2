@@ -132,7 +132,9 @@ export interface Message {
     sources?: string[];
     confidence?: number;
     processingMs?: number;
-    provider?: string;  // e.g. 'gemini', 'anthropic', 'mock'
+    provider?: string;       // e.g. 'gemini', 'anthropic', 'mock'
+    cohortPeers?: number;    // number of peers struggling with same topic (network effect)
+    networkLoopId?: string;  // which network loop triggered this context
   };
 
   // Traceability

@@ -26,6 +26,7 @@ import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
 import { buildSageSystemPrompt, getSageOpener } from '@/services/sagePersonaPrompts';
+import { getCohortSignals } from '@/services/networkEffectsEngine';
 import {
   createRootTrace,
   addNode,
@@ -276,6 +277,12 @@ function MessageBubble({
               >
                 🔗 {message.traceId.slice(0, 8)}
               </Link>
+            )}
+            {/* Peer solidarity badge — visible to students on AI responses */}
+            {message.role === 'assistant' && userRole === 'student' && message.metadata?.cohortPeers && (
+              <span className="text-xs text-blue-400 bg-blue-900/20 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                👥 {message.metadata.cohortPeers} peers studying this
+              </span>
             )}
           </div>
         )}
@@ -685,12 +692,20 @@ export function Chat() {
 
     // ── Student Persona: update emotion + build adaptive system prompt ──
     let sageSystemPrompt: string | undefined;
+    // Hoist matchedSignal so deliverResponse can access it
+    let matchedSignal: import('@/services/networkEffectsEngine').CohortSignal | undefined;
     if (isStudent) {
       const updatedPersona = updatePersonaAfterMessage(persona, userText, 'neutral');
       setPersona(updatedPersona);
       // Prepend opener to the message context for first turn
       const opener = getSageOpener(updatedPersona, history.length === 0);
-      sageSystemPrompt = buildSageSystemPrompt(updatedPersona);
+      // Detect topic from message for network context injection
+      const cohortSignals = getCohortSignals(updatedPersona.exam ?? 'JEE Main');
+      matchedSignal = cohortSignals.find(s =>
+        userText.toLowerCase().includes(s.topicName.toLowerCase().split(' ')[0])
+      );
+      const detectedTopicId = matchedSignal?.topicId;
+      sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId);
       if (opener) {
         // Inject opener as a preamble hint into the system prompt
         sageSystemPrompt = `${sageSystemPrompt}\n\nOPENER (use this as your first sentence): "${opener}"`;
@@ -762,6 +777,8 @@ export function Chat() {
           processingMs: latency,
           confidence: intent.confidence,
           provider,
+          // Attach cohort peer count if a network signal was matched
+          cohortPeers: matchedSignal?.studentsStruggling,
         },
       });
       setIsTyping(false);

@@ -6,6 +6,7 @@
  */
 
 import type { StudentPersona, EmotionalState, PerformanceTier } from './studentPersonaEngine';
+import { buildSageNetworkContext, type SageNetworkContext } from './networkAgentBridge';
 
 export interface SagePersonaConfig {
   systemPrompt: string;
@@ -155,7 +156,14 @@ function getLearningStyleAdaptation(style: string, respondsBestTo: string): stri
 
 // ── Master prompt builder ─────────────────────────────────────────────────────
 
-export function buildSageSystemPrompt(persona: StudentPersona): string {
+export function buildSageSystemPrompt(
+  persona: StudentPersona,
+  topicId?: string,
+  networkCtx?: SageNetworkContext
+): string {
+  // Build network context if topicId is known and not pre-supplied
+  const netCtx = networkCtx ?? (topicId ? buildSageNetworkContext(topicId, persona.exam) : null);
+
   return `${BASE_MENTOR_IDENTITY}
 
 ═══ STUDENT PROFILE ═══
@@ -189,7 +197,16 @@ ${persona.nativeLanguage !== 'english' ? `Language: Mix ${persona.nativeLanguage
 3. End every explanation with ONE check question or next step
 4. If this is message #${persona.messagesThisSession + 1}+ in session, you already know them — be warmer, more personal
 5. Never say "great question!" — it sounds fake. Just answer.
-6. If they've been on this topic > 10 minutes, suggest a 5-min break`;
+6. If they've been on this topic > 10 minutes, suggest a 5-min break
+${netCtx ? `
+═══ COMMUNITY & NETWORK CONTEXT ═══
+${netCtx.cohortNote}
+${netCtx.rankContext}
+${netCtx.groupContext}
+
+PEER SOLIDARITY: When appropriate, mention: "${netCtx.strugglingPeersNote}" — this normalises the struggle and reduces shame.
+Use community signals to make responses feel contextualised, not just abstract AI answers.
+NEVER expose individual student data. Only aggregate patterns.` : ''}`;
 }
 
 // ── Response style config ──────────────────────────────────────────────────────

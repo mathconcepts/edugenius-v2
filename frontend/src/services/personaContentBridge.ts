@@ -284,7 +284,7 @@ export function getCohortInsights(): CohortInsight {
 
 export function getAtlasTopicQueue(): ContentOpportunity[] {
   const insights = getCohortInsights();
-  return insights.contentOpportunities
+  const baseQueue = insights.contentOpportunities
     .filter(c => c.assignTo === 'Atlas' || c.assignTo === 'both')
     .sort((a, b) => {
       const urgencyScore: Record<ContentOpportunity['urgency'], number> = {
@@ -294,6 +294,28 @@ export function getAtlasTopicQueue(): ContentOpportunity[] {
       };
       return urgencyScore[b.urgency] - urgencyScore[a.urgency];
     });
+
+  // Merge network-effect signals (contributed problems, study group topics)
+  try {
+    const { getAtlasContentSignals } = require('./networkAgentBridge') as { getAtlasContentSignals: (exam: string) => { topicName: string; contentType: string; urgency: string; brief: string; studentsStruggling?: number; upvoteSignal?: number }[] };
+    const networkSignals = getAtlasContentSignals('JEE Main');
+    const networkItems: ContentOpportunity[] = networkSignals.map((sig, i) => ({
+      id: `net-atlas-${i}`,
+      type: 'practice_set' as const,
+      title: `[Network] ${sig.topicName} — ${sig.contentType}`,
+      targetExam: 'JEE_MAIN' as const,
+      targetTier: 'all' as const,
+      targetEmotion: 'all' as const,
+      urgency: (sig.urgency === 'immediate' ? 'publish_now' : sig.urgency === 'this_week' ? 'this_week' : 'this_month') as ContentOpportunity['urgency'],
+      reasoning: `Network signal: ${sig.brief}`,
+      suggestedAngle: sig.brief,
+      estimatedImpact: `${sig.studentsStruggling ?? sig.upvoteSignal ?? 50} students signalled demand`,
+      assignTo: 'Atlas' as const,
+    }));
+    return [...networkItems.filter(n => n.urgency === 'publish_now'), ...baseQueue, ...networkItems.filter(n => n.urgency !== 'publish_now')];
+  } catch {
+    return baseQueue;
+  }
 }
 
 // ── Herald content calendar (what Herald should send) ────────────────────────
@@ -301,14 +323,24 @@ export function getAtlasTopicQueue(): ContentOpportunity[] {
 export function getHeraldContentCalendar(): {
   immediate: OutreachTrigger[];
   thisWeek: ContentOpportunity[];
+  networkCampaigns: { campaignType: string; subject: string; body: string; channel: string; sourceLoop: string }[];
   insights: CohortInsight;
 } {
   const insights = getCohortInsights();
+
+  // Pull network-triggered campaigns
+  let networkCampaigns: { campaignType: string; subject: string; body: string; channel: string; sourceLoop: string }[] = [];
+  try {
+    const { getHeraldCampaignSignals } = require('./networkAgentBridge');
+    networkCampaigns = getHeraldCampaignSignals('JEE Main');
+  } catch { /* no-op */ }
+
   return {
     immediate: insights.outreachTriggers.filter(t => t.urgency === 'send_now'),
     thisWeek: insights.contentOpportunities
       .filter(c => c.assignTo === 'Herald' || c.assignTo === 'both')
       .filter(c => c.urgency !== 'this_month'),
+    networkCampaigns,
     insights,
   };
 }

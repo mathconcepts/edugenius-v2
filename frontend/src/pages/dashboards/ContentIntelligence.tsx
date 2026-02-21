@@ -363,7 +363,36 @@ export function ContentIntelligence() {
             </div>
           )}
 
-          {heraldCalendar.immediate.length === 0 && heraldCalendar.thisWeek.length === 0 && (
+          {/* Network-triggered campaigns */}
+          {heraldCalendar.networkCampaigns && heraldCalendar.networkCampaigns.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
+                <span>🌐</span> Network Effect Campaigns
+              </h3>
+              <div className="space-y-3">
+                {heraldCalendar.networkCampaigns.map((campaign, i) => (
+                  <div key={i} className="bg-surface-900 border border-purple-500/20 rounded-2xl p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-[10px] px-2 py-0.5 bg-purple-900/30 text-purple-400 rounded-full">{campaign.campaignType.replace(/_/g,' ')}</span>
+                          <span className="text-[10px] px-2 py-0.5 bg-surface-700 text-surface-400 rounded-full">🌐 {campaign.sourceLoop.replace(/_/g,' ')}</span>
+                          <span className="text-[10px] px-2 py-0.5 bg-surface-700 text-surface-400 rounded-full">{campaign.channel}</span>
+                        </div>
+                        <p className="text-white text-sm font-medium">{campaign.subject}</p>
+                        <p className="text-surface-400 text-xs mt-0.5 line-clamp-2">{campaign.body}</p>
+                      </div>
+                      <button className="flex-shrink-0 text-xs px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white rounded-lg">
+                        Send →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {heraldCalendar.immediate.length === 0 && heraldCalendar.thisWeek.length === 0 && (!heraldCalendar.networkCampaigns || heraldCalendar.networkCampaigns.length === 0) && (
             <p className="text-surface-500 text-sm py-8 text-center">No outreach queued right now.</p>
           )}
         </div>

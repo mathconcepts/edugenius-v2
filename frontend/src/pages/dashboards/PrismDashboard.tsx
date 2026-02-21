@@ -34,6 +34,7 @@ import {
   type IntelligencePacket,
   type PrismTargetAgent,
 } from '@/services/prismBridge';
+import { pushNetworkSignalsToPrism } from '@/services/networkAgentBridge';
 
 // ── Agent definitions ─────────────────────────────────────────────────────────
 
@@ -151,11 +152,21 @@ function IntelCard({ agent, packet, onAck, onAction }: IntelCardProps) {
 
       {packet ? (
         <>
-          {/* Signal type */}
-          <div className="flex items-center gap-1.5">
+          {/* Signal type + network loop badge */}
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] px-2 py-0.5 rounded-md bg-surface-700 text-surface-400 border border-surface-600 font-mono">
               {packet.signalType}
             </span>
+            {packet.signalType.startsWith('network:') && (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-900/40 text-purple-400 border border-purple-500/30 font-medium">
+                🌐 Network Effect · {(packet.dataPoints?.networkLoopId as string ?? '').replace(/_/g, ' ')}
+              </span>
+            )}
+            {packet.subAgent && (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-900/20 text-blue-400 border border-blue-500/20">
+                sub-agent: {packet.subAgent}
+              </span>
+            )}
           </div>
 
           {/* Insight */}
@@ -234,8 +245,13 @@ export function PrismDashboard() {
   const handleRunAnalysis = useCallback(async () => {
     setRunning(true);
     try {
+      // Run Prism journey analysis
       const result = runPrismAnalysis();
-      setState(result);
+      // Also push network effect signals into Prism intelligence packets
+      pushNetworkSignalsToPrism('JEE Main');
+      // Reload merged state
+      const merged = loadPrismState();
+      setState(merged ?? result);
     } finally {
       setRunning(false);
     }
