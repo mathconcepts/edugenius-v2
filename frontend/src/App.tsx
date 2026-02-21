@@ -55,6 +55,7 @@ const OpportunityDiscovery = lazy(() => import('@/pages/dashboards/OpportunityDi
 const CEOBriefing = lazy(() => import('@/pages/dashboards/CEOBriefing').then(m => ({ default: m.CEOBriefing })));
 const CEOThresholdConfig = lazy(() => import('@/pages/dashboards/CEOThresholdConfig').then(m => ({ default: m.CEOThresholdConfig })));
 const ContentIntelligence = lazy(() => import('@/pages/dashboards/ContentIntelligence').then(m => ({ default: m.ContentIntelligence })));
+const PrismDashboard = lazy(() => import('@/pages/dashboards/PrismDashboard').then(m => ({ default: m.PrismDashboard })));
 
 // Lazy load system status
 const SystemStatus = lazy(() => import('@/pages/SystemStatus').then(m => ({ default: m.SystemStatus })));
@@ -154,6 +155,9 @@ export default function App() {
           {/* Trace Explorer — CEO/Admin only */}
           <Route path="trace" element={<Suspense fallback={<PageLoader />}><TraceViewer /></Suspense>} />
           <Route path="trace/:traceId" element={<Suspense fallback={<PageLoader />}><TraceViewer /></Suspense>} />
+
+          {/* Prism — Journey Intelligence — CEO/Admin only */}
+          <Route path="prism" element={<Suspense fallback={<PageLoader />}><PrismDashboard /></Suspense>} />
           
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

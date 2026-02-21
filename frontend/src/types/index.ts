@@ -2,7 +2,7 @@
 export type UserRole = 'ceo' | 'admin' | 'manager' | 'teacher' | 'student';
 
 // Agent types
-export type AgentType = 'scout' | 'atlas' | 'sage' | 'mentor' | 'herald' | 'forge' | 'oracle' | 'nexus';
+export type AgentType = 'scout' | 'atlas' | 'sage' | 'mentor' | 'herald' | 'forge' | 'oracle' | 'nexus' | 'prism';
 
 export interface Agent {
   id: AgentType;

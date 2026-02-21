@@ -371,6 +371,12 @@ const SUGGESTIONS_BY_AGENT: Record<AgentType, string[]> = {
     'Which tickets are about to breach SLA?',
     'Suggest resolution for TKT-00042',
   ],
+  prism: [
+    'Show me the latest journey intelligence report',
+    'Which user paths have the highest conversion?',
+    'What content gaps need attention right now?',
+    'Summarise intelligence packets for all agents',
+  ],
 };
 
 // ── Contextual suggestions based on persona ───────────────────────────────────

@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity, Compass, ClipboardList, Sparkles, Link2,
+  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity, Compass, ClipboardList, Sparkles, Link2, Gem,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -28,6 +28,7 @@ const roleNavItems = {
     { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
     { to: '/content-intelligence', icon: Sparkles, label: '🧠 Content Intel', highlight: false },
+    { to: '/prism', icon: Gem, label: '🔮 Prism Intelligence', highlight: false },
     { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/events', icon: Zap, label: 'Events' },
@@ -51,6 +52,7 @@ const roleNavItems = {
     { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
     { to: '/content', icon: FileText, label: 'Content' },
     { to: '/content-intelligence', icon: Sparkles, label: '🧠 Content Intel' },
+    { to: '/prism', icon: Gem, label: '🔮 Prism Intelligence' },
     { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/connections', icon: Network, label: 'Connections' },
     { to: '/user-attributes', icon: UserCheck, label: 'User Attributes' },

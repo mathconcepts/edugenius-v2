@@ -27,6 +27,9 @@ export { ForgeAgent, FORGE_CONFIG } from './forge';
 // Oracle - Analytics
 export { OracleAgent, ORACLE_CONFIG } from './oracle';
 
+// Prism - Journey Intelligence
+export { PrismAgent, PRISM_CONFIG } from './prism';
+
 // ============================================================================
 // Agent Registry
 // ============================================================================
@@ -39,6 +42,7 @@ import { MentorAgent, MENTOR_CONFIG } from './mentor';
 import { HeraldAgent, HERALD_CONFIG } from './herald';
 import { ForgeAgent, FORGE_CONFIG } from './forge';
 import { OracleAgent, ORACLE_CONFIG } from './oracle';
+import { PrismAgent, PRISM_CONFIG } from './prism';
 import { AgentId } from '../events/types';
 
 const agents: Map<AgentId, BaseAgent> = new Map();
@@ -80,6 +84,9 @@ export async function startAgent(agentId: AgentId, config?: Partial<AgentConfig>
     case 'Oracle':
       agent = new OracleAgent(config);
       break;
+    case 'Prism':
+      agent = new PrismAgent(config);
+      break;
     default:
       throw new Error(`Unknown agent: ${agentId}`);
   }
@@ -101,7 +108,7 @@ export async function stopAgent(agentId: AgentId): Promise<void> {
 }
 
 export async function startAllAgents(): Promise<void> {
-  const agentIds: AgentId[] = ['Scout', 'Atlas', 'Sage', 'Mentor', 'Herald', 'Forge', 'Oracle'];
+  const agentIds: AgentId[] = ['Scout', 'Atlas', 'Sage', 'Mentor', 'Herald', 'Forge', 'Oracle', 'Prism'];
   
   for (const agentId of agentIds) {
     if (!agents.has(agentId)) {
@@ -164,4 +171,5 @@ export const AGENT_CONFIGS = {
   Herald: HERALD_CONFIG,
   Forge: FORGE_CONFIG,
   Oracle: ORACLE_CONFIG,
+  Prism: PRISM_CONFIG,
 };

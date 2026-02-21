@@ -18,7 +18,8 @@ export type AgentId =
   | 'Herald'
   | 'Forge'
   | 'Oracle'
-  | 'Nexus';
+  | 'Nexus'
+  | 'Prism';
 
 export interface AgentTask {
   id: string;
@@ -217,3 +218,97 @@ export class AgentProtocol extends EventEmitter {
 
 /** Singleton protocol instance — import this everywhere */
 export const agentProtocol = new AgentProtocol();
+
+// ── Prism inter-agent task factories ─────────────────────────────────────────
+
+/** Prism → Sage: "Adapt tone/persona for this student based on journey signals" */
+export const PRISM_TO_SAGE_PERSONA = (
+  studentId: string,
+  insight: string,
+): AgentTask => ({
+  id: `prism_sage_persona_${Date.now()}`,
+  from: 'Prism',
+  to: 'Sage',
+  taskType: 'persona:adapt_from_journey',
+  priority: 'high',
+  payload: { studentId, insight, source: 'prism_journey_analysis' },
+  requiresApproval: false,
+  createdAt: new Date(),
+});
+
+/** Prism → Atlas: "Create content for this detected gap" */
+export const PRISM_TO_ATLAS_CONTENT_GAP = (
+  topic: string,
+  frequency: number,
+): AgentTask => ({
+  id: `prism_atlas_gap_${Date.now()}`,
+  from: 'Prism',
+  to: 'Atlas',
+  taskType: 'content:create_from_gap',
+  priority: 'high',
+  payload: { topic, frequency, requestSource: 'prism_gap_detection', wordCount: 1500 },
+  requiresApproval: false,
+  createdAt: new Date(),
+});
+
+/** Prism → Herald: "Blog CTA is underperforming — fix it" */
+export const PRISM_TO_HERALD_CTA_FIX = (
+  slug: string,
+  ctaClickRate: number,
+): AgentTask => ({
+  id: `prism_herald_cta_${Date.now()}`,
+  from: 'Prism',
+  to: 'Herald',
+  taskType: 'cta:ab_test_underperforming',
+  priority: ctaClickRate < 0.05 ? 'urgent' : 'high',
+  payload: {
+    blogSlug: slug,
+    currentCtaClickRate: ctaClickRate,
+    targetCtaClickRate: 0.15,
+    suggestedCta: 'Ask Sage — Get Your Answer in 30s',
+    addSocialProof: true,
+  },
+  requiresApproval: false,
+  createdAt: new Date(),
+});
+
+/** Prism → Mentor: "Student dropped off — re-engage them" */
+export const PRISM_TO_MENTOR_REENGAGE = (
+  sessionId: string,
+  dropoffPoint: string,
+): AgentTask => ({
+  id: `prism_mentor_reengage_${Date.now()}`,
+  from: 'Prism',
+  to: 'Mentor',
+  taskType: 'outreach:re_engage_dropped',
+  priority: 'high',
+  payload: {
+    sessionId,
+    dropoffPoint,
+    suggestedChannel: 'whatsapp',
+    messageAngle: 'Your question is still here — come back and finish your session 👋',
+    reEngageWindowHours: 2,
+  },
+  requiresApproval: false,
+  createdAt: new Date(),
+});
+
+/** Prism → Scout: "High-converting entry path found — investigate and expand" */
+export const PRISM_TO_SCOUT_ENTRY_SIGNAL = (
+  entryPath: string,
+  conversionRate: number,
+): AgentTask => ({
+  id: `prism_scout_entry_${Date.now()}`,
+  from: 'Prism',
+  to: 'Scout',
+  taskType: 'seo:investigate_entry_path',
+  priority: 'normal',
+  payload: {
+    entryPath,
+    conversionRate,
+    task: 'Find organic keywords for this path. Identify 3 similar high-intent targets for Atlas.',
+    requestSource: 'prism_backlink_intelligence',
+  },
+  requiresApproval: false,
+  createdAt: new Date(),
+});
