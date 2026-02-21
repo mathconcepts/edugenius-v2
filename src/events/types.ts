@@ -15,7 +15,9 @@ export type AgentId =
   | 'Mentor' 
   | 'Herald' 
   | 'Forge' 
-  | 'Oracle';
+  | 'Oracle'
+  | 'Prism'
+  | 'Nexus';
 
 export type SubAgentId = string; // e.g., 'Scout.TrendSpotter', 'Atlas.Curator'
 

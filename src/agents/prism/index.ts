@@ -161,6 +161,10 @@ export class PrismAgent extends BaseAgent {
   private lastReport: JourneyReport | null = null;
   private traceStore: Map<string, Record<string, unknown>[]> = new Map();
 
+  constructor(config: Partial<import('../base-agent').AgentConfig> = {}) {
+    super({ ...PRISM_CONFIG, ...config } as import('../base-agent').AgentConfig);
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   protected async initializeLLM(): Promise<void> {
