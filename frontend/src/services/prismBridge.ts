@@ -826,3 +826,260 @@ export function runPrismAnalysis(): PrismState {
   storePrismState(state);
   return state;
 }
+
+// ─── Exported helpers for agent consumption ───────────────────────────────────
+
+/**
+ * getFunnelMetrics — Returns the latest funnel metrics from Prism state.
+ * Used by RevenueDashboard (Section A) and Oracle A/B test tracking.
+ */
+export function getFunnelMetrics(): FunnelMetrics | null {
+  const state = loadPrismState();
+  return state?.funnelMetrics ?? null;
+}
+
+// ─── A/B Test Baseline Tracking ──────────────────────────────────────────────
+
+const AB_BASELINE_KEY = 'edugenius_ab_baselines';
+
+export interface ABTestBaseline {
+  testId: string;
+  metric: string;
+  controlValue: number;
+  lockedAt: string;
+  source: string;
+  notes?: string;
+}
+
+export interface ABTestSplit {
+  testId: string;
+  controlClicks: number;
+  variantClicks: number;
+  controlRate?: number;
+  variantRate?: number;
+  significanceReached: boolean;
+  winner?: 'control' | 'variant' | null;
+  lockedAt: string;
+  lastUpdated: string;
+}
+
+const AB_SPLIT_KEY = 'edugenius_ab_splits';
+
+/** Lock a pre-test baseline value for an A/B experiment */
+export function lockABBaseline(baseline: Omit<ABTestBaseline, 'lockedAt'>): ABTestBaseline {
+  const entry: ABTestBaseline = { ...baseline, lockedAt: new Date().toISOString() };
+  try {
+    const existing: ABTestBaseline[] = JSON.parse(localStorage.getItem(AB_BASELINE_KEY) ?? '[]');
+    const idx = existing.findIndex(b => b.testId === baseline.testId);
+    if (idx >= 0) existing[idx] = entry; else existing.push(entry);
+    localStorage.setItem(AB_BASELINE_KEY, JSON.stringify(existing));
+  } catch { /* localStorage unavailable */ }
+  return entry;
+}
+
+/** Retrieve all locked baselines */
+export function getABBaselines(): ABTestBaseline[] {
+  try {
+    return JSON.parse(localStorage.getItem(AB_BASELINE_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+/** Get baseline for a specific test */
+export function getABBaseline(testId: string): ABTestBaseline | null {
+  return getABBaselines().find(b => b.testId === testId) ?? null;
+}
+
+/** Update split click counts and check for statistical significance (100 clicks/variant) */
+export function updateABSplit(
+  testId: string,
+  side: 'control' | 'variant',
+  count = 1,
+): ABTestSplit {
+  let splits: ABTestSplit[] = [];
+  try { splits = JSON.parse(localStorage.getItem(AB_SPLIT_KEY) ?? '[]'); } catch { /**/ }
+
+  const idx = splits.findIndex(s => s.testId === testId);
+  const now = new Date().toISOString();
+
+  let split: ABTestSplit = idx >= 0
+    ? splits[idx]
+    : { testId, controlClicks: 0, variantClicks: 0, significanceReached: false, winner: null, lockedAt: now, lastUpdated: now };
+
+  if (side === 'control') split.controlClicks += count;
+  else split.variantClicks += count;
+
+  split.lastUpdated = now;
+
+  // Statistical significance: both variants need >= 100 clicks
+  if (split.controlClicks >= 100 && split.variantClicks >= 100) {
+    split.significanceReached = true;
+    // Determine winner by higher click count (proxy for rate — Prism has total views)
+    if (split.variantClicks > split.controlClicks * 1.2) split.winner = 'variant';
+    else if (split.controlClicks > split.variantClicks * 1.2) split.winner = 'control';
+    else split.winner = null; // no clear winner
+  }
+
+  if (idx >= 0) splits[idx] = split; else splits.push(split);
+  try { localStorage.setItem(AB_SPLIT_KEY, JSON.stringify(splits)); } catch { /**/ }
+  return split;
+}
+
+/** Get all A/B splits */
+export function getABSplits(): ABTestSplit[] {
+  try { return JSON.parse(localStorage.getItem(AB_SPLIT_KEY) ?? '[]'); } catch { return []; }
+}
+
+/** Get split for a specific test */
+export function getABSplit(testId: string): ABTestSplit | null {
+  return getABSplits().find(s => s.testId === testId) ?? null;
+}
+
+/**
+ * initPrismCycle2ABBaseline — Called once when Prism Cycle 2 runs.
+ * Locks the blog_cta_ab_test baseline at 12% (Cycle 1 measurement).
+ */
+export function initPrismCycle2ABBaseline(): ABTestBaseline {
+  const BASELINE_TEST_ID = 'blog_cta_ab_test_cycle2';
+  const existing = getABBaseline(BASELINE_TEST_ID);
+  if (existing) return existing; // Already locked — don't overwrite
+
+  return lockABBaseline({
+    testId: BASELINE_TEST_ID,
+    metric: 'blog_cta_click_rate',
+    controlValue: 0.12, // 12.0% — Prism Cycle 1 measurement
+    source: '/blog/jee-main-2026-complete-strategy',
+    notes: 'Cycle 1 baseline. Control: "Try AI Tutor". Variant: "Ask Sage — Get Your Answer in 30s". Target: >15%.',
+  });
+}
+
+// ─── Revenue Insights ────────────────────────────────────────────────────────
+
+export interface RevenueInsights {
+  funnelMetrics: FunnelMetrics | null;
+  abBaselines: ABTestBaseline[];
+  abSplits: ABTestSplit[];
+  topOpportunities: string[];
+  cycle1Baseline: {
+    blogCtaRate: number;
+    chatToPracticeRate: number;
+    returnRate: number;
+    avgSessionMessages: number;
+    frustrationRate: number;
+  };
+}
+
+/**
+ * getRevenueInsights — Aggregated signal for RevenueDashboard + Oracle.
+ * Returns funnel metrics, A/B test state, and cycle-over-cycle deltas.
+ */
+export function getRevenueInsights(): RevenueInsights {
+  const funnel = getFunnelMetrics();
+  const baselines = getABBaselines();
+  const splits = getABSplits();
+
+  const topOpportunities: string[] = [];
+
+  if (funnel) {
+    if (funnel.ctaClickRate < 0.15) {
+      topOpportunities.push(
+        `Blog CTA at ${(funnel.ctaClickRate * 100).toFixed(1)}% vs 15% target — Herald A/B test in progress`
+      );
+    }
+    if (funnel.returnRate < 0.25) {
+      topOpportunities.push(
+        `Return rate at ${(funnel.returnRate * 100).toFixed(1)}% — Mentor re-activation sequence needed`
+      );
+    }
+    if (funnel.chatToPracticeRate < 0.30) {
+      topOpportunities.push(
+        `Chat→Practice at ${(funnel.chatToPracticeRate * 100).toFixed(1)}% — consider practice nudge after 5 messages`
+      );
+    }
+  }
+
+  return {
+    funnelMetrics: funnel,
+    abBaselines: baselines,
+    abSplits: splits,
+    topOpportunities,
+    cycle1Baseline: {
+      blogCtaRate: 0.12,
+      chatToPracticeRate: 0.36,
+      returnRate: 0.22,
+      avgSessionMessages: 7,
+      frustrationRate: 0.33,
+    },
+  };
+}
+
+// ─── Churn Risk ───────────────────────────────────────────────────────────────
+
+export interface ChurnRiskStudent {
+  sessionId: string;
+  riskLevel: 'high' | 'medium' | 'low';
+  lastSeenAt: string;
+  entryPath: string;
+  engagementScore: number; // 0–100
+  estimatedMonthlyValue: number; // ₹
+  suggestedAction: string;
+}
+
+/**
+ * getChurnRisk — Returns students at churn risk from trace data.
+ * Seeded with mock data until real backend is live.
+ */
+export function getChurnRisk(): ChurnRiskStudent[] {
+  const traces = loadTraces();
+
+  // Build risk list from real traces where possible
+  const atRisk: ChurnRiskStudent[] = traces
+    .filter(t => t.sessionDurationMs < 120_000 && t.messageCount <= 3)
+    .slice(0, 10)
+    .map((t, i) => ({
+      sessionId: t.traceId,
+      riskLevel: t.sessionDurationMs < 60_000 ? 'high' : 'medium',
+      lastSeenAt: t.createdAt,
+      entryPath: t.entryPoint ?? 'unknown',
+      engagementScore: Math.max(10, Math.min(45, t.messageCount * 8)),
+      estimatedMonthlyValue: [299, 499, 699, 999][i % 4],
+      suggestedAction: t.sessionDurationMs < 60_000
+        ? 'Send immediate re-engagement nudge via WhatsApp'
+        : 'Trigger Mentor "One More Question" sequence',
+    }));
+
+  // Pad with mock data if under 5
+  if (atRisk.length < 5) {
+    const MOCK_RISK: ChurnRiskStudent[] = [
+      { sessionId: 'mock-001', riskLevel: 'high',   lastSeenAt: new Date(Date.now() - 8.64e7).toISOString(), entryPath: 'chat_direct', engagementScore: 18, estimatedMonthlyValue: 499, suggestedAction: 'Send WhatsApp nudge — dropped after 90s' },
+      { sessionId: 'mock-002', riskLevel: 'medium', lastSeenAt: new Date(Date.now() - 1.73e8).toISOString(), entryPath: 'blog_cta',    engagementScore: 34, estimatedMonthlyValue: 299, suggestedAction: 'Trigger Quick Win session on their weak subject' },
+      { sessionId: 'mock-003', riskLevel: 'medium', lastSeenAt: new Date(Date.now() - 2.59e8).toISOString(), entryPath: 'google',      engagementScore: 41, estimatedMonthlyValue: 699, suggestedAction: 'Daily streak activation — 0-day streak user' },
+      { sessionId: 'mock-004', riskLevel: 'low',    lastSeenAt: new Date(Date.now() - 3.46e8).toISOString(), entryPath: 'social',      engagementScore: 52, estimatedMonthlyValue: 299, suggestedAction: 'Email re-engagement drip sequence' },
+      { sessionId: 'mock-005', riskLevel: 'high',   lastSeenAt: new Date(Date.now() - 4.32e7).toISOString(), entryPath: 'whatsapp',    engagementScore: 22, estimatedMonthlyValue: 999, suggestedAction: 'High-value — escalate to Mentor for personal outreach' },
+    ];
+    return [...atRisk, ...MOCK_RISK.slice(atRisk.length)];
+  }
+  return atRisk;
+}
+
+/** Helper: load trace summaries for churn detection */
+function loadTraces(): Array<{ traceId: string; messageCount: number; sessionDurationMs: number; entryPoint?: string; createdAt: string }> {
+  try {
+    const raw = localStorage.getItem('edugenius_traces');
+    if (!raw) return [];
+    const map = JSON.parse(raw) as Record<string, unknown>;
+    return Object.values(map).map((t: unknown) => {
+      const trace = t as Record<string, unknown>;
+      return {
+        traceId: (trace['traceId'] as string) ?? '',
+        messageCount: Number(trace['messageCount'] ?? 0),
+        sessionDurationMs: Number(trace['sessionDurationMs'] ?? 0),
+        entryPoint: trace['entryPoint'] as string | undefined,
+        createdAt: (trace['createdAt'] as string) ?? new Date().toISOString(),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
