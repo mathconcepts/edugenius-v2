@@ -394,19 +394,60 @@ export class MentorAgent extends BaseAgent {
   }
 
   private async celebrateStreak(studentId: string, days: number): Promise<void> {
-    const messages: Record<number, string> = {
-      7: '🔥 1 week streak! You\'re on fire!',
-      30: '🏆 30 day streak! You\'re unstoppable!',
-      100: '💯 100 days! Legendary dedication!',
-      365: '👑 1 YEAR STREAK! You\'re a learning champion!',
+    const milestones: Record<number, { message: string; badgeId?: string; deepLink?: string }> = {
+      7: {
+        // Week Warrior — Mentor Stream B, Prism Cycle 2
+        // Badge unlocks here AND a dedicated push fires with deep-link to badge gallery
+        message: '🌟 Week Warrior unlocked! 7 days straight — you\'re building real momentum. Keep it up!',
+        badgeId: 'week_warrior',
+        deepLink: '/profile?badge=week_warrior',
+      },
+      30: {
+        message: '🏆 30 day streak! You\'re unstoppable!',
+        deepLink: '/profile?streak=30',
+      },
+      100: {
+        message: '💯 100 days! Legendary dedication!',
+        deepLink: '/profile?streak=100',
+      },
+      365: {
+        message: '👑 1 YEAR STREAK! You\'re a learning champion!',
+        deepLink: '/profile?streak=365',
+      },
     };
+
+    const milestone = milestones[days];
+    const content = milestone?.message || `🔥 ${days} day streak! Keep going!`;
+    const deepLink = milestone?.deepLink;
 
     await this.sendNudge({
       studentId,
       nudgeType: 'celebration',
       channel: 'push',
-      content: messages[days] || `${days} day streak! Keep going!`,
+      content: deepLink ? `${content}\n\n👉 ${deepLink}` : content,
     }, { agentId: this.config.id });
+
+    // Also send in-app notification for Week Warrior specifically
+    if (days === 7) {
+      await this.sendNudge({
+        studentId,
+        nudgeType: 'celebration',
+        channel: 'in_app',
+        content: content,
+      }, { agentId: this.config.id });
+
+      // Emit event for micro-celebration animation trigger
+      this.emit('mentor.badge.unlocked', {
+        studentId,
+        badgeId: 'week_warrior',
+        badgeName: 'Week Warrior',
+        badgeIcon: '🌟',
+        streakDays: 7,
+        deepLink: '/profile?badge=week_warrior',
+        animation: 'star_burst',   // reuse celebration component — star burst variant
+        unlockedAt: Date.now(),
+      });
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -433,13 +474,13 @@ export class MentorAgent extends BaseAgent {
       });
     }
 
-    // Check streak badges
-    if (streakDays >= 7 && !await this.hasBadge(studentId, 'streak-7')) {
+    // Check streak badges — Week Warrior (Mentor Stream B, Prism Cycle 2)
+    if (streakDays >= 7 && !await this.hasBadge(studentId, 'week_warrior')) {
       newBadges.push({
-        id: 'streak-7',
+        id: 'week_warrior',
         name: 'Week Warrior',
-        description: '7 day learning streak',
-        icon: '🔥',
+        description: '7-day consecutive study streak — you\'re building real momentum!',
+        icon: '🌟',
         earnedAt: Date.now(),
       });
     }

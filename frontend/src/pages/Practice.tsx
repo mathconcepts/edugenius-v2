@@ -4,6 +4,16 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { callLLM } from '@/services/llmService';
+import { loadPersona } from '@/services/studentPersonaEngine';
+import { buildSageNetworkContext } from '@/services/networkAgentBridge';
+import { selectOptimalStrategy } from '@/services/teachingStrategy';
+import {
+  createRootTrace,
+  addNode,
+  storeTrace,
+} from '@/services/traceabilityEngine';
+import type { TraceTree } from '@/services/traceabilityEngine';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Clock, Target, CheckCircle, XCircle, BarChart2,
@@ -391,6 +401,86 @@ function QuizScreen({
   const startTime = useRef(Date.now());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Wire 2 — Traceability: session-level trace ──
+  const sessionTrace = useRef<TraceTree | null>(null);
+  const sessionId = useRef(`practice-${Date.now()}`);
+
+  // ── Wire 6 — AI explanation state ──
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  // Initialise trace on mount (Wire 2)
+  useEffect(() => {
+    const trace = createRootTrace({
+      sessionId: sessionId.current,
+      entryPoint: 'practice',
+      examType: config.exam,
+    });
+    sessionTrace.current = trace;
+  }, []);
+
+  // Wire 6 + Wire 5: build AI explanation when answer is revealed
+  const buildAIExplanation = useCallback(async (q: MCQ, isCorrect: boolean) => {
+    setLoadingExplanation(true);
+    setAiExplanation(null);
+    try {
+      const persona = loadPersona();
+
+      // Wire 5: Network context injection
+      const networkCtx = buildSageNetworkContext(q.subject, config.exam === 'All' ? 'JEE Main' : config.exam);
+      const cohortNote = networkCtx.cohortNote;
+
+      // Wire 6: Select optimal teaching strategy
+      const strategyProfile = {
+        preferredStyle: (
+          persona.learningStyle === 'visual' ? 'visual' :
+          persona.learningStyle === 'analytical' ? 'logical' :
+          persona.learningStyle === 'practice-first' ? 'practical' : 'sequential'
+        ) as 'visual' | 'logical' | 'practical' | 'sequential',
+        currentMood: (
+          persona.emotionalState === 'frustrated' || persona.emotionalState === 'exhausted' ? 'struggling' :
+          persona.emotionalState === 'confident' || persona.emotionalState === 'motivated' ? 'confident' :
+          'curious'
+        ) as 'curious' | 'struggling' | 'confident' | 'rushed',
+        timeAvailable: 'medium' as const,
+      };
+
+      // Create a minimal PracticeProblem-compatible object for strategy selection
+      const pseudoProblem = {
+        id: q.id,
+        subject: q.subject,
+        topic: q.topic,
+        difficulty: q.difficulty,
+        questionLatex: q.question,
+        relatedConcepts: [q.chapter],
+      } as Parameters<typeof selectOptimalStrategy>[0];
+
+      const strategy = selectOptimalStrategy(pseudoProblem, strategyProfile);
+
+      const systemPrompt = [
+        `You are Sage, an expert tutor. A student just ${isCorrect ? 'correctly answered' : 'got wrong'} a ${q.difficulty} ${q.subject} question.`,
+        `Use the "${strategy.name}" teaching approach: ${strategy.description || strategy.phases?.[0]?.description || 'guide step by step'}.`,
+        cohortNote ? `\n${cohortNote}` : '',
+      ].filter(Boolean).join('\n');
+
+      const prompt = `Question: ${q.question}\n\nCorrect answer: ${q.options[q.correctIndex]}\n${!isCorrect ? `Student chose: ${q.options[selected ?? 0]}\n` : ''}Explanation (from textbook): ${q.explanation}\n\nPlease give a concise, personalised explanation using the ${strategy.name} approach. ${cohortNote ? 'Include the peer context naturally.' : ''}`;
+
+      const response = await callLLM({
+        agent: 'sage',
+        message: prompt,
+        customSystemPrompt: systemPrompt,
+      });
+
+      if (response) {
+        setAiExplanation(response.text);
+      }
+    } catch (err) {
+      console.warn('[Practice] AI explanation failed:', err);
+    } finally {
+      setLoadingExplanation(false);
+    }
+  }, [config.exam, selected]);
+
   const q = questions[idx];
 
   // Timer
@@ -419,11 +509,32 @@ function QuizScreen({
     setRevealed(true);
     if (intervalRef.current) clearInterval(intervalRef.current);
     const spent = Math.round((Date.now() - startTime.current) / 1000);
+    const isCorrect = i === q.correctIndex;
     const ans: UserAnswer = {
       questionId: q.id, selectedIndex: i,
-      correct: i === q.correctIndex, timeSpent: spent, flagged: flagged.has(idx),
+      correct: isCorrect, timeSpent: spent, flagged: flagged.has(idx),
     };
     setAnswers(prev => [...prev, ans]);
+
+    // Wire 2 — Traceability: record user answer node
+    if (sessionTrace.current) {
+      addNode(sessionTrace.current, {
+        traceId: `${sessionId.current}-ans-${Date.now()}`,
+        parentTraceId: sessionTrace.current.nodes[0]?.traceId,
+        nodeType: 'intent',
+        agentId: 'sage',
+        action: isCorrect ? 'answer:correct' : 'answer:incorrect',
+        inputSummary: q.question.slice(0, 80),
+        outputSummary: `selected: ${q.options[i]} | correct: ${isCorrect}`,
+        latencyMs: spent * 1000,
+        timestamp: new Date().toISOString(),
+        metadata: { questionId: q.id, subject: q.subject, correct: isCorrect },
+      });
+      storeTrace(sessionTrace.current);
+    }
+
+    // Wire 5 + 6 — AI explanation with network context + teaching strategy
+    buildAIExplanation(q, isCorrect);
   };
 
   const handleSkip = useCallback(() => {
@@ -436,6 +547,22 @@ function QuizScreen({
     setAnswers(prev => {
       const updated = [...prev, ans];
       if (idx + 1 >= questions.length) {
+        // Wire 2: record session end
+        if (sessionTrace.current) {
+          const correctCount = updated.filter(a => a.correct).length;
+          const accuracy = Math.round((correctCount / updated.length) * 100);
+          addNode(sessionTrace.current, {
+            traceId: `${sessionId.current}-end-${Date.now()}`,
+            parentTraceId: sessionTrace.current.nodes[0]?.traceId,
+            nodeType: 'output',
+            action: 'session_end',
+            inputSummary: `${updated.length} answers`,
+            outputSummary: `score: ${correctCount}/${updated.length} (${accuracy}%)`,
+            timestamp: new Date().toISOString(),
+            metadata: { score: correctCount, total: updated.length, accuracy },
+          });
+          storeTrace(sessionTrace.current);
+        }
         onComplete(updated);
       }
       return updated;
@@ -445,11 +572,28 @@ function QuizScreen({
       setSelected(null);
       setRevealed(false);
       setShowHint(false);
+      setAiExplanation(null);
     }
   }, [idx, q, flagged, questions.length, onComplete]);
 
   const handleNext = () => {
     if (idx + 1 >= questions.length) {
+      // Wire 2: record session end before completing
+      if (sessionTrace.current) {
+        const correctCount = answers.filter(a => a.correct).length;
+        const accuracy = Math.round((correctCount / answers.length) * 100);
+        addNode(sessionTrace.current, {
+          traceId: `${sessionId.current}-end-${Date.now()}`,
+          parentTraceId: sessionTrace.current.nodes[0]?.traceId,
+          nodeType: 'output',
+          action: 'session_end',
+          inputSummary: `${answers.length} answers`,
+          outputSummary: `score: ${correctCount}/${answers.length} (${accuracy}%)`,
+          timestamp: new Date().toISOString(),
+          metadata: { score: correctCount, total: answers.length, accuracy },
+        });
+        storeTrace(sessionTrace.current);
+      }
       onComplete(answers);
       return;
     }
@@ -457,6 +601,7 @@ function QuizScreen({
     setSelected(null);
     setRevealed(false);
     setShowHint(false);
+    setAiExplanation(null);
   };
 
   const timerPct = (timeLeft / config.timerPerQuestion) * 100;
@@ -543,12 +688,21 @@ function QuizScreen({
             })}
           </div>
 
-          {/* Explanation */}
+          {/* Explanation — static fallback + Wires 5 & 6 AI explanation */}
           {revealed && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="mt-5 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <p className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1"><Lightbulb size={12} /> Sage Explanation</p>
-              <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{q.explanation}</p>
+              {loadingExplanation ? (
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  Sage is personalising your explanation…
+                </div>
+              ) : aiExplanation ? (
+                <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{aiExplanation}</p>
+              ) : (
+                <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{q.explanation}</p>
+              )}
             </motion.div>
           )}
         </motion.div>

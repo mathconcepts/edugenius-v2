@@ -76,7 +76,43 @@ export interface TraceTree {
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'edugenius_traces';
-const MAX_STORED = 100;  // keep most recent 100 traces
+const MAX_STORED  = 100;   // keep most recent 100 traces
+const QUOTA_WARN  = 0.80;  // warn at 80% of estimated localStorage quota (~5MB typical)
+const EST_QUOTA   = 5 * 1024 * 1024; // 5MB conservative estimate
+
+/** Estimate current localStorage usage in bytes for the traces key. */
+export function getTraceStorageUsage(): { bytes: number; pct: number; warn: boolean } {
+  try {
+    const raw   = localStorage.getItem(STORAGE_KEY) ?? '';
+    const bytes = new Blob([raw]).size;
+    const pct   = bytes / EST_QUOTA;
+    if (pct >= QUOTA_WARN) {
+      console.warn(`[TraceEngine] Storage at ${(pct * 100).toFixed(1)}% quota (${(bytes / 1024).toFixed(0)} KB). Triggering LRU eviction.`);
+    }
+    return { bytes, pct, warn: pct >= QUOTA_WARN };
+  } catch {
+    return { bytes: 0, pct: 0, warn: false };
+  }
+}
+
+/** Evict oldest traces until storage usage drops below QUOTA_WARN threshold. */
+export function evictOldTraces(): number {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return 0;
+    let all: TraceTree[] = JSON.parse(raw);
+    const before = all.length;
+    while (all.length > 10) {
+      const usage = new Blob([JSON.stringify(all)]).size / EST_QUOTA;
+      if (usage < QUOTA_WARN) break;
+      all = all.slice(0, Math.floor(all.length * 0.75)); // drop 25% at a time
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    return before - all.length;
+  } catch {
+    return 0;
+  }
+}
 
 function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -162,7 +198,7 @@ export function completeTrace(tree: TraceTree): void {
   tree.completedAt = new Date().toISOString();
 }
 
-/** Persist a TraceTree to localStorage. */
+/** Persist a TraceTree to localStorage with quota-aware LRU eviction. */
 export function storeTrace(tree: TraceTree): void {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -174,7 +210,14 @@ export function storeTrace(tree: TraceTree): void {
       all.unshift(tree);
     }
     // Keep only the most recent MAX_STORED traces
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all.slice(0, MAX_STORED)));
+    const trimmed = all.slice(0, MAX_STORED);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+
+    // Quota guard — evict if we're approaching the limit
+    const usage = getTraceStorageUsage();
+    if (usage.warn) {
+      evictOldTraces();
+    }
   } catch (e) {
     console.warn('[TraceEngine] Failed to persist trace:', e);
   }

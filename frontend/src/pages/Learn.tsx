@@ -3,9 +3,15 @@
  * AI-powered topic exploration and tutoring
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppStore } from '@/stores/appStore';
+import {
+  createRootTrace,
+  addNode,
+  storeTrace,
+} from '@/services/traceabilityEngine';
+import type { TraceTree } from '@/services/traceabilityEngine';
 
 interface Topic {
   id: string;
@@ -52,9 +58,52 @@ export default function Learn() {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Wire 2 — Traceability: create root trace on page load, store on unmount
+  const learnTrace = useRef<TraceTree | null>(null);
+
+  useEffect(() => {
+    const topicLabel = subjectId || 'general';
+    const trace = createRootTrace({
+      sessionId: `learn-${Date.now()}`,
+      entryPoint: 'dashboard',
+      examType: undefined,
+    });
+    // Add a custom entry node describing the learn page
+    addNode(trace, {
+      traceId: `learn-entry-${Date.now()}`,
+      parentTraceId: trace.nodes[0]?.traceId,
+      nodeType: 'agent_call',
+      agentId: 'sage',
+      action: `learn:${topicLabel}`,
+      inputSummary: `subject=${topicLabel}`,
+      outputSummary: 'Learn page loaded',
+      timestamp: new Date().toISOString(),
+    });
+    learnTrace.current = trace;
+
+    // Store on unmount
+    return () => {
+      if (learnTrace.current) {
+        storeTrace(learnTrace.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (subjectId) {
       setSelectedSubject(subjectId);
+      // Record subject selection in trace
+      if (learnTrace.current) {
+        addNode(learnTrace.current, {
+          traceId: `learn-subject-${Date.now()}`,
+          parentTraceId: learnTrace.current.nodes[0]?.traceId,
+          nodeType: 'intent',
+          action: `subject_selected:${subjectId}`,
+          inputSummary: subjectId,
+          outputSummary: `Filtered to ${subjectId}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }, [subjectId]);
 
@@ -172,6 +221,22 @@ export default function Learn() {
             <Link
               key={topic.id}
               to={`/chat?topic=${encodeURIComponent(topic.name)}`}
+              onClick={() => {
+                // Wire 2: record topic click interaction
+                if (learnTrace.current) {
+                  addNode(learnTrace.current, {
+                    traceId: `learn-topic-${Date.now()}`,
+                    parentTraceId: learnTrace.current.nodes[0]?.traceId,
+                    nodeType: 'intent',
+                    action: `topic_click:${topic.id}`,
+                    inputSummary: topic.name,
+                    outputSummary: `→ /chat?topic=${topic.name}`,
+                    timestamp: new Date().toISOString(),
+                    metadata: { topicId: topic.id, subject: topic.subject, mastery: topic.mastery },
+                  });
+                  storeTrace(learnTrace.current);
+                }
+              }}
               className="block p-4 bg-surface-800/50 rounded-xl border border-surface-700 hover:border-primary-500/50 transition-all group"
             >
               <div className="flex items-center justify-between">

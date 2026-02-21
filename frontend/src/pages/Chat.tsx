@@ -697,6 +697,12 @@ export function Chat() {
     if (isStudent) {
       const updatedPersona = updatePersonaAfterMessage(persona, userText, 'neutral');
       setPersona(updatedPersona);
+      // Wire 8 — Cohort aggregation: refresh cohort insights after every message
+      try {
+        const { aggregatePersonasToCohort, pushCohortInsights } = await import('@/services/personaContentBridge');
+        const freshCohort = aggregatePersonasToCohort([updatedPersona]);
+        pushCohortInsights(freshCohort);
+      } catch { /* non-blocking */ }
       // Prepend opener to the message context for first turn
       const opener = getSageOpener(updatedPersona, history.length === 0);
       // Detect topic from message for network context injection

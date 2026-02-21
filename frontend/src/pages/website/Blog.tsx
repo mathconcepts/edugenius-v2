@@ -21,6 +21,9 @@ import { blogAgentBridge } from '@/services/blogAgentBridge';
 import type { StrategySignal, BlogPerformanceSignal, AgentLineage, BlogGenerationPrompt } from '@/services/blogAgentBridge';
 import { useAppStore } from '@/stores/appStore';
 import { loadPersona } from '@/services/studentPersonaEngine';
+import { ExitIntentQuiz } from '@/components/blog/ExitIntentQuiz';
+import { WhatsAppShareButton, WhatsAppShareFAB } from '@/components/blog/WhatsAppShare';
+import { ABTestCTA } from '@/components/blog/ABTestCTA';
 
 // ─── Section Renderer ──────────────────────────────────────────────────────────
 
@@ -208,6 +211,21 @@ function PostReader({ post, onBack }: { post: BlogPost; onBack: () => void }) {
   useEffect(() => {
     incrementViews(post.id);
     window.scrollTo(0, 0);
+
+    // Wire 7 — Blog performance signals to Oracle
+    try {
+      const perfSignal = blogAgentBridge.evaluatePost(post);
+      // Persist signal to localStorage so Oracle can read it
+      const PERF_KEY = 'edugenius_blog_perf_signals';
+      const existing: import('@/services/blogAgentBridge').BlogPerformanceSignal[] = (() => {
+        try { return JSON.parse(localStorage.getItem(PERF_KEY) ?? '[]'); } catch { return []; }
+      })();
+      const idx = existing.findIndex(s => s.postId === post.id);
+      if (idx >= 0) existing[idx] = perfSignal; else existing.unshift(perfSignal);
+      localStorage.setItem(PERF_KEY, JSON.stringify(existing.slice(0, 50)));
+    } catch (err) {
+      console.warn('[Blog] Performance signal failed:', err);
+    }
   }, [post.id]);
 
   return (
@@ -286,27 +304,43 @@ function PostReader({ post, onBack }: { post: BlogPost; onBack: () => void }) {
             </div>
           )}
 
-          {/* ── Blog → Chat CTAs ── */}
-          <div className="mt-8 grid sm:grid-cols-2 gap-4">
-            <button
-              onClick={() => navigate(
-                `/chat?source=blog&slug=${post.slug}&topic=${encodeURIComponent(post.title)}&exam=${post.examTags[0]}&utm_source=blog&utm_medium=cta&utm_campaign=${encodeURIComponent(post.category)}`
-              )}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary-500 hover:bg-primary-400 text-white font-medium text-sm transition-all shadow-lg shadow-primary-500/25"
-            >
-              <Sparkles className="w-4 h-4" />
-              Ask Sage about this
-            </button>
-            <button
-              onClick={() => navigate(
-                `/practice?source=blog&topic=${encodeURIComponent(post.title)}&exam=${post.examTags[0]}`
-              )}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-surface-700 hover:bg-surface-600 text-white font-medium text-sm transition-all border border-surface-600"
-            >
-              <Target className="w-4 h-4 text-accent-400" />
-              Practice this topic
-            </button>
+          {/* ── Blog → Chat CTAs (A/B tested primary CTA) ── */}
+          <div className="mt-8 space-y-3">
+            {/* A/B tested primary CTA */}
+            <ABTestCTA
+              postSlug={post.slug}
+              postTitle={post.title}
+              examTag={post.examTags[0]}
+              size="full"
+            />
+            <div className="grid sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => navigate(
+                  `/practice?source=blog&topic=${encodeURIComponent(post.title)}&exam=${post.examTags[0]}`
+                )}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-surface-700 hover:bg-surface-600 text-white font-medium text-sm transition-all border border-surface-600"
+              >
+                <Target className="w-4 h-4 text-accent-400" />
+                Practice this topic
+              </button>
+              {/* WhatsApp share inline button */}
+              <WhatsAppShareButton
+                postTitle={post.title}
+                variant="outline"
+                className="w-full justify-center py-3"
+              />
+            </div>
           </div>
+
+          {/* ── Exit-intent quiz (fires on scroll to bottom without CTA click) ── */}
+          <ExitIntentQuiz
+            postSlug={post.slug}
+            postTitle={post.title}
+            defaultExam={post.examTags[0]}
+          />
+
+          {/* ── WhatsApp FAB (mobile sticky, shown throughout article) ── */}
+          <WhatsAppShareFAB postTitle={post.title} />
 
           {/* ── Agent Provenance card ── */}
           {post.generatedByAI && (

@@ -35,6 +35,7 @@ import {
   type PrismTargetAgent,
 } from '@/services/prismBridge';
 import { pushNetworkSignalsToPrism } from '@/services/networkAgentBridge';
+import { callLLM } from '@/services/llmService';
 
 // ── Agent definitions ─────────────────────────────────────────────────────────
 
@@ -122,12 +123,47 @@ function IntelCard({ agent, packet, onAck, onAction }: IntelCardProps) {
   const meta = AGENT_META[agent];
   const AgentIcon = meta.icon;
 
+  // Wire 4: LLM execution state
+  const [executing, setExecuting] = useState(false);
+  const [executionResult, setExecutionResult] = useState<string | null>(null);
+  const [showResult, setShowResult] = useState(false);
+
   const glowClass =
     packet?.priority === 'critical'
       ? 'ring-2 ring-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
       : packet?.priority === 'high'
       ? 'ring-1 ring-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.1)]'
       : '';
+
+  // Wire 4: Execute intelligence packet via real LLM call
+  const handleExecute = async (packetId: string) => {
+    if (!packet) return;
+    setExecuting(true);
+    setExecutionResult(null);
+    try {
+      const prompt = `Execute this intelligence packet:\n\nInsight: ${packet.insight}\n\nRecommended action: ${packet.actionRequired}\n\nSignal type: ${packet.signalType}\n\nPlease confirm what specific actions you will take and provide a brief execution plan.`;
+
+      const response = await callLLM({
+        agent: packet.targetAgent as import('@/types').AgentType,
+        message: prompt,
+      });
+
+      if (response) {
+        setExecutionResult(response.text);
+        setShowResult(true);
+      } else {
+        setExecutionResult('Action registered. Agent will process on next heartbeat.');
+        setShowResult(true);
+      }
+    } catch (err) {
+      setExecutionResult(`Execution queued (LLM unavailable: ${(err as Error).message})`);
+      setShowResult(true);
+    } finally {
+      setExecuting(false);
+      // Mark packet as actioned
+      onAction(packetId);
+    }
+  };
 
   return (
     <motion.div
@@ -180,6 +216,26 @@ function IntelCard({ agent, packet, onAck, onAction }: IntelCardProps) {
             <p className="text-xs text-surface-300 leading-relaxed">{packet.actionRequired}</p>
           </div>
 
+          {/* Wire 4: Execution result panel */}
+          {showResult && executionResult && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="bg-green-900/20 border border-green-500/30 rounded-xl p-3"
+            >
+              <p className="text-[10px] text-green-400 font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> Agent Response
+              </p>
+              <p className="text-xs text-surface-300 leading-relaxed whitespace-pre-wrap">{executionResult}</p>
+              <button
+                onClick={() => setShowResult(false)}
+                className="mt-2 text-[10px] text-surface-500 hover:text-surface-300 transition-colors"
+              >
+                Collapse ↑
+              </button>
+            </motion.div>
+          )}
+
           {/* Buttons */}
           {packet.status === 'pending' && (
             <div className="flex gap-2">
@@ -189,11 +245,22 @@ function IntelCard({ agent, packet, onAck, onAction }: IntelCardProps) {
               >
                 Acknowledge
               </button>
+              {/* Wire 4: Action button now executes real LLM call */}
               <button
-                onClick={() => onAction(packet.id)}
-                className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 border border-primary-500/30 transition-colors font-medium"
+                onClick={() => handleExecute(packet.id)}
+                disabled={executing}
+                className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 border border-primary-500/30 transition-colors font-medium flex items-center justify-center gap-1 disabled:opacity-60"
               >
-                Mark Actioned
+                {executing ? (
+                  <>
+                    <span className="inline-block w-3 h-3 border border-primary-400 border-t-transparent rounded-full animate-spin" />
+                    Executing…
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3 h-3" /> Execute Action
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -202,10 +269,18 @@ function IntelCard({ agent, packet, onAck, onAction }: IntelCardProps) {
               <AlertCircle className="w-3.5 h-3.5" />
               Acknowledged — awaiting action
               <button
-                onClick={() => onAction(packet.id)}
-                className="ml-auto px-2 py-1 text-[10px] rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors"
+                onClick={() => handleExecute(packet.id)}
+                disabled={executing}
+                className="ml-auto px-2 py-1 text-[10px] rounded bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 border border-primary-500/30 transition-colors flex items-center gap-1 disabled:opacity-60"
               >
-                Mark Done
+                {executing ? (
+                  <>
+                    <span className="inline-block w-2 h-2 border border-primary-400 border-t-transparent rounded-full animate-spin" />
+                    Running
+                  </>
+                ) : (
+                  <><Zap className="w-2.5 h-2.5" /> Execute</>
+                )}
               </button>
             </div>
           )}
@@ -213,6 +288,14 @@ function IntelCard({ agent, packet, onAck, onAction }: IntelCardProps) {
             <div className="flex items-center gap-1.5 text-xs text-green-400">
               <CheckCircle className="w-3.5 h-3.5" />
               Actioned ✓
+              {executionResult && !showResult && (
+                <button
+                  onClick={() => setShowResult(true)}
+                  className="ml-auto text-[10px] text-surface-500 hover:text-surface-300 transition-colors"
+                >
+                  View response ↓
+                </button>
+              )}
             </div>
           )}
         </>
