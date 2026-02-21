@@ -30,6 +30,7 @@ const roleNavItems = {
     { to: '/content-intelligence', icon: Sparkles, label: '🧠 Content Intel', highlight: false },
     { to: '/prism', icon: Gem, label: '🔮 Prism Intelligence', highlight: false },
     { to: '/revenue', icon: DollarSign, label: '💰 Revenue Intel', highlight: false },
+    { to: '/network', icon: Network, label: '🌐 Community Network', highlight: false },
     { to: '/blog', icon: PenTool, label: 'Blog' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/events', icon: Zap, label: 'Events' },
@@ -78,6 +79,7 @@ const roleNavItems = {
     { to: '/chat', icon: MessageSquare, label: 'Ask Tutor', highlight: true },
     { to: '/learn', icon: GraduationCap, label: 'Study' },
     { to: '/notebook', icon: BookMarked, label: 'Notebook' },
+    { to: '/network', icon: Network, label: '🌐 Community', highlight: false },
     { to: '/progress', icon: BarChart3, label: 'Progress' },
   ],
 };

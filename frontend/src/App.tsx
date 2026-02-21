@@ -11,6 +11,7 @@ const Agents = lazy(() => import('@/pages/Agents').then(m => ({ default: m.Agent
 const Chat = lazy(() => import('@/pages/Chat').then(m => ({ default: m.Chat })));
 const Learn = lazy(() => import('@/pages/Learn'));
 const Notebook = lazy(() => import('@/pages/Notebook'));
+const NetworkEffects = lazy(() => import('@/pages/NetworkEffects'));
 const Progress = lazy(() => import('@/pages/Progress'));
 const Content = lazy(() => import('@/pages/Content'));
 const Analytics = lazy(() => import('@/pages/Analytics'));
@@ -138,6 +139,7 @@ export default function App() {
           <Route path="learn" element={<Learn />} />
           <Route path="learn/:subjectId" element={<Learn />} />
           <Route path="notebook" element={<Notebook />} />
+          <Route path="network" element={<Suspense fallback={<PageLoader />}><NetworkEffects /></Suspense>} />
           <Route path="progress" element={<Progress />} />
           <Route path="insights" element={<ExamInsights />} />
           <Route path="practice" element={<Practice />} />
