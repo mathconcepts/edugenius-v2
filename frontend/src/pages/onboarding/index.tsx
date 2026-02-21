@@ -20,6 +20,12 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import {
+  saveWhatsAppOptIn,
+  saveWhatsAppSkip,
+  validateIndianPhone,
+  hasWhatsAppOptIn,
+} from '@/services/whatsappOptIn';
 
 // ============================================
 // TYPES
@@ -30,6 +36,7 @@ type OnboardingStep =
   | 'role'
   | 'verify_email'
   | 'exam'
+  | 'whatsapp'
   | 'subjects'
   | 'learning_style'
   | 'channels'
@@ -179,6 +186,7 @@ export default function OnboardingFlow() {
     'role',
     'verify_email',
     'exam',
+    'whatsapp',
     'subjects',
     'learning_style',
     'channels',
@@ -454,6 +462,16 @@ export default function OnboardingFlow() {
               </StepContainer>
             )}
 
+            {/* WhatsApp Opt-In — inline step */}
+            {currentStep === 'whatsapp' && (
+              <WhatsAppOnboardingStep
+                key="whatsapp"
+                examName={availableExams.find(e => e.id === userData.selectedExam)?.name ?? 'JEE Main'}
+                onNext={nextStep}
+                onSkip={nextStep}
+              />
+            )}
+
             {/* Subject Preferences */}
             {currentStep === 'subjects' && (
               <StepContainer key="subjects">
@@ -702,5 +720,163 @@ function StepContainer({ children }: { children: React.ReactNode }) {
     >
       {children}
     </motion.div>
+  );
+}
+
+// ============================================
+// WHATSAPP ONBOARDING STEP (inline form, no modal overlay)
+// ============================================
+
+function WhatsAppOnboardingStep({
+  examName,
+  onNext,
+  onSkip,
+}: {
+  examName: string;
+  onNext: () => void;
+  onSkip: () => void;
+}) {
+  const [countryCode, setCountryCode] = useState('+91');
+  const [phone, setPhone] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(hasWhatsAppOptIn());
+
+  const handleSubmit = () => {
+    setError('');
+    const raw = countryCode === '+91' ? phone : `${countryCode}${phone}`;
+    const { valid, normalized } = validateIndianPhone(raw);
+    if (!valid) { setError('Please enter a valid 10-digit mobile number.'); return; }
+    if (!consent) { setError('Please accept the consent to continue.'); return; }
+
+    saveWhatsAppOptIn({
+      phone: normalized,
+      countryCode: 'IN',
+      exam: examName,
+      consentTimestamp: new Date().toISOString(),
+      source: 'onboarding',
+    });
+    setDone(true);
+    setTimeout(onNext, 800);
+  };
+
+  const handleSkip = () => {
+    saveWhatsAppSkip();
+    onSkip();
+  };
+
+  if (done) {
+    return (
+      <StepContainer key="wa-done">
+        <div className="text-center py-8 max-w-md mx-auto">
+          <div className="w-16 h-16 bg-[#25D366]/20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">✅</div>
+          <p className="text-white font-semibold text-lg">WhatsApp connected!</p>
+          <p className="text-surface-400 text-sm mt-1">You'll get your first nudge soon 📲</p>
+        </div>
+      </StepContainer>
+    );
+  }
+
+  return (
+    <StepContainer key="wa-form">
+      <div className="max-w-md mx-auto">
+        {/* Header */}
+        <div className="flex items-start gap-4 mb-6">
+          <div className="flex-shrink-0 w-12 h-12 bg-[#25D366]/10 border border-[#25D366]/30 rounded-2xl flex items-center justify-center">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.1 21.9l4.863-1.274A9.947 9.947 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="#25D366"/>
+              <path d="M17.006 14.547c-.274-.137-1.62-.8-1.871-.89-.252-.092-.435-.137-.617.137-.183.274-.708.891-.868 1.074-.16.183-.32.206-.594.069-.274-.137-1.157-.426-2.203-1.36-.815-.726-1.364-1.622-1.524-1.896-.16-.274-.017-.422.12-.559.124-.123.274-.32.411-.48.137-.16.183-.274.274-.457.092-.183.046-.343-.023-.48-.069-.137-.617-1.487-.845-2.036-.222-.534-.449-.462-.617-.47L8 7.998c-.16 0-.411.069-.627.32-.217.252-.823.805-.823 1.963 0 1.158.845 2.277.962 2.437.117.16 1.655 2.535 4.014 3.555.56.242 1 .387 1.34.495.563.179 1.076.154 1.48.093.452-.068 1.391-.568 1.588-1.118.196-.549.196-1.018.137-1.117-.058-.1-.24-.16-.514-.297z" fill="#fff"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Get nudges on WhatsApp 📲</h2>
+            <p className="text-surface-300 text-sm mt-1">
+              Exam tips, streak reminders, and weekly progress — on WhatsApp. No spam, ever.
+            </p>
+          </div>
+        </div>
+
+        {/* Benefits */}
+        <ul className="space-y-2 mb-6">
+          {['Weekly progress digest', 'Streak reminders before you break it', 'Exam day countdown + last-minute tips'].map(b => (
+            <li key={b} className="flex items-center gap-2 text-sm text-surface-200">
+              <span className="flex-shrink-0 w-5 h-5 bg-[#25D366]/15 rounded-full flex items-center justify-center">
+                <Check className="w-3 h-3 text-[#25D366]" />
+              </span>
+              {b}
+            </li>
+          ))}
+        </ul>
+
+        {/* Exam chip */}
+        <div className="mb-4">
+          <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 bg-surface-700 border border-surface-600 rounded-full text-surface-300">
+            📚 {examName}
+          </span>
+        </div>
+
+        {/* Phone input */}
+        <div className="flex gap-2 mb-3">
+          <select
+            value={countryCode}
+            onChange={e => setCountryCode(e.target.value)}
+            className="flex-shrink-0 bg-surface-800 border border-surface-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#25D366]/60 transition-colors"
+          >
+            <option value="+91">🇮🇳 +91</option>
+            <option value="+1">🇺🇸 +1</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+971">🇦🇪 +971</option>
+          </select>
+          <input
+            type="tel"
+            inputMode="numeric"
+            placeholder="10-digit mobile number"
+            value={phone}
+            onChange={e => { setPhone(e.target.value.replace(/[^\d\s\-().]/g, '')); setError(''); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+            className={clsx(
+              'flex-1 bg-surface-800 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-surface-500 focus:outline-none transition-colors',
+              error ? 'border-red-500/60' : 'border-surface-700 focus:border-[#25D366]/60'
+            )}
+          />
+        </div>
+
+        {/* Consent */}
+        <label className={clsx(
+          'flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors mb-4',
+          consent ? 'bg-[#25D366]/5 border-[#25D366]/30' : 'border-surface-700 hover:border-surface-600'
+        )}>
+          <div className="flex-shrink-0 mt-0.5">
+            <input type="checkbox" checked={consent} onChange={e => { setConsent(e.target.checked); setError(''); }} className="sr-only" />
+            <div className={clsx(
+              'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
+              consent ? 'bg-[#25D366] border-[#25D366]' : 'border-surface-500'
+            )}>
+              {consent && <Check className="w-2.5 h-2.5 text-white" />}
+            </div>
+          </div>
+          <p className="text-xs text-surface-400 leading-relaxed">
+            I agree to receive WhatsApp messages. I can unsubscribe anytime by replying <span className="font-mono font-semibold text-surface-300">STOP</span>.
+          </p>
+        </label>
+
+        {error && <p className="text-xs text-red-400 mb-3 -mt-2">{error}</p>}
+
+        {/* CTA */}
+        <button
+          onClick={handleSubmit}
+          style={{ backgroundColor: '#25D366' }}
+          className="w-full py-3.5 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
+        >
+          Yes, send me tips 💬
+        </button>
+
+        <div className="text-center mt-3">
+          <button onClick={handleSkip} className="text-xs text-surface-500 hover:text-surface-300 transition-colors">
+            Maybe later
+          </button>
+        </div>
+      </div>
+    </StepContainer>
   );
 }

@@ -336,6 +336,65 @@ export class ForgeAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Pre-warm CDN for blog routes — called before broadcast/content pushes.
+   * Syncs routes to all edge regions and pre-caches OG images for WhatsApp previews.
+   *
+   * Route registry (update as Atlas publishes new posts):
+   *   P1:
+   *     /blog/jee-main-2026-complete-strategy
+   *     /blog/jee-main-2026-organic-chemistry-named-reactions
+   *     /blog/jee-main-2026-physics-mechanics-formulas
+   *   P2:
+   *     /blog/jee-main-previous-year-questions
+   *     /blog/jee-main-2026-last-30-days-prep
+   *   P3 (2026-02-21, Atlas heartbeat 06:12Z):
+   *     /blog/jee-main-2026-integration-by-parts-di-method
+   *     /blog/jee-main-2026-electrochemistry-numericals
+   *
+   * Alert threshold: >200 concurrent /blog/* requests → CDN scale-out (armed).
+   * JEE autoscale: 800 concurrent → scale-out.
+   */
+  async warmBlogRoutes(routes: string[]): Promise<CDNResult> {
+    console.log(`[Forge:CDN] Pre-warming ${routes.length} blog routes:`, routes);
+
+    // Warm the route content
+    const contentWarm = await this.syncCDN(
+      { type: 'content', ids: routes },
+      { agentId: this.config.id }
+    );
+
+    // Also warm OG images for WhatsApp link previews
+    const ogImagePaths = routes.map(r => `${r}/og-image.png`);
+    const ogWarm = await this.syncCDN(
+      { type: 'content', ids: ogImagePaths },
+      { agentId: this.config.id }
+    );
+
+    console.log(`[Forge:CDN] Pre-warm complete — ${contentWarm.filesUpdated + ogWarm.filesUpdated} files across ${contentWarm.regions} regions`);
+
+    return {
+      success: contentWarm.success && ogWarm.success,
+      regions: contentWarm.regions,
+      filesUpdated: contentWarm.filesUpdated + ogWarm.filesUpdated,
+      syncResults: [...contentWarm.syncResults, ...ogWarm.syncResults],
+    };
+  }
+
+  /** All P1+P2+P3 blog routes currently warm. */
+  static readonly WARM_BLOG_ROUTES: readonly string[] = [
+    // P1 (Cycle 2)
+    '/blog/jee-main-2026-complete-strategy',
+    '/blog/jee-main-2026-organic-chemistry-named-reactions',
+    '/blog/jee-main-2026-physics-mechanics-formulas',
+    // P2 (Cycle 3)
+    '/blog/jee-main-previous-year-questions',
+    '/blog/jee-main-2026-last-30-days-prep',
+    // P3 (Cycle 4 — Atlas 2026-02-21T06:12Z)
+    '/blog/jee-main-2026-integration-by-parts-di-method',
+    '/blog/jee-main-2026-electrochemistry-numericals',
+  ];
+
   private async getCacheStats(): Promise<CacheResult> {
     return {
       success: true,

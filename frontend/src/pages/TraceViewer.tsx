@@ -55,6 +55,7 @@ const NODE_TYPE_CONFIG: Record<
   output:        { icon: <Check className="w-3.5 h-3.5" />,        label: 'Output',        lineColor: 'border-green-500/40' },
   blog_publish:  { icon: <Rss className="w-3.5 h-3.5" />,          label: 'Blog Publish',  lineColor: 'border-orange-500/40' },
   blog_signal:   { icon: <Database className="w-3.5 h-3.5" />,     label: 'Blog Signal',   lineColor: 'border-red-500/40' },
+  emotion_signal:{ icon: <Activity className="w-3.5 h-3.5" />,     label: 'Emotion',       lineColor: 'border-pink-500/40' },
 };
 
 // ─── Entry point badge ─────────────────────────────────────────────────────────

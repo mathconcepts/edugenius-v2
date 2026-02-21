@@ -6,9 +6,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Flame, Target, Trophy, Play, CheckCircle2, Sparkles, BarChart3, Send, ArrowRight } from 'lucide-react';
+import { BookOpen, Flame, Target, Trophy, Play, CheckCircle2, Sparkles, BarChart3, Send, ArrowRight, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AIStudyCoach, ExamReadinessScore, PeerActivity } from '@/components/ux/UXEnhancements';
+import { WhatsAppOptInModal } from '@/components/WhatsAppOptInModal';
+import { hasWhatsAppOptIn, shouldShowWhatsAppPrompt } from '@/services/whatsappOptIn';
 
 // ── Mock data (real data comes from backend) ────────────────────────────────
 
@@ -117,6 +119,16 @@ export function StudentDashboard() {
   const [showConfetti, setShowConfetti] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // WhatsApp banner state
+  const [showWABanner, setShowWABanner] = useState(() => shouldShowWhatsAppPrompt());
+  const [showWAModal, setShowWAModal] = useState(false);
+
+  const handleDismissWABanner = () => {
+    setShowWABanner(false);
+    // Save dismiss to localStorage so it respects the 7-day skip
+    import('@/services/whatsappOptIn').then(m => m.saveWhatsAppSkip());
+  };
+
   const doneTasks = todayPlan.filter(t => t.done).length;
   const totalTasks = todayPlan.length;
   const todayPct = Math.round((doneTasks / totalTasks) * 100);
@@ -160,6 +172,46 @@ export function StudentDashboard() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-4 md:pb-8">
+
+      {/* ── WhatsApp opt-in banner (shown when not yet opted in) ── */}
+      {showWABanner && !hasWhatsAppOptIn() && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30"
+        >
+          <button
+            onClick={() => setShowWAModal(true)}
+            className="flex items-center gap-2 text-sm text-[#25D366] font-medium hover:opacity-80 transition-opacity"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.1 21.9l4.863-1.274A9.947 9.947 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="#25D366"/>
+              <path d="M17.006 14.547c-.274-.137-1.62-.8-1.871-.89-.252-.092-.435-.137-.617.137-.183.274-.708.891-.868 1.074-.16.183-.32.206-.594.069-.274-.137-1.157-.426-2.203-1.36-.815-.726-1.364-1.622-1.524-1.896-.16-.274-.017-.422.12-.559.124-.123.274-.32.411-.48.137-.16.183-.274.274-.457.092-.183.046-.343-.023-.48-.069-.137-.617-1.487-.845-2.036-.222-.534-.449-.462-.617-.47L8 7.998c-.16 0-.411.069-.627.32-.217.252-.823.805-.823 1.963 0 1.158.845 2.277.962 2.437.117.16 1.655 2.535 4.014 3.555.56.242 1 .387 1.34.495.563.179 1.076.154 1.48.093.452-.068 1.391-.568 1.588-1.118.196-.549.196-1.018.137-1.117-.058-.1-.24-.16-.514-.297z" fill="#fff"/>
+            </svg>
+            📲 Get your progress on WhatsApp →
+          </button>
+          <button
+            onClick={handleDismissWABanner}
+            className="p-1 rounded-lg hover:bg-surface-700 transition-colors text-surface-400 hover:text-white flex-shrink-0"
+            title="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </motion.div>
+      )}
+
+      {/* WhatsApp opt-in modal (triggered by banner click) */}
+      {showWAModal && (
+        <WhatsAppOptInModal
+          exam="JEE Main"
+          source="post_session"
+          onClose={() => {
+            setShowWAModal(false);
+            setShowWABanner(false);
+          }}
+        />
+      )}
 
       {/* ── Top row: greeting + streak ── */}
       <motion.div

@@ -18,9 +18,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Clock, Target, CheckCircle, XCircle, BarChart2,
   ChevronRight, ChevronLeft, Zap, Play, Flag, Award, Filter,
-  Lightbulb, SkipForward, RotateCcw, TrendingUp,
+  Lightbulb, SkipForward, RotateCcw, TrendingUp, Share2,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { WhatsAppOptInModal } from '@/components/WhatsAppOptInModal';
+import {
+  hasWhatsAppOptIn,
+  shouldShowWhatsAppPrompt,
+  buildReferralShareMessage,
+} from '@/services/whatsappOptIn';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -732,6 +738,13 @@ function ResultsScreen({ questions, answers, config, onRestart }: {
   const totalTime = answers.reduce((s, a) => s + a.timeSpent, 0);
   const avgTime = Math.round(totalTime / answers.length);
 
+  // WhatsApp modal — show on high score (≥80%) if not already opted in
+  const scoreOutOf10 = Math.round((correct / answers.length) * 10);
+  const isHighScore = scoreOutOf10 >= 8;
+  const [showWAModal, setShowWAModal] = useState(
+    () => isHighScore && shouldShowWhatsAppPrompt()
+  );
+
   const bySubject: Record<string, { correct: number; total: number }> = {};
   answers.forEach((a, i) => {
     const q = questions[i]; if (!q) return;
@@ -753,8 +766,28 @@ function ResultsScreen({ questions, answers, config, onRestart }: {
   const grade = accuracy >= 90 ? 'A+' : accuracy >= 75 ? 'A' : accuracy >= 60 ? 'B' : accuracy >= 45 ? 'C' : 'D';
   const gradeColor = accuracy >= 90 ? 'text-emerald-400' : accuracy >= 75 ? 'text-blue-400' : accuracy >= 60 ? 'text-yellow-400' : 'text-red-400';
 
+  // Referral share
+  const topTopic = questions[0]?.topic ?? '';
+  const examLabel = config.exam === 'All' ? 'JEE Main' : config.exam;
+
+  const handleShare = () => {
+    const msg = buildReferralShareMessage(examLabel, scoreOutOf10, topTopic || undefined);
+    const wa = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(wa, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
+      {/* High-score WhatsApp opt-in modal */}
+      {showWAModal && (
+        <WhatsAppOptInModal
+          exam={examLabel}
+          source="post_session"
+          headline="Great score! 🎉 Want us to track your streak on WhatsApp?"
+          onClose={() => setShowWAModal(false)}
+        />
+      )}
+
       <div className="text-center mb-8">
         <div className={clsx('text-6xl font-black mb-2', gradeColor)}>{grade}</div>
         <p className="text-zinc-400 text-sm">{accuracy}% accuracy · {correct}/{answers.length} correct</p>
@@ -798,7 +831,7 @@ function ResultsScreen({ questions, answers, config, onRestart }: {
 
       {/* Weak topics */}
       {weakTopics.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-4">
           <p className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2"><TrendingUp size={14} /> Revise These Topics</p>
           <div className="flex flex-wrap gap-2">
             {weakTopics.map(t => (
@@ -807,6 +840,30 @@ function ResultsScreen({ questions, answers, config, onRestart }: {
           </div>
         </div>
       )}
+
+      {/* ── Referral share card ── */}
+      <div className="bg-zinc-900 border border-[#25D366]/30 rounded-xl p-5 mb-4">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-2xl">🤝</span>
+          <div>
+            <p className="text-sm font-semibold text-white">Challenge a friend</p>
+            <p className="text-xs text-zinc-400">
+              Share your score on WhatsApp — see if they can beat you!
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleShare}
+          style={{ backgroundColor: '#25D366' }}
+          className="w-full mt-2 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.1 21.9l4.863-1.274A9.947 9.947 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="#fff" fillOpacity="0.9"/>
+            <path d="M17.006 14.547c-.274-.137-1.62-.8-1.871-.89-.252-.092-.435-.137-.617.137-.183.274-.708.891-.868 1.074-.16.183-.32.206-.594.069-.274-.137-1.157-.426-2.203-1.36-.815-.726-1.364-1.622-1.524-1.896-.16-.274-.017-.422.12-.559.124-.123.274-.32.411-.48.137-.16.183-.274.274-.457.092-.183.046-.343-.023-.48-.069-.137-.617-1.487-.845-2.036-.222-.534-.449-.462-.617-.47L8 7.998c-.16 0-.411.069-.627.32-.217.252-.823.805-.823 1.963 0 1.158.845 2.277.962 2.437.117.16 1.655 2.535 4.014 3.555.56.242 1 .387 1.34.495.563.179 1.076.154 1.48.093.452-.068 1.391-.568 1.588-1.118.196-.549.196-1.018.137-1.117-.058-.1-.24-.16-.514-.297z" fill="rgba(0,0,0,0.5)"/>
+          </svg>
+          Share on WhatsApp 🤝
+        </button>
+      </div>
 
       <button onClick={onRestart}
         className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all">

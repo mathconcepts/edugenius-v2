@@ -37,6 +37,74 @@ export interface TraceContext {
   blogTopic?: string;   // pre-filled question topic
 }
 
+// ─── EmotionReader Signal Types (Schema v1.0) ─────────────────────────────────
+
+/**
+ * EmotionReader extended signal types, wired to traceabilityEngine via addNode().
+ * Schema confirmed by Sage (2026-02-21T04:22Z) — commit 50d1baa runtime-ready,
+ * this adds strict-mode TS support for extended fields.
+ */
+
+export type EmotionSignalType = 'frustration' | 'confusion' | 'disengagement' | 'breakthrough';
+
+export type FrustrationTrigger =
+  | 'repeated_clarification'  // student asked same thing 2+ times
+  | 'short_reply'             // reply < 5 words after long Sage response
+  | 'session_drop'            // student left mid-session
+  | 'incorrect_after_hint'    // still wrong after 3 hints
+  | 'explicit_frustration'    // student said "I don't get it" / "this is confusing"
+  | 'topic_avoidance'         // pivoting away from difficult topic mid-session
+  | 'long_silence'            // no reply after 2min in async sessions
+  | 'concept_revisit'         // same concept attempted 3rd+ time across sessions
+  | 'self_correction'         // student self-corrects (used for breakthrough signal)
+  // Sage extended triggers (Cycle 3 calibration additions)
+  | 'concept_gap'             // student asks to repeat/re-explain same concept 2+ times
+  | 'wrong_answer_shame'      // student uses self-deprecating language after error
+  | 'speed_pressure'          // JEE timing anxiety expressed
+  | 'too_abstract'            // student asks for concrete example after explanation
+  | 'too_many_steps'          // student loses track mid-derivation
+  | 'prior_knowledge_gap'     // question reveals gap in foundational concept
+  | 'session_fatigue'         // response latency >5min + short answers
+  | 'topic_aversion';         // student tries to redirect away from topic
+
+export type TeachingAdaptation =
+  | 'empathy_mode'
+  | 'hint_progression'
+  | 'quick_win'
+  | 'quick_win_warmup'
+  | 'socratic_scaffold'
+  | 'break_suggest'
+  | 'none';
+
+/**
+ * EmotionSignal payload — carried in TraceNode.emotionSignal when
+ * nodeType === 'emotion_signal'.
+ */
+export interface EmotionSignal {
+  signalType: EmotionSignalType;
+  /** Confidence score 0–1 */
+  confidenceScore: number;
+  /** Primary frustration trigger (null for breakthrough signals) */
+  frustrationTrigger: FrustrationTrigger | null;
+  /** What teaching adaptation Sage applied */
+  teachingAdaptation: TeachingAdaptation;
+  /** Prior signal type in this session, if any */
+  priorSignalType: EmotionSignalType | 'neutral' | null;
+  /** Did Sage attempt a recovery before this signal fired? */
+  recoveryAttempted: boolean;
+  /** Was the recovery successful? null if recoveryAttempted = false */
+  recoverySuccessful: boolean | null;
+  // Contextual enrichment fields
+  topic?: string;
+  examContext?: 'JEE_MAIN' | 'NEET' | 'CBSE';
+  messageCount?: number;
+  sessionDurationMs?: number;
+  /** Blog entry path enrichment (for blog-primed cohort tracking) */
+  entryPath?: string;
+  priorContent?: string;
+  priorContentConsumed?: boolean;
+}
+
 export interface TraceNode {
   traceId: string;        // unique per node
   rootTraceId: string;    // top-level trace ID (ties all nodes together)
@@ -49,7 +117,8 @@ export interface TraceNode {
     | 'llm_call'
     | 'output'
     | 'blog_publish'
-    | 'blog_signal';
+    | 'blog_signal'
+    | 'emotion_signal';  // EmotionReader signals (Sage → Prism)
   agentId?: string;
   subAgentId?: string;
   promptId?: string;
@@ -60,6 +129,8 @@ export interface TraceNode {
   latencyMs?: number;
   timestamp: string;      // ISO
   metadata?: Record<string, unknown>;
+  /** Populated when nodeType === 'emotion_signal' */
+  emotionSignal?: EmotionSignal;
 }
 
 export interface TraceTree {
