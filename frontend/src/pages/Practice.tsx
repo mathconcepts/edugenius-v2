@@ -32,7 +32,7 @@ import {
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 type Subject = 'Physics' | 'Chemistry' | 'Mathematics' | 'Biology' | 'English';
-type ExamFilter = 'All' | 'JEE Main' | 'JEE Adv' | 'NEET' | 'CBSE 12' | 'CAT';
+type ExamFilter = 'All' | 'JEE Main' | 'JEE Adv' | 'NEET' | 'CBSE 12' | 'CAT' | 'GATE EM';
 
 interface MCQ {
   id: string;
@@ -243,11 +243,103 @@ const QUESTION_BANK: MCQ[] = [
     correctIndex: 1,
     explanation: 'Ephemeral = lasting for a very short time, fleeting.\nEx: "The cherry blossoms are ephemeral — gone within a week."',
   },
+
+  // ── GATE Engineering Mathematics (Seed MCQs) ─────────────────────────────
+  {
+    id: 'gem001', subject: 'Mathematics', chapter: 'Linear Algebra', topic: 'Eigenvalues',
+    difficulty: 'medium', exam: ['GATE EM'],
+    question: 'Matrix A = [[2, 1], [0, 3]]. What are the eigenvalues of A?',
+    options: ['1 and 3', '2 and 3', '0 and 3', '2 and 1'],
+    correctIndex: 1,
+    explanation: 'For an upper/lower triangular matrix, eigenvalues are the diagonal entries.\nA is upper triangular → eigenvalues = 2 and 3.\nVerify: det(A − λI) = (2−λ)(3−λ) = 0 → λ = 2, 3.',
+    formulaHint: 'det(A − λI) = 0',
+  },
+  {
+    id: 'gem002', subject: 'Mathematics', chapter: 'Calculus', topic: "L'Hôpital's Rule",
+    difficulty: 'easy', exam: ['GATE EM'],
+    question: 'lim(x→0) [sin(3x) / x] = ?',
+    options: ['0', '1', '3', '∞'],
+    correctIndex: 2,
+    explanation: "Applying L'Hôpital's rule (0/0 form):\nd/dx[sin(3x)] = 3cos(3x), d/dx[x] = 1\nlim = 3cos(0)/1 = 3.\nAlternatively: sin(3x)/x = 3 · sin(3x)/(3x) → 3 · 1 = 3.",
+    formulaHint: 'lim(x→0) sin(ax)/x = a',
+  },
+  {
+    id: 'gem003', subject: 'Mathematics', chapter: 'Differential Equations', topic: 'First Order Linear ODE',
+    difficulty: 'medium', exam: ['GATE EM'],
+    question: "Integrating factor for dy/dx + (2/x)y = x² is:",
+    options: ['e^(2x)', 'x²', 'x³', '1/x²'],
+    correctIndex: 1,
+    explanation: 'For dy/dx + P(x)y = Q(x), integrating factor μ = e^(∫P dx).\nP(x) = 2/x  →  ∫(2/x)dx = 2ln|x| = ln(x²)\nμ = e^(ln x²) = x².',
+    formulaHint: 'μ = e^(∫P dx)',
+  },
+  {
+    id: 'gem004', subject: 'Mathematics', chapter: 'Complex Variables', topic: "Cauchy's Integral Formula",
+    difficulty: 'hard', exam: ['GATE EM'],
+    question: '∮_C e^z / (z−1) dz where C is |z| = 2 (counterclockwise). Value = ?',
+    options: ['0', '2πi', '2πi·e', 'πi'],
+    correctIndex: 2,
+    explanation: "Cauchy's integral formula: ∮_C f(z)/(z−a) dz = 2πi·f(a) when a is inside C.\nHere f(z) = eᶻ, a = 1, which is inside |z| = 2.\nResult = 2πi·e¹ = 2πie.",
+    formulaHint: '∮ f(z)/(z−a) dz = 2πi·f(a)',
+  },
+  {
+    id: 'gem005', subject: 'Mathematics', chapter: 'Probability & Statistics', topic: 'Bayes Theorem',
+    difficulty: 'medium', exam: ['GATE EM'],
+    question: 'Machine produces 5% defective items. Test correctly identifies defective 90% of time and non-defective 95% of time. P(defective | test positive) = ?',
+    options: ['0.05', '0.49', '0.486', '0.90'],
+    correctIndex: 2,
+    explanation: 'P(D)=0.05, P(D\')=0.95, P(+|D)=0.9, P(+|D\')=0.05\nP(+) = 0.9×0.05 + 0.05×0.95 = 0.045+0.0475 = 0.0925\nP(D|+) = (0.9×0.05)/0.0925 = 0.045/0.0925 ≈ 0.486',
+    formulaHint: "P(A|B) = P(B|A)·P(A) / P(B)",
+  },
+  {
+    id: 'gem006', subject: 'Mathematics', chapter: 'Numerical Methods', topic: 'Newton-Raphson',
+    difficulty: 'medium', exam: ['GATE EM'],
+    question: 'Newton-Raphson iteration for √2 using f(x)=x²−2, starting at x₀=1. Value of x₁:',
+    options: ['1.25', '1.5', '1.4', '1.75'],
+    correctIndex: 1,
+    explanation: 'x₁ = x₀ − f(x₀)/f\'(x₀)\nf(1) = 1−2 = −1, f\'(x) = 2x, f\'(1) = 2\nx₁ = 1 − (−1)/2 = 1 + 0.5 = 1.5',
+    formulaHint: "xₙ₊₁ = xₙ − f(xₙ)/f'(xₙ)",
+  },
+  {
+    id: 'gem007', subject: 'Mathematics', chapter: 'Transform Theory', topic: 'Laplace Transform',
+    difficulty: 'easy', exam: ['GATE EM'],
+    question: 'Laplace transform of f(t) = e^(at) is:',
+    options: ['1/(s−a)', '1/(s+a)', 'a/(s²+a²)', 's/(s²+a²)'],
+    correctIndex: 0,
+    explanation: 'L{e^(at)} = ∫₀^∞ e^(at)·e^(−st) dt = ∫₀^∞ e^(−(s−a)t) dt = 1/(s−a), valid for s > a.',
+    formulaHint: 'L{e^(at)} = 1/(s−a)',
+  },
+  {
+    id: 'gem008', subject: 'Mathematics', chapter: 'Discrete Mathematics', topic: 'Pigeonhole Principle',
+    difficulty: 'easy', exam: ['GATE EM'],
+    question: 'Minimum people needed in a room to guarantee 2 share the same birth month:',
+    options: ['12', '13', '24', '6'],
+    correctIndex: 1,
+    explanation: 'By the Pigeonhole Principle: with 12 months (pigeonholes) and 12 people, it\'s possible all have different months. Adding 1 more (13 people) guarantees at least two share a month.',
+    formulaHint: 'n pigeonholes, n+1 pigeons → at least one hole has ≥2',
+  },
+  {
+    id: 'gem009', subject: 'Mathematics', chapter: 'Graph Theory', topic: 'Euler Path',
+    difficulty: 'medium', exam: ['GATE EM'],
+    question: 'A connected undirected graph has an Euler circuit if and only if:',
+    options: ['All vertices have odd degree', 'All vertices have even degree', 'Exactly 2 vertices have odd degree', 'The graph is a tree'],
+    correctIndex: 1,
+    explanation: "Euler's theorem: A connected undirected graph has an Euler circuit iff every vertex has even degree.\nEuler path (not circuit): exactly 2 vertices have odd degree.",
+    formulaHint: 'Euler circuit ↔ all vertices even degree',
+  },
+  {
+    id: 'gem010', subject: 'Mathematics', chapter: 'Vector Calculus', topic: "Green's Theorem",
+    difficulty: 'hard', exam: ['GATE EM'],
+    question: 'By Green\'s theorem, ∮_C (y dx − x dy) over a unit circle is:',
+    options: ['0', '−2π', '2π', 'π'],
+    correctIndex: 1,
+    explanation: "Green's theorem: ∮_C (P dx + Q dy) = ∬_D (∂Q/∂x − ∂P/∂y) dA\nP=y, Q=−x → ∂Q/∂x = −1, ∂P/∂y = 1\nIntegrand = −1−1 = −2\nResult = −2 × Area(unit circle) = −2π",
+    formulaHint: '∮ P dx + Q dy = ∬ (∂Q/∂x − ∂P/∂y) dA',
+  },
 ];
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const EXAMS: ExamFilter[] = ['All', 'JEE Main', 'JEE Adv', 'NEET', 'CBSE 12', 'CAT'];
+const EXAMS: ExamFilter[] = ['All', 'JEE Main', 'JEE Adv', 'NEET', 'CBSE 12', 'CAT', 'GATE EM'];
 const SUBJECTS: (Subject | 'All')[] = ['All', 'Physics', 'Chemistry', 'Mathematics', 'Biology', 'English'];
 const DIFFICULTIES: (Difficulty | 'All')[] = ['All', 'easy', 'medium', 'hard'];
 const SESSION_SIZES: (10 | 20 | 40)[] = [10, 20, 40];

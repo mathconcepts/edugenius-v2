@@ -115,6 +115,45 @@ const examsData: Record<string, ExamInfo> = {
     ],
     testimonial: { name: 'Vikram R.', score: '99.2 percentile', quote: 'The DILR practice sets were game-changers. Improved from 85 to 99+ percentile.' },
   },
+  'gate-em': {
+    code: 'GATE EM',
+    name: 'GATE Engineering Mathematics',
+    fullName: 'Graduate Aptitude Test in Engineering — Engineering Mathematics',
+    icon: '⚙️',
+    color: 'from-violet-500 to-purple-500',
+    description: 'Complete Engineering Mathematics preparation for GATE — covering all 10 core topics tested across CS, EC, EE, ME, and CE streams. AI-powered Socratic tutoring and adaptive practice.',
+    stats: [
+      { label: 'Questions', value: '8,000+' },
+      { label: 'Topics', value: '10 Core' },
+      { label: 'Mock Tests', value: '50+' },
+      { label: 'Avg Score Improvement', value: '+38%' },
+    ],
+    subjects: [
+      'Linear Algebra',
+      'Calculus',
+      'Differential Equations',
+      'Complex Variables',
+      'Probability & Statistics',
+      'Numerical Methods',
+      'Transform Theory',
+      'Discrete Mathematics',
+      'Graph Theory',
+      'Vector Calculus',
+    ],
+    features: [
+      'All 10 GATE EM topics with previous year questions',
+      'Adaptive difficulty: 30% easy / 50% medium / 20% hard',
+      'Socratic AI tutor explains step-by-step reasoning',
+      '65-question full mock tests (3 hrs, GATE pattern)',
+      'Numerical Answer Type (NAT) practice — no negative marking',
+      'Topic-wise weakness detection and targeted drill',
+    ],
+    testimonial: {
+      name: 'Aditya K.',
+      score: 'GATE CS AIR 312',
+      quote: 'The Engineering Maths module alone saved me 15 marks. The Socratic tutor explains proofs in a way no textbook does.',
+    },
+  },
 };
 
 export default function ExamPage() {
