@@ -263,3 +263,59 @@ export function getSageOpener(persona: StudentPersona, isFirstMessage: boolean):
   const stateOpeners = openers[persona.emotionalState] || openers.neutral;
   return stateOpeners[Math.floor(Math.random() * stateOpeners.length)];
 }
+
+
+// ── RAG-Enhanced Prompt Builder ────────────────────────────────────────────────
+
+import type { RagContext } from './ragService';
+import { formatRagContext } from './ragService';
+
+/**
+ * Build a Sage prompt with RAG context injected.
+ * Used when Supabase + pgvector is configured and returns results.
+ *
+ * If ragContext is empty or unavailable, falls back to standard Gemini-only prompt.
+ */
+export function buildGateRagPrompt(
+  userQuery: string,
+  ragContext: RagContext,
+  baseSystemPrompt: string
+): string {
+  if (!ragContext.hasContext) {
+    // No RAG context — return standard prompt, Sage uses Gemini training data
+    return baseSystemPrompt;
+  }
+
+  const ragSection = formatRagContext(ragContext);
+
+  return `${baseSystemPrompt}
+
+---
+
+## Grounded Knowledge (Retrieved from EduGenius study materials)
+
+Use the following retrieved content to ground your answer. Prioritise this over general knowledge where relevant. If the retrieved content doesn't fully answer the question, supplement with your own expertise.
+
+${ragSection}
+
+---
+
+When answering, you may reference "based on the study material" or cite the GATE year for PYQs (e.g., "GATE 2022 asked a similar question..."). Keep citations natural, not robotic.`;
+}
+
+/**
+ * Determine whether to use RAG for a given query.
+ * Skip RAG for greetings, meta-questions, or very short inputs.
+ */
+export function shouldUseRag(query: string): boolean {
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed.length < 10) return false;
+
+  const skipPatterns = [
+    /^(hi|hello|hey|thanks|thank you|ok|okay|got it|yes|no|sure)/,
+    /^(what is your name|who are you|can you help)/,
+    /^(next question|continue|go on|more)/,
+  ];
+
+  return !skipPatterns.some(p => p.test(trimmed));
+}

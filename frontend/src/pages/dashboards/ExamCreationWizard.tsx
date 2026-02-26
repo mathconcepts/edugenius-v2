@@ -46,6 +46,7 @@ interface CEOGate {
 const EXAM_OPTIONS = [
   'JEE Main', 'JEE Advanced', 'NEET', 'CBSE Class 12',
   'CBSE Class 10', 'CAT', 'UPSC CSE', 'GATE',
+  'GATE Engineering Mathematics',
 ];
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {

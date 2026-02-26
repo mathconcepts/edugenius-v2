@@ -43,6 +43,8 @@
 # 
 # REQUIRED:
 #   VITE_GEMINI_API_KEY        = your Gemini API key (get from aistudio.google.com)
+#   VITE_SUPABASE_URL          = https://tjcrhdavxkjjasfnrxtw.supabase.co
+#   VITE_SUPABASE_ANON_KEY     = your Supabase anon/public key (Project Settings → API)
 #
 # OPTIONAL:
 #   VITE_ANTHROPIC_API_KEY     = Anthropic Claude key
