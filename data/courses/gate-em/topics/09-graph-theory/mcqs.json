@@ -1,0 +1,91 @@
+{
+  "topic": "graph-theory",
+  "exam_id": "gate-engineering-maths",
+  "questions": [
+    {
+      "id": "gt-001",
+      "year": 2024,
+      "question": "The number of edges in the complete graph K₆ is",
+      "options": {
+        "A": "15",
+        "B": "12",
+        "C": "18",
+        "D": "30"
+      },
+      "correct_answer": "A",
+      "explanation": "K_n has n(n-1)/2 edges. For K₆: 6×5/2 = 15 edges.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["complete-graph", "edges"]
+    },
+    {
+      "id": "gt-002",
+      "year": 2023,
+      "question": "A tree with 12 vertices has how many edges?",
+      "options": {
+        "A": "11",
+        "B": "12",
+        "C": "13",
+        "D": "10"
+      },
+      "correct_answer": "A",
+      "explanation": "A tree with n vertices always has exactly n-1 edges. For 12 vertices: 12-1 = 11 edges.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["tree", "edges"]
+    },
+    {
+      "id": "gt-003",
+      "year": 2022,
+      "question": "A connected planar graph has 7 vertices and 9 edges. The number of faces is",
+      "options": {
+        "A": "4",
+        "B": "3",
+        "C": "5",
+        "D": "6"
+      },
+      "correct_answer": "A",
+      "explanation": "By Euler's formula: V - E + F = 2. So 7 - 9 + F = 2, giving F = 4 faces.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["planar", "euler-formula", "faces"]
+    },
+    {
+      "id": "gt-004",
+      "year": 2021,
+      "question": "Which condition guarantees an Eulerian circuit in a connected graph?",
+      "options": {
+        "A": "All vertices have even degree",
+        "B": "All vertices have odd degree",
+        "C": "Graph is complete",
+        "D": "Graph has no cycles"
+      },
+      "correct_answer": "A",
+      "explanation": "An Eulerian circuit (traversing every edge exactly once, returning to start) exists iff the graph is connected AND all vertices have even degree.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["eulerian", "degree"]
+    },
+    {
+      "id": "gt-005",
+      "year": 2020,
+      "question": "The chromatic number of the complete bipartite graph K_{3,3} is",
+      "options": {
+        "A": "2",
+        "B": "3",
+        "C": "6",
+        "D": "4"
+      },
+      "correct_answer": "A",
+      "explanation": "Every bipartite graph (with at least one edge) has chromatic number exactly 2. The two vertex sets can each be colored with one color, since no edges exist within a partition.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["chromatic-number", "bipartite"]
+    }
+  ]
+}

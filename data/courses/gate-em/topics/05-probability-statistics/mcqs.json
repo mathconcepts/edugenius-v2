@@ -1,0 +1,91 @@
+{
+  "topic": "probability-statistics",
+  "exam_id": "gate-engineering-maths",
+  "questions": [
+    {
+      "id": "ps-001",
+      "year": 2023,
+      "question": "Two fair dice are rolled. What is the probability that the sum is greater than 9?",
+      "options": {
+        "A": "1/6",
+        "B": "1/4",
+        "C": "1/12",
+        "D": "5/12"
+      },
+      "correct_answer": "A",
+      "explanation": "Total outcomes: 6×6 = 36\n\nFavorable outcomes (sum > 9, i.e., sum = 10, 11, 12):\nSum = 10: (4,6),(5,5),(6,4) → 3 outcomes\nSum = 11: (5,6),(6,5) → 2 outcomes\nSum = 12: (6,6) → 1 outcome\nTotal favorable: 3+2+1 = 6\n\nP(sum > 9) = 6/36 = 1/6",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["basic-probability", "counting", "probability-statistics"]
+    },
+    {
+      "id": "ps-002",
+      "year": 2024,
+      "question": "A test for a disease is 95% accurate for positive patients and 90% accurate for negative patients. If 1% of the population has the disease, what is the probability that a person testing positive actually has the disease?",
+      "options": {
+        "A": "8.7%",
+        "B": "16.1%",
+        "C": "95%",
+        "D": "50%"
+      },
+      "correct_answer": "A",
+      "explanation": "Let D = has disease, T+ = tests positive\nP(D) = 0.01, P(D') = 0.99\nP(T+|D) = 0.95 (sensitivity)\nP(T+|D') = 1 - 0.90 = 0.10 (false positive rate)\n\nTotal probability of testing positive:\nP(T+) = P(T+|D)P(D) + P(T+|D')P(D')\n= (0.95)(0.01) + (0.10)(0.99)\n= 0.0095 + 0.099 = 0.1085\n\nBayes' theorem:\nP(D|T+) = P(T+|D)·P(D)/P(T+)\n= (0.95 × 0.01)/0.1085\n= 0.0095/0.1085\n≈ 0.0875 ≈ 8.7%\n\nThis demonstrates why even accurate tests have low positive predictive value for rare diseases.",
+      "difficulty": "hard",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["bayes-theorem", "conditional-probability", "probability-statistics"]
+    },
+    {
+      "id": "ps-003",
+      "year": 2022,
+      "question": "X follows Poisson distribution with mean 4. What is P(X = 0)?",
+      "options": {
+        "A": "e⁻⁴",
+        "B": "4e⁻⁴",
+        "C": "1 - e⁻⁴",
+        "D": "e⁻⁴/4"
+      },
+      "correct_answer": "A",
+      "explanation": "For X ~ Poisson(λ = 4):\n\nPMF: P(X = k) = (e^(-λ) × λ^k) / k!\n\nFor k = 0:\nP(X = 0) = (e^(-4) × 4^0) / 0!\n= (e^(-4) × 1) / 1\n= e^(-4)\n\nNumerically: e^(-4) ≈ 0.0183 (about 1.83%)\n\nNote: P(X=0) = e^(-λ) for any Poisson(λ) — this is worth memorizing.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["poisson-distribution", "probability-statistics"]
+    },
+    {
+      "id": "ps-004",
+      "year": 2024,
+      "question": "If X and Y are independent random variables with E[X] = 3, E[Y] = 4, Var(X) = 2, Var(Y) = 3, then Var(2X - Y + 5) is:",
+      "options": {
+        "A": "11",
+        "B": "8",
+        "C": "14",
+        "D": "6"
+      },
+      "correct_answer": "A",
+      "explanation": "Using variance properties:\n\nVar(aX + bY + c) = a²Var(X) + b²Var(Y) + 2ab·Cov(X,Y)\n\nSince X and Y are independent: Cov(X,Y) = 0\nThe constant 5 doesn't affect variance.\n\nVar(2X - Y + 5) = 2²·Var(X) + (-1)²·Var(Y) + 0\n= 4 × 2 + 1 × 3\n= 8 + 3\n= 11\n\nAnswer: 11\n\nNote: Adding a constant NEVER changes variance. Multiplying by a constant squares the coefficient in variance.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["variance", "expectation", "independent-variables", "probability-statistics"]
+    },
+    {
+      "id": "ps-005",
+      "year": 2023,
+      "question": "X follows an exponential distribution with mean 2. What is P(X > 3)?",
+      "options": {
+        "A": "e^(-3/2)",
+        "B": "e^(-2/3)",
+        "C": "1 - e^(-3/2)",
+        "D": "e^(-6)"
+      },
+      "correct_answer": "A",
+      "explanation": "X ~ Exponential with mean = 1/λ = 2, so λ = 1/2\n\nFor exponential distribution:\nP(X > x) = e^(-λx)\n\nP(X > 3) = e^(-λ × 3) = e^(-(1/2)(3)) = e^(-3/2)\n\nAlternatively, the CDF is F(x) = 1 - e^(-x/2) for x ≥ 0\nP(X > 3) = 1 - F(3) = 1 - (1 - e^(-3/2)) = e^(-3/2)\n\nNumerically: e^(-1.5) ≈ 0.223\n\nKey property: P(X > x) = e^(-λx) is very easy to compute for exponential distribution.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["exponential-distribution", "continuous-distribution", "probability-statistics"]
+    }
+  ]
+}

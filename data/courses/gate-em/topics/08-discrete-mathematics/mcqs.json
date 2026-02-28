@@ -1,0 +1,91 @@
+{
+  "topic": "discrete-mathematics",
+  "exam_id": "gate-engineering-maths",
+  "questions": [
+    {
+      "id": "dm-001",
+      "year": 2024,
+      "question": "Which of the following is a tautology?",
+      "options": {
+        "A": "p ∨ ¬p",
+        "B": "p ∧ ¬p",
+        "C": "p → q",
+        "D": "¬p ∧ p"
+      },
+      "correct_answer": "A",
+      "explanation": "p ∨ ¬p is the Law of Excluded Middle — it is always TRUE regardless of p's truth value. p ∧ ¬p is always FALSE (contradiction). p → q depends on values of p and q.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["logic", "tautology"]
+    },
+    {
+      "id": "dm-002",
+      "year": 2023,
+      "question": "In a group of 100 students, 60 study Maths, 50 study Physics, and 20 study both. How many study neither?",
+      "options": {
+        "A": "10",
+        "B": "20",
+        "C": "30",
+        "D": "40"
+      },
+      "correct_answer": "A",
+      "explanation": "|M ∪ P| = |M| + |P| - |M ∩ P| = 60 + 50 - 20 = 90. Neither = 100 - 90 = 10.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["set-theory", "inclusion-exclusion"]
+    },
+    {
+      "id": "dm-003",
+      "year": 2022,
+      "question": "The number of bijective functions from {1,2,3} to {a,b,c} is",
+      "options": {
+        "A": "6",
+        "B": "9",
+        "C": "27",
+        "D": "3"
+      },
+      "correct_answer": "A",
+      "explanation": "The number of bijective (one-to-one, onto) functions between two n-element sets is n! = 3! = 6.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["functions", "bijective", "counting"]
+    },
+    {
+      "id": "dm-004",
+      "year": 2021,
+      "question": "Which relation on {1,2,3} is an equivalence relation?",
+      "options": {
+        "A": "{(1,1),(2,2),(3,3),(1,2),(2,1)}",
+        "B": "{(1,2),(2,3),(1,3)}",
+        "C": "{(1,1),(2,2),(1,2)}",
+        "D": "{(1,2),(2,1),(2,3)}"
+      },
+      "correct_answer": "A",
+      "explanation": "Option A: Reflexive (1,1),(2,2),(3,3) ✓; Symmetric (1,2)↔(2,1) ✓; Transitive (1,2),(2,1)→(1,1) ✓. This is an equivalence relation. Option C lacks (2,1) so not symmetric.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["relations", "equivalence"]
+    },
+    {
+      "id": "dm-005",
+      "year": 2020,
+      "question": "The value of C(10,3) is",
+      "options": {
+        "A": "120",
+        "B": "720",
+        "C": "210",
+        "D": "90"
+      },
+      "correct_answer": "A",
+      "explanation": "C(10,3) = 10!/(3!·7!) = (10×9×8)/(3×2×1) = 720/6 = 120.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["combinatorics", "combinations"]
+    }
+  ]
+}

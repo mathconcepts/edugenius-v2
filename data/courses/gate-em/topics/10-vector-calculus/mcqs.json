@@ -1,0 +1,91 @@
+{
+  "topic": "vector-calculus",
+  "exam_id": "gate-engineering-maths",
+  "questions": [
+    {
+      "id": "vc-001",
+      "year": 2024,
+      "question": "The divergence of F = x²î + y²ĵ + z²k̂ at the point (1, 2, 3) is",
+      "options": {
+        "A": "12",
+        "B": "6",
+        "C": "14",
+        "D": "2"
+      },
+      "correct_answer": "A",
+      "explanation": "div F = ∂(x²)/∂x + ∂(y²)/∂y + ∂(z²)/∂z = 2x + 2y + 2z. At (1,2,3): 2+4+6 = 12.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["divergence", "vector-field"]
+    },
+    {
+      "id": "vc-002",
+      "year": 2023,
+      "question": "If F = ∇φ for some scalar φ, then F is called",
+      "options": {
+        "A": "Conservative (irrotational)",
+        "B": "Solenoidal",
+        "C": "Incompressible",
+        "D": "Divergence-free"
+      },
+      "correct_answer": "A",
+      "explanation": "If F = ∇φ (gradient of a scalar), F is conservative (also called irrotational since curl F = curl(∇φ) = 0). Solenoidal means divergence-free (div F = 0).",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["conservative", "gradient"]
+    },
+    {
+      "id": "vc-003",
+      "year": 2022,
+      "question": "By Green's theorem, ∮_C (y dx - x dy) over the unit circle equals",
+      "options": {
+        "A": "-2π",
+        "B": "2π",
+        "C": "π",
+        "D": "-π"
+      },
+      "correct_answer": "A",
+      "explanation": "P=y, Q=-x. Green's theorem: ∬(∂Q/∂x - ∂P/∂y)dA = ∬(-1-1)dA = -2·Area(unit circle) = -2π.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["green-theorem", "line-integral"]
+    },
+    {
+      "id": "vc-004",
+      "year": 2021,
+      "question": "The curl of F = yî + xĵ + 0k̂ is",
+      "options": {
+        "A": "0",
+        "B": "2k̂",
+        "C": "-2k̂",
+        "D": "î + ĵ"
+      },
+      "correct_answer": "A",
+      "explanation": "curl F = (∂R/∂y - ∂Q/∂z)î + (∂P/∂z - ∂R/∂x)ĵ + (∂Q/∂x - ∂P/∂y)k̂. Here P=y, Q=x, R=0: = 0î + 0ĵ + (1-1)k̂ = 0. F is irrotational.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["curl", "irrotational"]
+    },
+    {
+      "id": "vc-005",
+      "year": 2020,
+      "question": "Gauss's divergence theorem relates",
+      "options": {
+        "A": "Volume integral of divergence to surface flux integral",
+        "B": "Line integral to surface integral of curl",
+        "C": "Line integral to area integral in 2D",
+        "D": "Surface integral to another surface integral"
+      },
+      "correct_answer": "A",
+      "explanation": "Gauss's theorem: ∭_V (∇·F)dV = ∯_S F·dS. It converts a volume integral (of divergence) to a closed surface integral (flux). Stokes' converts line to surface; Green's converts line to area.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["gauss-theorem", "divergence-theorem"]
+    }
+  ]
+}

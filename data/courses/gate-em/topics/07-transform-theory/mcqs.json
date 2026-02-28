@@ -1,0 +1,91 @@
+{
+  "topic": "transform-theory",
+  "exam_id": "gate-engineering-maths",
+  "questions": [
+    {
+      "id": "tt-001",
+      "year": 2024,
+      "question": "The Laplace transform of te^(2t) is",
+      "options": {
+        "A": "1/(s-2)²",
+        "B": "1/(s+2)²",
+        "C": "2/(s-2)²",
+        "D": "s/(s-2)²"
+      },
+      "correct_answer": "A",
+      "explanation": "Using the first shifting theorem: L{t} = 1/s², so L{te^(at)} = 1/(s-a)². With a=2: L{te^(2t)} = 1/(s-2)².",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["laplace", "shifting-theorem"]
+    },
+    {
+      "id": "tt-002",
+      "year": 2023,
+      "question": "If L{f(t)} = F(s), then L{f(t-2)u(t-2)} equals",
+      "options": {
+        "A": "e^(-2s)F(s)",
+        "B": "e^(2s)F(s)",
+        "C": "F(s-2)",
+        "D": "F(s+2)"
+      },
+      "correct_answer": "A",
+      "explanation": "Second shifting theorem (time delay): L{f(t-a)u(t-a)} = e^(-as)F(s). With a=2: answer is e^(-2s)F(s).",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["laplace", "second-shift"]
+    },
+    {
+      "id": "tt-003",
+      "year": 2022,
+      "question": "The Fourier transform of a rectangular pulse of width T is",
+      "options": {
+        "A": "A sinc function",
+        "B": "Another rectangular pulse",
+        "C": "A Gaussian function",
+        "D": "A triangular function"
+      },
+      "correct_answer": "A",
+      "explanation": "The Fourier transform of rect(t/T) = T·sinc(fT). The FT of a rectangular pulse is a sinc function — a fundamental Fourier transform pair.",
+      "difficulty": "easy",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["fourier", "rectangular-pulse", "sinc"]
+    },
+    {
+      "id": "tt-004",
+      "year": 2021,
+      "question": "The Z-transform of u[n] (unit step) is",
+      "options": {
+        "A": "z/(z-1), |z|>1",
+        "B": "1/(z-1), |z|>1",
+        "C": "z/(z+1), |z|>1",
+        "D": "1/z, |z|<1"
+      },
+      "correct_answer": "A",
+      "explanation": "Z{u[n]} = Σ(n=0 to ∞) z^(-n) = 1/(1-z^(-1)) = z/(z-1), converging for |z|>1.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["z-transform", "unit-step"]
+    },
+    {
+      "id": "tt-005",
+      "year": 2020,
+      "question": "Using Laplace transforms, the solution to y'' + y = 0 with y(0)=0, y'(0)=1 is",
+      "options": {
+        "A": "sin(t)",
+        "B": "cos(t)",
+        "C": "e^t",
+        "D": "t"
+      },
+      "correct_answer": "A",
+      "explanation": "Taking LT: s²Y - sy(0) - y'(0) + Y = 0 → (s²+1)Y = 1 → Y = 1/(s²+1). Inverse LT: y(t) = sin(t).",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["laplace", "ode", "inverse-laplace"]
+    }
+  ]
+}

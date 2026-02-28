@@ -1,0 +1,91 @@
+{
+  "topic": "differential-equations",
+  "exam_id": "gate-engineering-maths",
+  "questions": [
+    {
+      "id": "de-001",
+      "year": 2023,
+      "question": "The general solution of the differential equation dy/dx + (2/x)y = x² is:",
+      "options": {
+        "A": "y = x³/5 + C/x²",
+        "B": "y = x³/5 + C·x²",
+        "C": "y = x⁵/5 + C/x²",
+        "D": "y = x²/5 + C/x"
+      },
+      "correct_answer": "A",
+      "explanation": "Standard form: y' + P(x)y = Q(x)\nHere P(x) = 2/x, Q(x) = x²\n\nIntegrating Factor: μ = e^∫(2/x)dx = e^(2ln x) = x²\n\nMultiply both sides by x²:\nd/dx[x²·y] = x²·x² = x⁴\n\nIntegrate:\nx²y = ∫x⁴ dx = x⁵/5 + C\n\ny = x³/5 + C/x²\n\nThe answer is A.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["first-order-ode", "integrating-factor", "linear-ode"]
+    },
+    {
+      "id": "de-002",
+      "year": 2022,
+      "question": "The characteristic roots of y'' - 6y' + 9y = 0 are:",
+      "options": {
+        "A": "3 and -3",
+        "B": "3 and 3 (repeated)",
+        "C": "6 and 1",
+        "D": "3 ± 3i"
+      },
+      "correct_answer": "B",
+      "explanation": "Characteristic equation: r² - 6r + 9 = 0\nFactor: (r - 3)² = 0\nRoots: r = 3 (repeated root)\n\nSince we have a repeated root r = 3, the general solution is:\ny = (c₁ + c₂x)e^(3x)\n\nNote: NOT y = c₁e^(3x) + c₂e^(-3x) — that would require roots +3 and -3.\nThe discriminant b²-4ac = 36-36 = 0 confirms a repeated root.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["second-order-ode", "characteristic-equation", "repeated-roots"]
+    },
+    {
+      "id": "de-003",
+      "year": 2024,
+      "question": "The PDE u_xx + 4u_xy + 4u_yy = 0 is:",
+      "options": {
+        "A": "Elliptic",
+        "B": "Parabolic",
+        "C": "Hyperbolic",
+        "D": "Cannot be classified"
+      },
+      "correct_answer": "B",
+      "explanation": "Compare with the standard form: Au_xx + Bu_xy + Cu_yy = 0\nHere A = 1, B = 4, C = 4\n\nDiscriminant Δ = B² - 4AC = 4² - 4(1)(4) = 16 - 16 = 0\n\nΔ = 0 → PARABOLIC\n\nThis is similar to the heat equation type.\n\nMnemonic:\nΔ < 0: Elliptic (Like Eclipse — closed curve)\nΔ = 0: Parabolic (Like a Parabola)\nΔ > 0: Hyperbolic (Like a Hyperbola — two branches, wave-like)",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["pde", "classification", "parabolic", "differential-equations"]
+    },
+    {
+      "id": "de-004",
+      "year": 2023,
+      "question": "The particular solution of y'' + y = sin x is:",
+      "options": {
+        "A": "-(x/2)cos x",
+        "B": "(x/2)sin x",
+        "C": "-cos x",
+        "D": "sin x/2"
+      },
+      "correct_answer": "A",
+      "explanation": "First, find the homogeneous solution:\nCharacteristic equation: r² + 1 = 0 → r = ±i\ny_h = c₁cos x + c₂sin x\n\nSince f(x) = sin x is part of y_h, we have RESONANCE.\nModify the trial solution: y_p = x(A cos x + B sin x)\n\ny_p' = (A cos x + B sin x) + x(-A sin x + B cos x)\ny_p'' = 2(-A sin x + B cos x) + x(-A cos x - B sin x)\n\ny_p'' + y_p = 2(-A sin x + B cos x) + x(-A cos x - B sin x) + x(A cos x + B sin x)\n= -2A sin x + 2B cos x\n\nSet equal to sin x:\n-2A = 1 → A = -1/2\n2B = 0 → B = 0\n\ny_p = x(-1/2)cos x = -(x/2)cos x\n\nAnswer: A",
+      "difficulty": "hard",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["non-homogeneous-ode", "resonance", "undetermined-coefficients"]
+    },
+    {
+      "id": "de-005",
+      "year": 2022,
+      "question": "The solution of dy/dx = y/(x + y²) can be found by treating it as:",
+      "options": {
+        "A": "Separable equation in y",
+        "B": "Linear equation in x as function of y",
+        "C": "Exact equation",
+        "D": "Bernoulli equation"
+      },
+      "correct_answer": "B",
+      "explanation": "Rewrite as: dx/dy = (x + y²)/y = x/y + y\n\nThis gives: dx/dy - (1/y)x = y\n\nThis is a LINEAR ODE in x as a function of y!\n\nHere P(y) = -1/y, Q(y) = y\n\nIntegrating factor: μ = e^∫(-1/y)dy = e^(-ln y) = 1/y\n\nSolving: x/y = ∫(y · 1/y)dy = ∫1 dy = y + C\n\nx = y² + Cy\n\nThis is a classic GATE trick: when dy/dx form is complicated, try dx/dy form.",
+      "difficulty": "hard",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["first-order-ode", "linear-ode", "trick-question", "differential-equations"]
+    }
+  ]
+}

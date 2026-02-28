@@ -1,0 +1,91 @@
+{
+  "topic": "complex-variables",
+  "exam_id": "gate-engineering-maths",
+  "questions": [
+    {
+      "id": "cv-001",
+      "year": 2023,
+      "question": "The function f(z) = |z|² is analytic:",
+      "options": {
+        "A": "Everywhere in the complex plane",
+        "B": "Only at z = 0",
+        "C": "Nowhere in the complex plane",
+        "D": "On the real axis"
+      },
+      "correct_answer": "B",
+      "explanation": "f(z) = |z|² = x² + y², so u = x² + y², v = 0\n\nCheck C-R equations:\nu_x = 2x,  v_y = 0\nu_y = 2y, -v_x = 0\n\nFor C-R to hold:\nu_x = v_y → 2x = 0 → x = 0\nu_y = -v_x → 2y = 0 → y = 0\n\nBoth conditions satisfied ONLY at (x,y) = (0,0), i.e., z = 0.\n\nSo f(z) = |z|² is analytic only at z = 0.\nNote: It is NOT analytic in any neighborhood of z = 0, so it's technically nowhere analytic in an open set — but GATE typically considers 'at a point' level, and z = 0 is the answer.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["cauchy-riemann", "analyticity", "complex-variables"]
+    },
+    {
+      "id": "cv-002",
+      "year": 2022,
+      "question": "The value of ∮|z|=1 (1/z) dz is:",
+      "options": {
+        "A": "0",
+        "B": "2πi",
+        "C": "π",
+        "D": "πi"
+      },
+      "correct_answer": "B",
+      "explanation": "Method 1 - Direct:\nOn |z| = 1: z = e^(iθ), dz = ie^(iθ)dθ, θ from 0 to 2π\n∮ dz/z = ∫₀²π (1/e^(iθ))·ie^(iθ)dθ = ∫₀²π i dθ = 2πi\n\nMethod 2 - Residue Theorem:\nf(z) = 1/z has a simple pole at z = 0, which is inside |z| = 1.\nRes(1/z, 0) = lim(z→0) z·(1/z) = 1\n∮ (1/z) dz = 2πi × 1 = 2πi\n\nThis is a fundamental result in complex analysis.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["contour-integral", "residue", "cauchy-theorem", "complex-variables"]
+    },
+    {
+      "id": "cv-003",
+      "year": 2024,
+      "question": "The residue of f(z) = e^z / (z-1)² at z = 1 is:",
+      "options": {
+        "A": "e",
+        "B": "e/2",
+        "C": "1",
+        "D": "2e"
+      },
+      "correct_answer": "A",
+      "explanation": "f(z) has a pole of order 2 at z = 1.\n\nFormula for pole of order m:\nRes(f, z₀) = (1/(m-1)!) × lim(z→z₀) d^(m-1)/dz^(m-1) [(z-z₀)^m f(z)]\n\nHere m = 2, z₀ = 1:\nRes(f, 1) = (1/1!) × lim(z→1) d/dz [(z-1)² · e^z/(z-1)²]\n= lim(z→1) d/dz [e^z]\n= lim(z→1) e^z\n= e¹ = e\n\nAnswer: e",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["residue", "pole-of-order-m", "complex-variables"]
+    },
+    {
+      "id": "cv-004",
+      "year": 2023,
+      "question": "If u(x,y) = x² - y² is the real part of an analytic function f(z) = u + iv, then v(x,y) is:",
+      "options": {
+        "A": "2xy + C",
+        "B": "x² + y² + C",
+        "C": "-2xy + C",
+        "D": "x²y + C"
+      },
+      "correct_answer": "A",
+      "explanation": "Given u = x² - y². Find v using C-R equations:\n\nu_x = ∂v/∂y:\n2x = ∂v/∂y\nIntegrate w.r.t. y: v = 2xy + g(x)\n\nu_y = -∂v/∂x:\n-2y = -∂v/∂x\n∂v/∂x = 2y\nBut from v = 2xy + g(x): ∂v/∂x = 2y + g'(x)\nSo g'(x) = 0 → g(x) = C (constant)\n\nv = 2xy + C\n\nVerification: f(z) = (x²-y²) + 2xyi = (x+iy)² = z² ✓\nThis confirms the analytic function is f(z) = z².",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["harmonic-conjugate", "cauchy-riemann", "analytic-function", "complex-variables"]
+    },
+    {
+      "id": "cv-005",
+      "year": 2022,
+      "question": "The type of singularity of f(z) = sin(z)/z³ at z = 0 is:",
+      "options": {
+        "A": "Removable singularity",
+        "B": "Simple pole",
+        "C": "Pole of order 2",
+        "D": "Essential singularity"
+      },
+      "correct_answer": "C",
+      "explanation": "Expand sin(z) as Laurent series around z = 0:\nsin(z) = z - z³/3! + z⁵/5! - ...\n\nTherefore:\nsin(z)/z³ = (z - z³/6 + z⁵/120 - ...)/z³\n= 1/z² - 1/6 + z²/120 - ...\n\nThe Laurent series has the lowest power of z as z^(-2).\nThis is a POLE OF ORDER 2 (since the most negative power is -2).\n\nNote: If it were sin(z)/z, the z in numerator cancels z in denominator → Laurent series has no negative powers → removable singularity at z=0.",
+      "difficulty": "hard",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["singularity", "laurent-series", "pole-order", "complex-variables"]
+    }
+  ]
+}
