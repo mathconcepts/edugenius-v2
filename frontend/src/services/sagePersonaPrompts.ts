@@ -267,45 +267,40 @@ export function getSageOpener(persona: StudentPersona, isFirstMessage: boolean):
 
 // ── RAG-Enhanced Prompt Builder ────────────────────────────────────────────────
 
-import type { RagContext } from './ragService';
-import { formatRagContext } from './ragService';
+import { buildStaticRagContext } from './gateEmPyqContext';
 
 /**
- * Build a Sage prompt with RAG context injected.
- * Used when Supabase + pgvector is configured and returns results.
+ * Build a Sage prompt with GATE EM PYQ context injected.
+ * Uses static in-bundle PYQ data — no Supabase or external DB required.
+ * Gemini's 1M context window handles all 30 PYQs (~2500 tokens) easily.
  *
- * If ragContext is empty or unavailable, falls back to standard Gemini-only prompt.
+ * topicHint: optional topic slug to prioritise relevant PYQs first.
  */
 export function buildGateRagPrompt(
   userQuery: string,
-  ragContext: RagContext,
+  topicHint: string | undefined,
   baseSystemPrompt: string
 ): string {
-  if (!ragContext.hasContext) {
-    // No RAG context — return standard prompt, Sage uses Gemini training data
-    return baseSystemPrompt;
-  }
-
-  const ragSection = formatRagContext(ragContext);
+  const pyqContext = buildStaticRagContext(topicHint);
 
   return `${baseSystemPrompt}
 
 ---
 
-## Grounded Knowledge (Retrieved from EduGenius study materials)
+## GATE Engineering Mathematics — Previous Year Questions (2018–2024)
 
-Use the following retrieved content to ground your answer. Prioritise this over general knowledge where relevant. If the retrieved content doesn't fully answer the question, supplement with your own expertise.
+Use the following PYQs to ground your answers. When a student's question matches or relates to one of these, reference the GATE year naturally (e.g., "GATE 2022 asked a very similar question..."). This builds their confidence and shows what the exam actually tests.
 
-${ragSection}
+${pyqContext}
 
 ---
 
-When answering, you may reference "based on the study material" or cite the GATE year for PYQs (e.g., "GATE 2022 asked a similar question..."). Keep citations natural, not robotic.`;
+When citing PYQs, keep it natural: "This is exactly the type of question GATE 2023 asked" — not robotic.`;
 }
 
 /**
- * Determine whether to use RAG for a given query.
- * Skip RAG for greetings, meta-questions, or very short inputs.
+ * Determine whether to inject PYQ context for a given query.
+ * Skip for greetings, meta-questions, or very short inputs.
  */
 export function shouldUseRag(query: string): boolean {
   const trimmed = query.trim().toLowerCase();

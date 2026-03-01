@@ -25,7 +25,7 @@ import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
-import { buildSageSystemPrompt, getSageOpener } from '@/services/sagePersonaPrompts';
+import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag } from '@/services/sagePersonaPrompts';
 import { getCohortSignals } from '@/services/networkEffectsEngine';
 import {
   createRootTrace,
@@ -712,6 +712,13 @@ export function Chat() {
       );
       const detectedTopicId = matchedSignal?.topicId;
       sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId);
+
+      // Inject GATE EM PYQ context for GATE students (no Supabase needed — static bundle)
+      const isGateExam = updatedPersona.exam?.toUpperCase().includes('GATE');
+      if (isGateExam && shouldUseRag(userText)) {
+        sageSystemPrompt = buildGateRagPrompt(userText, detectedTopicId, sageSystemPrompt);
+      }
+
       if (opener) {
         // Inject opener as a preamble hint into the system prompt
         sageSystemPrompt = `${sageSystemPrompt}\n\nOPENER (use this as your first sentence): "${opener}"`;
