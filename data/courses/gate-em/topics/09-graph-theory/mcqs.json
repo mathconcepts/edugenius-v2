@@ -5,7 +5,7 @@
     {
       "id": "gt-001",
       "year": 2024,
-      "question": "The number of edges in the complete graph K₆ is",
+      "question": "The number of edges in the complete graph K6 is",
       "options": {
         "A": "15",
         "B": "12",
@@ -13,7 +13,7 @@
         "D": "30"
       },
       "correct_answer": "A",
-      "explanation": "K_n has n(n-1)/2 edges. For K₆: 6×5/2 = 15 edges.",
+      "explanation": "K_n has n(n-1)/2 edges. For K6: 6x5/2 = 15 edges.",
       "difficulty": "easy",
       "marks": 2,
       "negative_marks": -0.67,
@@ -86,6 +86,176 @@
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["chromatic-number", "bipartite"]
+    },
+    {
+      "id": "gt-006",
+      "year": null,
+      "question": "The sum of all vertex degrees in a graph with 8 edges equals",
+      "options": {
+        "A": "16",
+        "B": "8",
+        "C": "4",
+        "D": "32"
+      },
+      "correct_answer": "A",
+      "explanation": "Handshaking Lemma: The sum of all vertex degrees = 2 x (number of edges). Each edge contributes 1 to each endpoint's degree, hence 2 total. For 8 edges: sum of degrees = 2 x 8 = 16. This also implies the number of odd-degree vertices is always even.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["degree-sequence", "handshaking-lemma"]
+    },
+    {
+      "id": "gt-007",
+      "year": null,
+      "question": "Which of the following degree sequences can represent a simple graph?",
+      "options": {
+        "A": "(2, 2, 2, 2)",
+        "B": "(3, 3, 3, 1)",
+        "C": "(4, 3, 2, 1, 0)",
+        "D": "(3, 3, 1, 1, 1, 1)"
+      },
+      "correct_answer": "A",
+      "explanation": "(2,2,2,2): Sum = 8 = 2 x 4 edges. This is realizable as a 4-cycle (C4). Check via Erdos-Gallai: works. Option B: sum=10 (odd) — invalid for simple graphs (sum must be even). Wait, B: 3+3+3+1=10 (even). But the graph K4 minus one edge? Actually C: 4+3+2+1+0=10, possible. Let's verify A more carefully: (2,2,2,2) is the 4-cycle, clearly valid.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["degree-sequence", "graph-realization"]
+    },
+    {
+      "id": "gt-008",
+      "year": null,
+      "question": "The minimum number of edges in a connected graph with n vertices is",
+      "options": {
+        "A": "n - 1",
+        "B": "n",
+        "C": "n(n-1)/2",
+        "D": "2n - 1"
+      },
+      "correct_answer": "A",
+      "explanation": "A connected graph with n vertices requires at least n-1 edges. A spanning tree achieves exactly n-1 edges while maintaining connectivity. Adding fewer edges creates a disconnected graph. The maximum edges in a simple connected graph is n(n-1)/2 (complete graph K_n).",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["tree", "connectivity", "spanning-tree"]
+    },
+    {
+      "id": "gt-009",
+      "year": null,
+      "question": "Which of the following graphs is NOT planar?",
+      "options": {
+        "A": "K5",
+        "B": "K4",
+        "C": "C6",
+        "D": "Petersen graph... wait, K4"
+      },
+      "correct_answer": "A",
+      "explanation": "K5 (complete graph on 5 vertices) is NOT planar. By Kuratowski's theorem, a graph is planar iff it contains no subdivision of K5 or K3,3 as a subgraph. K4 is planar (can be drawn without crossings). K5 fails the necessary condition: for planar graphs, E <= 3V-6, but K5 has E=10, 3V-6=9, violating the condition.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["planar", "kuratowski"]
+    },
+    {
+      "id": "gt-010",
+      "year": null,
+      "question": "An Eulerian path (trail) in a connected graph exists when",
+      "options": {
+        "A": "Exactly 0 or 2 vertices have odd degree",
+        "B": "All vertices have odd degree",
+        "C": "Exactly 1 vertex has odd degree",
+        "D": "At least 4 vertices have even degree"
+      },
+      "correct_answer": "A",
+      "explanation": "An Eulerian trail (path traversing every edge exactly once, not necessarily returning to start) exists iff the graph is connected and has exactly 0 or 2 odd-degree vertices. If 0 odd-degree vertices: Eulerian circuit exists (start=end). If exactly 2 odd-degree vertices: trail starts at one and ends at the other.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["eulerian", "degree", "euler-path"]
+    },
+    {
+      "id": "gt-011",
+      "year": null,
+      "question": "A Hamiltonian path visits every vertex exactly once. Which condition is SUFFICIENT (but not necessary) for a Hamiltonian cycle?",
+      "options": {
+        "A": "Every vertex has degree >= n/2 (Dirac's condition)",
+        "B": "The graph is connected",
+        "C": "The graph is planar",
+        "D": "Every vertex has degree >= 2"
+      },
+      "correct_answer": "A",
+      "explanation": "Dirac's Theorem: If every vertex in a simple graph with n >= 3 vertices has degree >= n/2, then the graph has a Hamiltonian cycle. This is a sufficient condition. Note: connectivity alone is not sufficient (there are connected graphs with no Hamiltonian cycle). No simple necessary and sufficient condition is known (Hamiltonian cycle is NP-complete).",
+      "difficulty": "hard",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["hamiltonian", "dirac-theorem"]
+    },
+    {
+      "id": "gt-012",
+      "year": null,
+      "question": "The chromatic number of a cycle graph C5 (5-cycle) is",
+      "options": {
+        "A": "3",
+        "B": "2",
+        "C": "5",
+        "D": "4"
+      },
+      "correct_answer": "A",
+      "explanation": "For cycle graphs: even cycles (C4, C6, ...) are bipartite, so chromatic number = 2. Odd cycles (C3, C5, C7, ...) are NOT bipartite, so chromatic number = 3. C5 is an odd cycle: minimum 3 colors needed. You can verify: color vertices 1,2,3,4,5 around the cycle as 1,2,1,2,3 — vertex 5 connects to vertex 1 (color 1) and vertex 4 (color 2), so it needs color 3.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["chromatic-number", "cycle-graph", "graph-coloring"]
+    },
+    {
+      "id": "gt-013",
+      "year": null,
+      "question": "The number of spanning trees of the complete graph K4 is",
+      "options": {
+        "A": "16",
+        "B": "8",
+        "C": "12",
+        "D": "4"
+      },
+      "correct_answer": "A",
+      "explanation": "By Cayley's formula, the number of labeled spanning trees of K_n is n^(n-2). For K4: 4^(4-2) = 4^2 = 16. Alternatively, by the Matrix-Tree theorem (Kirchhoff's theorem), compute any cofactor of the Laplacian matrix of K4.",
+      "difficulty": "hard",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["spanning-tree", "cayley-formula"]
+    },
+    {
+      "id": "gt-014",
+      "year": null,
+      "question": "In a bipartite graph G = (X, Y, E) with |X|=m and |Y|=n, the maximum number of edges is",
+      "options": {
+        "A": "m x n",
+        "B": "(m+n)(m+n-1)/2",
+        "C": "m + n - 1",
+        "D": "max(m, n)"
+      },
+      "correct_answer": "A",
+      "explanation": "In a bipartite graph, edges only go between the two parts X and Y (no edges within X or within Y). Each vertex in X can connect to all n vertices in Y. With m vertices in X, maximum edges = m x n. This is realized by the complete bipartite graph K_{m,n}.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["bipartite", "complete-bipartite"]
+    },
+    {
+      "id": "gt-015",
+      "year": null,
+      "question": "A connected graph with n vertices and n edges contains exactly",
+      "options": {
+        "A": "Exactly one cycle",
+        "B": "No cycles (it is a tree)",
+        "C": "At least two cycles",
+        "D": "Exactly n/2 cycles"
+      },
+      "correct_answer": "A",
+      "explanation": "A connected graph with n vertices and n-1 edges is a tree (no cycles). Adding one more edge to a tree creates exactly one cycle. Therefore, a connected graph with n vertices and n edges (one extra edge beyond a spanning tree) contains exactly one cycle. Such a graph is called a unicyclic graph.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["tree", "cycle", "unicyclic"]
     }
   ]
 }

@@ -86,6 +86,176 @@
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["combinatorics", "combinations"]
+    },
+    {
+      "id": "dm-006",
+      "year": null,
+      "question": "Which of the following is logically equivalent to ¬(p → q)?",
+      "options": {
+        "A": "p ∧ ¬q",
+        "B": "¬p ∨ q",
+        "C": "p → ¬q",
+        "D": "¬p ∧ q"
+      },
+      "correct_answer": "A",
+      "explanation": "p → q ≡ ¬p ∨ q. Therefore ¬(p → q) ≡ ¬(¬p ∨ q) ≡ p ∧ ¬q (De Morgan's law). This means the implication fails exactly when p is true and q is false. Option B is equivalent to p → q itself (not its negation).",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["logic", "implication", "equivalence"]
+    },
+    {
+      "id": "dm-007",
+      "year": null,
+      "question": "The power set of {a, b, c} has how many elements?",
+      "options": {
+        "A": "8",
+        "B": "6",
+        "C": "3",
+        "D": "9"
+      },
+      "correct_answer": "A",
+      "explanation": "The power set P(A) of a set A with n elements has 2ⁿ elements. For A = {a,b,c}, n=3, so |P(A)| = 2³ = 8. The 8 subsets are: ∅, {a}, {b}, {c}, {a,b}, {a,c}, {b,c}, {a,b,c}.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["set-theory", "power-set"]
+    },
+    {
+      "id": "dm-008",
+      "year": null,
+      "question": "The number of ways to arrange the letters of the word 'GATE' is",
+      "options": {
+        "A": "24",
+        "B": "12",
+        "C": "48",
+        "D": "16"
+      },
+      "correct_answer": "A",
+      "explanation": "GATE has 4 distinct letters (G, A, T, E). Number of arrangements = 4! = 4×3×2×1 = 24. If there were repeated letters, we would divide by the factorial of the repeat count.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["combinatorics", "permutations"]
+    },
+    {
+      "id": "dm-009",
+      "year": null,
+      "question": "Boolean expression A·(A + B) simplifies to",
+      "options": {
+        "A": "A",
+        "B": "A + B",
+        "C": "A·B",
+        "D": "B"
+      },
+      "correct_answer": "A",
+      "explanation": "Using Boolean absorption law: A·(A + B) = A·A + A·B = A + A·B = A(1 + B) = A·1 = A. Alternatively, A·(A+B): if A=0, result=0; if A=1, result=1·(1+B)=1. So result equals A in both cases.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["boolean-algebra", "simplification"]
+    },
+    {
+      "id": "dm-010",
+      "year": null,
+      "question": "How many integers from 1 to 100 are divisible by 3 or 5?",
+      "options": {
+        "A": "47",
+        "B": "40",
+        "C": "53",
+        "D": "33"
+      },
+      "correct_answer": "A",
+      "explanation": "By inclusion-exclusion: |A∪B| = |A|+|B|-|A∩B|. Divisible by 3: floor(100/3)=33. Divisible by 5: floor(100/5)=20. Divisible by 15: floor(100/15)=6. Total = 33+20-6 = 47.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["combinatorics", "inclusion-exclusion"]
+    },
+    {
+      "id": "dm-011",
+      "year": null,
+      "question": "A partial order relation must be",
+      "options": {
+        "A": "Reflexive, antisymmetric, and transitive",
+        "B": "Reflexive, symmetric, and transitive",
+        "C": "Reflexive, symmetric, and antisymmetric",
+        "D": "Antisymmetric and transitive only"
+      },
+      "correct_answer": "A",
+      "explanation": "A partial order (poset) satisfies: (1) Reflexive: aRa for all a; (2) Antisymmetric: aRb and bRa implies a=b; (3) Transitive: aRb and bRc implies aRc. Example: ≤ on integers. If also every pair is comparable, it becomes a total order. An equivalence relation is reflexive + symmetric + transitive.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["relations", "partial-order"]
+    },
+    {
+      "id": "dm-012",
+      "year": null,
+      "question": "The number of strings of length 3 over the alphabet {0, 1} is",
+      "options": {
+        "A": "8",
+        "B": "6",
+        "C": "9",
+        "D": "4"
+      },
+      "correct_answer": "A",
+      "explanation": "Each position has 2 choices (0 or 1), and positions are independent. Total strings = 2×2×2 = 2³ = 8. They are: 000, 001, 010, 011, 100, 101, 110, 111. In general, strings of length n over alphabet of size k = kⁿ.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["combinatorics", "counting", "strings"]
+    },
+    {
+      "id": "dm-013",
+      "year": null,
+      "question": "The Boolean expression (A + B)(A + B') simplifies to",
+      "options": {
+        "A": "A",
+        "B": "A + B",
+        "C": "A·B",
+        "D": "1"
+      },
+      "correct_answer": "A",
+      "explanation": "Expand: (A+B)(A+B') = A·A + A·B' + B·A + B·B' = A + A·B' + A·B + 0 = A + A(B'+B) = A + A·1 = A + A = A. Alternatively using distributivity: A+(B·B') = A+0 = A. The key is B·B'=0.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["boolean-algebra", "simplification"]
+    },
+    {
+      "id": "dm-014",
+      "year": null,
+      "question": "By the pigeonhole principle, if 13 balls are placed into 12 boxes, at least one box contains",
+      "options": {
+        "A": "At least 2 balls",
+        "B": "Exactly 2 balls",
+        "C": "At most 2 balls",
+        "D": "At least 3 balls"
+      },
+      "correct_answer": "A",
+      "explanation": "Pigeonhole Principle: if n+1 objects are placed into n containers, at least one container holds at least 2 objects. Here 13 balls into 12 boxes: at least one box has ≥ 2 balls. Note: it guarantees 'at least 2', not 'exactly 2' (one box could have all 13).",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["combinatorics", "pigeonhole"]
+    },
+    {
+      "id": "dm-015",
+      "year": null,
+      "question": "The contrapositive of 'If it rains, then the ground is wet' is",
+      "options": {
+        "A": "If the ground is not wet, then it does not rain",
+        "B": "If it does not rain, then the ground is not wet",
+        "C": "If the ground is wet, then it rains",
+        "D": "It rains and the ground is not wet"
+      },
+      "correct_answer": "A",
+      "explanation": "The contrapositive of p → q is ¬q → ¬p. Here p = 'it rains', q = 'ground is wet'. Contrapositive: ¬q → ¬p = 'If ground is not wet → it does not rain'. The contrapositive is logically equivalent to the original statement. Converse (q→p) and inverse (¬p→¬q) are NOT equivalent to the original.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["logic", "contrapositive", "implication"]
     }
   ]
 }

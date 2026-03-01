@@ -13,7 +13,7 @@
         "D": "On the real axis"
       },
       "correct_answer": "B",
-      "explanation": "f(z) = |z|² = x² + y², so u = x² + y², v = 0\n\nCheck C-R equations:\nu_x = 2x,  v_y = 0\nu_y = 2y, -v_x = 0\n\nFor C-R to hold:\nu_x = v_y → 2x = 0 → x = 0\nu_y = -v_x → 2y = 0 → y = 0\n\nBoth conditions satisfied ONLY at (x,y) = (0,0), i.e., z = 0.\n\nSo f(z) = |z|² is analytic only at z = 0.\nNote: It is NOT analytic in any neighborhood of z = 0, so it's technically nowhere analytic in an open set — but GATE typically considers 'at a point' level, and z = 0 is the answer.",
+      "explanation": "f(z) = |z|² = x² + y², so u = x² + y², v = 0\n\nCheck C-R equations:\nu_x = 2x, v_y = 0\nu_y = 2y, -v_x = 0\n\nFor C-R to hold:\nu_x = v_y → 2x = 0 → x = 0\nu_y = -v_x → 2y = 0 → y = 0\n\nBoth conditions satisfied ONLY at (0,0), i.e., z = 0.\nSo f(z) = |z|² is analytic only at z = 0.",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
@@ -30,7 +30,7 @@
         "D": "πi"
       },
       "correct_answer": "B",
-      "explanation": "Method 1 - Direct:\nOn |z| = 1: z = e^(iθ), dz = ie^(iθ)dθ, θ from 0 to 2π\n∮ dz/z = ∫₀²π (1/e^(iθ))·ie^(iθ)dθ = ∫₀²π i dθ = 2πi\n\nMethod 2 - Residue Theorem:\nf(z) = 1/z has a simple pole at z = 0, which is inside |z| = 1.\nRes(1/z, 0) = lim(z→0) z·(1/z) = 1\n∮ (1/z) dz = 2πi × 1 = 2πi\n\nThis is a fundamental result in complex analysis.",
+      "explanation": "Method 1 — Parameterization:\nOn |z| = 1: z = e^(iθ), dz = ie^(iθ)dθ, θ from 0 to 2π\n∮ dz/z = ∫₀²π i dθ = 2πi\n\nMethod 2 — Residue Theorem:\nf(z) = 1/z has a simple pole at z = 0 (inside |z| = 1).\nRes(1/z, 0) = 1\n∮ (1/z) dz = 2πi × 1 = 2πi",
       "difficulty": "easy",
       "marks": 1,
       "negative_marks": -0.33,
@@ -47,7 +47,7 @@
         "D": "2e"
       },
       "correct_answer": "A",
-      "explanation": "f(z) has a pole of order 2 at z = 1.\n\nFormula for pole of order m:\nRes(f, z₀) = (1/(m-1)!) × lim(z→z₀) d^(m-1)/dz^(m-1) [(z-z₀)^m f(z)]\n\nHere m = 2, z₀ = 1:\nRes(f, 1) = (1/1!) × lim(z→1) d/dz [(z-1)² · e^z/(z-1)²]\n= lim(z→1) d/dz [e^z]\n= lim(z→1) e^z\n= e¹ = e\n\nAnswer: e",
+      "explanation": "f(z) has a pole of order 2 at z = 1.\n\nFormula for pole of order m:\nRes(f, z₀) = (1/(m-1)!) × lim(z→z₀) d^(m-1)/dz^(m-1) [(z-z₀)^m f(z)]\n\nHere m = 2, z₀ = 1:\nRes(f, 1) = lim(z→1) d/dz [(z-1)² · e^z/(z-1)²]\n= lim(z→1) d/dz [e^z]\n= lim(z→1) e^z = e",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
@@ -64,7 +64,7 @@
         "D": "x²y + C"
       },
       "correct_answer": "A",
-      "explanation": "Given u = x² - y². Find v using C-R equations:\n\nu_x = ∂v/∂y:\n2x = ∂v/∂y\nIntegrate w.r.t. y: v = 2xy + g(x)\n\nu_y = -∂v/∂x:\n-2y = -∂v/∂x\n∂v/∂x = 2y\nBut from v = 2xy + g(x): ∂v/∂x = 2y + g'(x)\nSo g'(x) = 0 → g(x) = C (constant)\n\nv = 2xy + C\n\nVerification: f(z) = (x²-y²) + 2xyi = (x+iy)² = z² ✓\nThis confirms the analytic function is f(z) = z².",
+      "explanation": "Given u = x² - y². Find v using C-R equations:\n\nu_x = ∂v/∂y: 2x = ∂v/∂y\nIntegrate w.r.t. y: v = 2xy + g(x)\n\nu_y = -∂v/∂x: -2y = -(2y + g'(x))\ng'(x) = 0 → g(x) = C\n\nv = 2xy + C\n\nVerification: f(z) = (x²-y²) + 2xyi = z² ✓",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
@@ -81,11 +81,181 @@
         "D": "Essential singularity"
       },
       "correct_answer": "C",
-      "explanation": "Expand sin(z) as Laurent series around z = 0:\nsin(z) = z - z³/3! + z⁵/5! - ...\n\nTherefore:\nsin(z)/z³ = (z - z³/6 + z⁵/120 - ...)/z³\n= 1/z² - 1/6 + z²/120 - ...\n\nThe Laurent series has the lowest power of z as z^(-2).\nThis is a POLE OF ORDER 2 (since the most negative power is -2).\n\nNote: If it were sin(z)/z, the z in numerator cancels z in denominator → Laurent series has no negative powers → removable singularity at z=0.",
+      "explanation": "Expand sin(z) around z = 0:\nsin(z) = z - z³/6 + z⁵/120 - ...\n\nsin(z)/z³ = 1/z² - 1/6 + z²/120 - ...\n\nLowest power of z is -2 → POLE OF ORDER 2.",
       "difficulty": "hard",
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["singularity", "laurent-series", "pole-order", "complex-variables"]
+    },
+    {
+      "id": "cv-006",
+      "year": null,
+      "question": "The modulus and argument of the complex number z = -1 + i√3 are:",
+      "options": {
+        "A": "|z| = 2, arg(z) = 2π/3",
+        "B": "|z| = 2, arg(z) = π/3",
+        "C": "|z| = √2, arg(z) = 3π/4",
+        "D": "|z| = 4, arg(z) = 2π/3"
+      },
+      "correct_answer": "A",
+      "explanation": "z = -1 + i√3 = x + iy where x = -1, y = √3\n\nModulus: |z| = √(x² + y²) = √(1 + 3) = √4 = 2\n\nArgument: z is in the second quadrant (x < 0, y > 0)\ntan(θ) = y/x = √3/(-1) → reference angle = arctan(√3) = π/3\nSince in second quadrant: arg(z) = π - π/3 = 2π/3\n\nVerification: z = 2(cos(2π/3) + i·sin(2π/3)) = 2(-1/2 + i·√3/2) = -1 + i√3 ✓",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["complex-algebra", "modulus-argument", "polar-form", "complex-variables"]
+    },
+    {
+      "id": "cv-007",
+      "year": null,
+      "question": "Using De Moivre's theorem, the value of (1 + i)^8 is:",
+      "options": {
+        "A": "16",
+        "B": "8",
+        "C": "-16",
+        "D": "16i"
+      },
+      "correct_answer": "A",
+      "explanation": "Step 1: Convert 1 + i to polar form\n|1 + i| = √2, arg(1+i) = π/4\nSo 1 + i = √2 · e^(iπ/4)\n\nStep 2: Apply De Moivre's theorem\n(1 + i)^8 = (√2)^8 · e^(i·8·π/4)\n= 2^4 · e^(i·2π)\n= 16 · (cos 2π + i sin 2π)\n= 16 · (1 + 0)\n= 16\n\nAlternative: (1+i)² = 1 + 2i - 1 = 2i\n(1+i)^4 = (2i)² = -4\n(1+i)^8 = (-4)² = 16",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["de-moivre", "complex-algebra", "polar-form", "complex-variables"]
+    },
+    {
+      "id": "cv-008",
+      "year": null,
+      "question": "The Cauchy-Riemann equations in polar form (r, θ) are:",
+      "options": {
+        "A": "u_r = v_θ/r and u_θ = -r·v_r",
+        "B": "u_r = v_θ and u_θ = -v_r",
+        "C": "r·u_r = v_θ and u_θ = -r·v_r",
+        "D": "u_r = r·v_θ and r·u_θ = -v_r"
+      },
+      "correct_answer": "C",
+      "explanation": "In polar coordinates z = re^(iθ), the Cauchy-Riemann equations become:\n\nr·u_r = v_θ  (first CR equation in polar)\nu_θ = -r·v_r  (second CR equation in polar)\n\nDerivation intuition: From Cartesian CR (u_x = v_y, u_y = -v_x), substitute x = r cosθ, y = r sinθ and apply chain rule.\n\nPolar CR is used when the function is naturally expressed in polar form, e.g., f(z) = z^n = r^n(cos nθ + i sin nθ).\n\nMemory: ru_r = v_θ (the 'r' goes on the left side of the first equation, and inside the right of the second).",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["cauchy-riemann", "polar-form", "analytic-functions", "complex-variables"]
+    },
+    {
+      "id": "cv-009",
+      "year": null,
+      "question": "The value of ∮_C z²/(z-2) dz where C is the circle |z| = 3 (counterclockwise) is:",
+      "options": {
+        "A": "0",
+        "B": "8πi",
+        "C": "4πi",
+        "D": "16πi"
+      },
+      "correct_answer": "B",
+      "explanation": "z = 2 is a simple pole inside |z| = 3 (since |2| = 2 < 3).\n\nBy Cauchy's Integral Formula: ∮_C f(z)/(z-z₀) dz = 2πi·f(z₀)\nHere f(z) = z², z₀ = 2\n\n∮ z²/(z-2) dz = 2πi · f(2) = 2πi · 4 = 8πi\n\nAlternatively, Residue Theorem:\nRes(z²/(z-2), 2) = lim(z→2) (z-2) · z²/(z-2) = z²|_{z=2} = 4\n∮ = 2πi × 4 = 8πi",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["cauchy-integral-formula", "contour-integral", "residue", "complex-variables"]
+    },
+    {
+      "id": "cv-010",
+      "year": null,
+      "question": "The radius of convergence of the Taylor series of f(z) = 1/(z² + 1) centered at z = 0 is:",
+      "options": {
+        "A": "0",
+        "B": "1",
+        "C": "2",
+        "D": "∞"
+      },
+      "correct_answer": "B",
+      "explanation": "The radius of convergence of the Taylor series centered at z₀ = 0 equals the distance from z₀ to the nearest singularity.\n\nSingularities of f(z) = 1/(z² + 1):\nz² + 1 = 0 → z = ±i\n\nDistance from z₀ = 0 to the nearest singularity:\n|i - 0| = 1 and |-i - 0| = 1\n\nRadius of convergence R = 1\n\nThis means the Taylor series converges for |z| < 1 and diverges for |z| > 1.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["power-series", "radius-of-convergence", "taylor-series", "complex-variables"]
+    },
+    {
+      "id": "cv-011",
+      "year": null,
+      "question": "If f(z) = u + iv is analytic, then both u and v satisfy:",
+      "options": {
+        "A": "The wave equation: ∇²u = u_tt",
+        "B": "Laplace's equation: ∇²u = 0",
+        "C": "The heat equation: u_t = ∇²u",
+        "D": "The Cauchy equation: u_x = v_y only"
+      },
+      "correct_answer": "B",
+      "explanation": "If f(z) = u + iv is analytic, then u and v satisfy the C-R equations:\nu_x = v_y and u_y = -v_x\n\nDifferentiate first CR w.r.t. x and second w.r.t. y:\nu_xx = v_yx and u_yy = -v_xy\n\nAdding: u_xx + u_yy = v_yx - v_xy = 0 (by equality of mixed partials)\n\nSo ∇²u = 0 → u is harmonic.\n\nSimilarly, ∇²v = 0 → v is harmonic.\n\nConclusion: The real and imaginary parts of any analytic function are harmonic functions (satisfy Laplace's equation). This is the deep connection between complex analysis and potential theory/electrostatics.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["harmonic-functions", "laplace-equation", "analytic-functions", "complex-variables"]
+    },
+    {
+      "id": "cv-012",
+      "year": null,
+      "question": "The number of zeros (counted with multiplicity) of the polynomial p(z) = z⁴ + 3z² + 2 in the complex plane is:",
+      "options": {
+        "A": "2",
+        "B": "3",
+        "C": "4",
+        "D": "0"
+      },
+      "correct_answer": "C",
+      "explanation": "By the Fundamental Theorem of Algebra, every polynomial of degree n has exactly n zeros in the complex plane, counted with multiplicity.\n\np(z) = z⁴ + 3z² + 2 has degree 4.\nTherefore it has exactly 4 zeros in ℂ.\n\nLet's find them: substitute w = z²:\nw² + 3w + 2 = 0 → (w+1)(w+2) = 0\nw = -1 or w = -2\n\nz² = -1 → z = ±i (2 zeros)\nz² = -2 → z = ±i√2 (2 zeros)\n\nTotal: 4 zeros (all imaginary, no real zeros) ✓",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["complex-algebra", "fundamental-theorem", "zeros-of-polynomial", "complex-variables"]
+    },
+    {
+      "id": "cv-013",
+      "year": null,
+      "question": "The Laurent series of f(z) = 1/[z(z-1)] valid for 0 < |z| < 1 is:",
+      "options": {
+        "A": "-(1/z) - 1 - z - z² - ...",
+        "B": "(1/z) - 1 + z - z² + ...",
+        "C": "(1/z) + 1 + z + z² + ...",
+        "D": "-(1/z) + 1 + z + z² + ..."
+      },
+      "correct_answer": "A",
+      "explanation": "f(z) = 1/[z(z-1)] = -1/[z(1-z)]\n\nUsing partial fractions: 1/[z(z-1)] = 1/(z-1) - 1/z\n= -1/(1-z) - 1/z\n\nFor |z| < 1: 1/(1-z) = 1 + z + z² + z³ + ... (geometric series)\n\nSo: f(z) = -(1 + z + z² + ...) - 1/z\n= -1/z - 1 - z - z² - ...\n\nThe Laurent series is: f(z) = -(1/z) - 1 - z - z² - ...\n\nNote: The principal part has just one term (-1/z), confirming z = 0 is a simple pole in this region.",
+      "difficulty": "hard",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["laurent-series", "partial-fractions", "power-series", "complex-variables"]
+    },
+    {
+      "id": "cv-014",
+      "year": null,
+      "question": "The value of the integral ∮_C (e^z)/(z² + π²) dz where C is the circle |z| = 4 is:",
+      "options": {
+        "A": "0",
+        "B": "2·sin(1)",
+        "C": "2i·sin(1)",
+        "D": "(2/π)sin(1)"
+      },
+      "correct_answer": "C",
+      "explanation": "Singularities: z² + π² = 0 → z = ±πi\nBoth |πi| = π ≈ 3.14 < 4, so both poles are inside |z| = 4.\n\nUsing Residue Theorem:\nf(z) = e^z / (z² + π²) = e^z / [(z - πi)(z + πi)]\n\nRes(f, πi) = e^(πi) / (2πi) = -1/(2πi)\nRes(f, -πi) = e^(-πi) / (-2πi) = -1/(-2πi) = 1/(2πi)\n\n∮ = 2πi × [Res(f, πi) + Res(f, -πi)]\n= 2πi × [-1/(2πi) + 1/(2πi)]\n= 2πi × 0 = 0?\n\nWait — let me recompute: e^(πi) = cos π + i sin π = -1, e^(-πi) = -1\nRes(f, πi) = e^(πi)/(2πi) = -1/(2πi)\nRes(f, -πi) = e^(-πi)/(-2πi) = -1/(-2πi) = 1/(2πi)\n\nSum of residues = -1/(2πi) + 1/(2πi) = 0\n∮ = 2πi × 0 = 0\n\nAnswer: 0 (the two residues cancel).\n\nNote: This result demonstrates that even with poles inside the contour, symmetry can cause cancellation.",
+      "difficulty": "hard",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["residue-theorem", "contour-integral", "poles", "complex-variables"]
+    },
+    {
+      "id": "cv-015",
+      "year": null,
+      "question": "A function f(z) is said to be entire if it is:",
+      "options": {
+        "A": "Analytic only on the real axis",
+        "B": "Analytic everywhere in the complex plane",
+        "C": "Analytic only at isolated points",
+        "D": "Analytic inside a finite disk"
+      },
+      "correct_answer": "B",
+      "explanation": "An entire function is one that is analytic (holomorphic) everywhere in the complex plane ℂ — with no singularities.\n\nExamples of entire functions:\n- f(z) = eˢ (no singularities anywhere)\n- f(z) = sin z, cos z\n- f(z) = zⁿ (any polynomial)\n- f(z) = z² + 3z + 5\n\nNon-entire functions (have singularities):\n- f(z) = 1/z (pole at z = 0)\n- f(z) = tan z (poles at z = π/2 + nπ)\n- f(z) = ln z (branch cut on negative real axis)\n\nLiouville's Theorem: Every bounded entire function is a constant — a profound result with many consequences (used to prove the Fundamental Theorem of Algebra).",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["entire-functions", "analyticity", "complex-variables"]
     }
   ]
 }

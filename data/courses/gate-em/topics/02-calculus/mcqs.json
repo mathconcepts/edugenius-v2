@@ -3,7 +3,7 @@
   "exam_id": "gate-engineering-maths",
   "questions": [
     {
-      "id": "calc-001",
+      "id": "ca-001",
       "year": 2023,
       "question": "The value of lim(x→0) [sin(3x) / (5x)] is:",
       "options": {
@@ -20,24 +20,24 @@
       "tags": ["limits", "standard-limits", "calculus"]
     },
     {
-      "id": "calc-002",
+      "id": "ca-002",
       "year": 2022,
       "question": "The coefficient of x³ in the Maclaurin series expansion of f(x) = e^(2x) is:",
       "options": {
         "A": "4/3",
         "B": "8/3",
         "C": "2/3",
-        "D": "8/6"
+        "D": "4"
       },
-      "correct_answer": "B",
-      "explanation": "Maclaurin series: e^u = 1 + u + u²/2! + u³/3! + ...\n\nFor e^(2x), substitute u = 2x:\ne^(2x) = 1 + (2x) + (2x)²/2! + (2x)³/3! + ...\n= 1 + 2x + 4x²/2 + 8x³/6 + ...\n= 1 + 2x + 2x² + (4/3)x³ + ...\n\nWait, let me recalculate: (2x)³/3! = 8x³/6 = 4x³/3\n\nSo coefficient of x³ = 4/3... but option B says 8/3.\n\nActually re-checking: e^(2x) = Σ (2x)^n/n! = Σ 2^n x^n/n!\nFor n=3: 2³/3! = 8/6 = 4/3\n\nThe coefficient of x³ in e^(2x) is 4/3. The answer is A.\n\nNote: This is a standard application. Always substitute the full expression and collect the x³ term.",
+      "correct_answer": "A",
+      "explanation": "Maclaurin series: e^u = 1 + u + u²/2! + u³/3! + ...\n\nFor e^(2x), substitute u = 2x:\ne^(2x) = 1 + (2x) + (2x)²/2! + (2x)³/3! + ...\n= 1 + 2x + 4x²/2 + 8x³/6 + ...\n= 1 + 2x + 2x² + (4/3)x³ + ...\n\nCoefficient of x³: (2x)³/3! = 8x³/6 = (4/3)x³\n\nSo the coefficient of x³ is 4/3.",
       "difficulty": "easy",
       "marks": 1,
       "negative_marks": -0.33,
       "tags": ["taylor-series", "maclaurin", "calculus"]
     },
     {
-      "id": "calc-003",
+      "id": "ca-003",
       "year": 2024,
       "question": "The value of ∫₀¹ x·e^x dx is:",
       "options": {
@@ -47,14 +47,14 @@
         "D": "2"
       },
       "correct_answer": "A",
-      "explanation": "Use integration by parts: ∫u dv = uv - ∫v du\n\nLet u = x, dv = eˣ dx\nThen du = dx, v = eˣ\n\n∫x·eˣ dx = x·eˣ - ∫eˣ dx = x·eˣ - eˣ + C = eˣ(x-1) + C\n\nEvaluate from 0 to 1:\n= [eˣ(x-1)]₀¹\n= e¹(1-1) - e⁰(0-1)\n= e(0) - 1(-1)\n= 0 + 1\n= 1\n\nAnswer: 1",
+      "explanation": "Use integration by parts: ∫u dv = uv - ∫v du\n\nLet u = x, dv = eˣ dx\nThen du = dx, v = eˣ\n\n∫x·eˣ dx = x·eˣ - ∫eˣ dx = x·eˣ - eˣ + C = eˣ(x-1) + C\n\nEvaluate from 0 to 1:\n= [eˣ(x-1)]₀¹\n= e¹(1-1) - e⁰(0-1)\n= e(0) - 1(-1)\n= 0 + 1 = 1",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["integration-by-parts", "definite-integral", "calculus"]
     },
     {
-      "id": "calc-004",
+      "id": "ca-004",
       "year": 2023,
       "question": "If f(x,y) = x² + y² - xy, then at the critical point, the function has:",
       "options": {
@@ -64,14 +64,14 @@
         "D": "No critical point"
       },
       "correct_answer": "B",
-      "explanation": "Find critical points:\nfₓ = 2x - y = 0  →  y = 2x\nf_y = 2y - x = 0  →  x = 2y\n\nSubstituting: x = 2(2x) = 4x → 3x = 0 → x = 0, y = 0\nCritical point: (0, 0)\n\nSecond partial derivatives:\nf_{xx} = 2, f_{yy} = 2, f_{xy} = -1\n\nDiscriminant D = f_{xx}·f_{yy} - (f_{xy})² = (2)(2) - (-1)² = 4 - 1 = 3 > 0\n\nSince D > 0 and f_{xx} = 2 > 0 → LOCAL MINIMUM at (0, 0)\n\nf(0,0) = 0 (minimum value)\n\nThe function is a paraboloid-like surface with a minimum at origin.",
+      "explanation": "Find critical points:\nfₓ = 2x - y = 0  →  y = 2x\nf_y = 2y - x = 0  →  x = 2y\n\nSubstituting: x = 2(2x) = 4x → 3x = 0 → x = 0, y = 0\nCritical point: (0, 0)\n\nSecond partial derivatives:\nf_{xx} = 2, f_{yy} = 2, f_{xy} = -1\n\nDiscriminant D = f_{xx}·f_{yy} - (f_{xy})² = (2)(2) - (-1)² = 4 - 1 = 3 > 0\n\nSince D > 0 and f_{xx} = 2 > 0 → LOCAL MINIMUM at (0, 0)\nf(0,0) = 0 (minimum value)",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["partial-derivatives", "critical-points", "multivariable", "calculus"]
     },
     {
-      "id": "calc-005",
+      "id": "ca-005",
       "year": 2024,
       "question": "The value of the double integral ∫∫_R (x + y) dA where R is the region 0 ≤ x ≤ 1, 0 ≤ y ≤ 1 is:",
       "options": {
@@ -81,11 +81,181 @@
         "D": "3/2"
       },
       "correct_answer": "B",
-      "explanation": "Set up as iterated integral:\n∫₀¹∫₀¹ (x+y) dy dx\n\nInner integral (fix x, integrate over y from 0 to 1):\n∫₀¹(x+y)dy = [xy + y²/2]₀¹ = x + 1/2\n\nOuter integral:\n∫₀¹(x + 1/2)dx = [x²/2 + x/2]₀¹ = 1/2 + 1/2 = 1\n\nAnswer: 1\n\nAlternative check: By symmetry, ∫∫(x+y)dA = ∫∫x dA + ∫∫y dA\n= ∫₀¹x dx · ∫₀¹dy + ∫₀¹dx · ∫₀¹y dy\n= (1/2)(1) + (1)(1/2) = 1/2 + 1/2 = 1 ✓",
+      "explanation": "Set up as iterated integral:\n∫₀¹∫₀¹ (x+y) dy dx\n\nInner integral (fix x, integrate over y from 0 to 1):\n∫₀¹(x+y)dy = [xy + y²/2]₀¹ = x + 1/2\n\nOuter integral:\n∫₀¹(x + 1/2)dx = [x²/2 + x/2]₀¹ = 1/2 + 1/2 = 1\n\nAnswer: 1",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["double-integral", "iterated-integral", "calculus"]
+    },
+    {
+      "id": "ca-006",
+      "year": null,
+      "question": "The value of lim(x→0) [(e^x - 1 - x) / x²] is:",
+      "options": {
+        "A": "0",
+        "B": "1",
+        "C": "1/2",
+        "D": "2"
+      },
+      "correct_answer": "C",
+      "explanation": "Method 1 — Maclaurin series:\ne^x = 1 + x + x²/2! + x³/3! + ...\ne^x - 1 - x = x²/2 + x³/6 + ...\n\nlim(x→0) [(e^x - 1 - x) / x²] = lim(x→0) [x²/2 + x³/6 + ...] / x²\n= lim(x→0) [1/2 + x/6 + ...]\n= 1/2\n\nMethod 2 — L'Hôpital (0/0 form twice):\nFirst application: lim (eˣ - 1)/(2x) = 0/0 again\nSecond application: lim eˣ/2 = 1/2 ✓",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["limits", "lhopital", "taylor-series", "calculus"]
+    },
+    {
+      "id": "ca-007",
+      "year": null,
+      "question": "If f(x) = ln(1 + x), the value of f'''(0) (third derivative at x=0) is:",
+      "options": {
+        "A": "1",
+        "B": "2",
+        "C": "-2",
+        "D": "1/6"
+      },
+      "correct_answer": "B",
+      "explanation": "Compute successive derivatives:\nf(x) = ln(1+x)\nf'(x) = 1/(1+x) = (1+x)⁻¹\nf''(x) = -(1+x)⁻² = -1/(1+x)²\nf'''(x) = 2(1+x)⁻³ = 2/(1+x)³\n\nAt x = 0:\nf'''(0) = 2/(1+0)³ = 2/1 = 2\n\nAlternative check via Maclaurin series:\nln(1+x) = x - x²/2 + x³/3 - x⁴/4 + ...\nCoefficient of x³ = 1/3 = f'''(0)/3!\nf'''(0) = 3! × (1/3) = 6 × (1/3) = 2 ✓",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["differential-calculus", "derivatives", "calculus"]
+    },
+    {
+      "id": "ca-008",
+      "year": null,
+      "question": "The function f(x) = x³ - 3x + 2 has a local maximum at:",
+      "options": {
+        "A": "x = 1",
+        "B": "x = -1",
+        "C": "x = 0",
+        "D": "x = 2"
+      },
+      "correct_answer": "B",
+      "explanation": "Step 1: Find critical points\nf'(x) = 3x² - 3 = 3(x² - 1) = 3(x-1)(x+1) = 0\nx = 1 or x = -1\n\nStep 2: Second derivative test\nf''(x) = 6x\nAt x = -1: f''(-1) = -6 < 0 → LOCAL MAXIMUM\nAt x = 1: f''(1) = 6 > 0 → local minimum\n\nStep 3: Values\nf(-1) = (-1)³ - 3(-1) + 2 = -1 + 3 + 2 = 4 (maximum)\nf(1) = 1 - 3 + 2 = 0 (minimum)\n\nLocal maximum at x = -1, f(-1) = 4.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["differential-calculus", "maxima-minima", "critical-points", "calculus"]
+    },
+    {
+      "id": "ca-009",
+      "year": null,
+      "question": "The value of ∫₀^π sin²(x) dx is:",
+      "options": {
+        "A": "π/4",
+        "B": "π/2",
+        "C": "π",
+        "D": "0"
+      },
+      "correct_answer": "B",
+      "explanation": "Use the identity: sin²(x) = (1 - cos(2x))/2\n\n∫₀^π sin²(x) dx = ∫₀^π (1 - cos(2x))/2 dx\n= (1/2) ∫₀^π (1 - cos(2x)) dx\n= (1/2) [x - sin(2x)/2]₀^π\n= (1/2) [(π - sin(2π)/2) - (0 - sin(0)/2)]\n= (1/2) [(π - 0) - 0]\n= π/2\n\nKey identity to remember: ∫₀^π sin²(x) dx = ∫₀^π cos²(x) dx = π/2",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["integral-calculus", "trigonometric-integrals", "calculus"]
+    },
+    {
+      "id": "ca-010",
+      "year": null,
+      "question": "The total derivative df for f(x,y) = x²y + sin(xy) is:",
+      "options": {
+        "A": "df = (2xy)dx + (x²)dy",
+        "B": "df = (2xy + y·cos(xy))dx + (x² + x·cos(xy))dy",
+        "C": "df = (2xy + cos(xy))dx + (x² + cos(xy))dy",
+        "D": "df = x²dy + y·sin(xy)dx"
+      },
+      "correct_answer": "B",
+      "explanation": "The total differential is: df = (∂f/∂x)dx + (∂f/∂y)dy\n\nCompute partial derivatives:\n∂f/∂x = ∂/∂x[x²y + sin(xy)]\n= 2xy + cos(xy)·y\n= 2xy + y·cos(xy)\n\n∂f/∂y = ∂/∂y[x²y + sin(xy)]\n= x² + cos(xy)·x\n= x² + x·cos(xy)\n\nTherefore:\ndf = (2xy + y·cos(xy))dx + (x² + x·cos(xy))dy\n\nCommon mistake (C): Forgetting to apply the chain rule — cos(xy) differentiating xy gives y (for ∂/∂x) or x (for ∂/∂y).",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["partial-derivatives", "total-derivative", "multivariable", "calculus"]
+    },
+    {
+      "id": "ca-011",
+      "year": null,
+      "question": "Using the Mean Value Theorem, for f(x) = x² on [1, 3], the value of c ∈ (1, 3) satisfying f'(c) = [f(3) - f(1)]/(3 - 1) is:",
+      "options": {
+        "A": "1",
+        "B": "2",
+        "C": "√3",
+        "D": "3"
+      },
+      "correct_answer": "B",
+      "explanation": "Mean Value Theorem states: there exists c ∈ (a, b) such that\nf'(c) = [f(b) - f(a)] / (b - a)\n\nHere f(x) = x², a = 1, b = 3:\n- f(3) = 9, f(1) = 1\n- [f(3) - f(1)] / (3 - 1) = (9 - 1) / 2 = 8/2 = 4\n\nf'(x) = 2x\nf'(c) = 4 → 2c = 4 → c = 2\n\nCheck: c = 2 ∈ (1, 3) ✓\nVerification: f'(2) = 4 = (9-1)/2 ✓\n\nGeometric meaning: c = 2 is the point where the tangent slope equals the secant slope.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["mean-value-theorem", "differential-calculus", "calculus"]
+    },
+    {
+      "id": "ca-012",
+      "year": null,
+      "question": "The value of ∫₀^∞ x·e^(-x²) dx is:",
+      "options": {
+        "A": "0",
+        "B": "1/2",
+        "C": "1",
+        "D": "√π/2"
+      },
+      "correct_answer": "B",
+      "explanation": "Use substitution: let u = x², then du = 2x dx → x dx = du/2\n\nWhen x = 0: u = 0\nWhen x → ∞: u → ∞\n\n∫₀^∞ x·e^(-x²) dx = ∫₀^∞ e^(-u) · (du/2)\n= (1/2) ∫₀^∞ e^(-u) du\n= (1/2) [-e^(-u)]₀^∞\n= (1/2) [0 - (-1)]\n= 1/2\n\nNote: Don't confuse with ∫₀^∞ e^(-x²) dx = √π/2 (Gaussian integral, no x factor).",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["integral-calculus", "improper-integrals", "substitution", "calculus"]
+    },
+    {
+      "id": "ca-013",
+      "year": null,
+      "question": "For f(x,y) = x²y³, which of the following equals ∂²f/∂x∂y?",
+      "options": {
+        "A": "6x²y²",
+        "B": "6xy²",
+        "C": "2y³",
+        "D": "3x²y²"
+      },
+      "correct_answer": "B",
+      "explanation": "Compute the mixed partial derivative ∂²f/∂x∂y (differentiate first w.r.t. y, then w.r.t. x):\n\nStep 1: ∂f/∂y = x² · 3y² = 3x²y²\n\nStep 2: ∂/∂x[3x²y²] = 6xy²\n\nSo ∂²f/∂x∂y = 6xy²\n\nNote: By Clairaut's theorem (Young's theorem), mixed partials are equal when continuous:\n∂²f/∂x∂y = ∂²f/∂y∂x\n\nCheck: ∂f/∂x = 2xy³, then ∂/∂y[2xy³] = 6xy² ✓\n\nCommon mistake (A): Differentiating both x and y — mixing up the order or applying the product rule incorrectly.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["partial-derivatives", "mixed-partials", "multivariable", "calculus"]
+    },
+    {
+      "id": "ca-014",
+      "year": null,
+      "question": "The function f(x) = |x| is:",
+      "options": {
+        "A": "Continuous and differentiable at x = 0",
+        "B": "Continuous but NOT differentiable at x = 0",
+        "C": "Neither continuous nor differentiable at x = 0",
+        "D": "Differentiable but NOT continuous at x = 0"
+      },
+      "correct_answer": "B",
+      "explanation": "Continuity at x = 0:\nlim(x→0⁺) |x| = 0\nlim(x→0⁻) |x| = 0\nf(0) = |0| = 0\nSince both limits equal f(0) = 0, f is CONTINUOUS at x = 0 ✓\n\nDifferentiability at x = 0:\nLeft derivative: lim(h→0⁻) [|h| - 0]/h = lim(h→0⁻) (-h)/h = -1\nRight derivative: lim(h→0⁺) [|h| - 0]/h = lim(h→0⁺) h/h = +1\n\nLeft derivative ≠ Right derivative → f is NOT DIFFERENTIABLE at x = 0\n(The graph has a sharp corner/kink at the origin)\n\nKey principle: Differentiability ⟹ Continuity, but NOT vice versa.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["continuity", "differentiability", "limits", "calculus"]
+    },
+    {
+      "id": "ca-015",
+      "year": null,
+      "question": "The area enclosed between the curves y = x² and y = x is:",
+      "options": {
+        "A": "1/6",
+        "B": "1/3",
+        "C": "1/2",
+        "D": "1"
+      },
+      "correct_answer": "A",
+      "explanation": "Step 1: Find intersection points\nx² = x → x(x-1) = 0 → x = 0 and x = 1\n\nStep 2: Determine which curve is on top in [0,1]\nAt x = 0.5: y = x = 0.5 and y = x² = 0.25\nSo y = x is above y = x² in [0,1]\n\nStep 3: Compute area\nArea = ∫₀¹ (x - x²) dx\n= [x²/2 - x³/3]₀¹\n= (1/2 - 1/3) - 0\n= 3/6 - 2/6\n= 1/6\n\nCommon mistake: Forgetting to subtract the lower curve, or using wrong intersection points. Always sketch or check which function is on top first.",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["integral-calculus", "area-between-curves", "definite-integral", "calculus"]
     }
   ]
 }

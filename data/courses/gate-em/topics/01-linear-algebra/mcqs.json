@@ -30,7 +30,7 @@
         "D": "The system has exactly two solutions"
       },
       "correct_answer": "C",
-      "explanation": "Write the augmented matrix:\n[1 1 1 | 3]\n[2 2 2 | 6]\n[3 3 3 | 9]\n\nR2 → R2 - 2R1: [0 0 0 | 0]\nR3 → R3 - 3R1: [0 0 0 | 0]\n\nAfter reduction:\n[1 1 1 | 3]\n[0 0 0 | 0]\n[0 0 0 | 0]\n\nrank(A) = rank([A|b]) = 1 < n = 3\n→ System is consistent with infinitely many solutions (2 free variables).\n\nNote: All three equations are identical (each is a multiple of the first), so they represent the same plane. Any point on the plane x + y + z = 3 is a solution.",
+      "explanation": "Write the augmented matrix:\n[1 1 1 | 3]\n[2 2 2 | 6]\n[3 3 3 | 9]\n\nR2 → R2 - 2R1: [0 0 0 | 0]\nR3 → R3 - 3R1: [0 0 0 | 0]\n\nAfter reduction:\n[1 1 1 | 3]\n[0 0 0 | 0]\n[0 0 0 | 0]\n\nrank(A) = rank([A|b]) = 1 < n = 3\n→ System is consistent with infinitely many solutions (2 free variables).\n\nNote: All three equations are identical (each is a multiple of the first), so they represent the same plane.",
       "difficulty": "easy",
       "marks": 1,
       "negative_marks": -0.33,
@@ -56,23 +56,6 @@
     {
       "id": "la-004",
       "year": 2023,
-      "question": "If A = [[2, 1], [0, 3]] and the characteristic polynomial is p(λ) = λ² - 5λ + 6, then A⁶ using Cayley-Hamilton theorem equals:",
-      "options": {
-        "A": "[[64, 211], [0, 729]]",
-        "B": "[[64, 422], [0, 729]]",
-        "C": "[[32, 211], [0, 243]]",
-        "D": "[[128, 211], [0, 729]]"
-      },
-      "correct_answer": "A",
-      "explanation": "By Cayley-Hamilton: A² - 5A + 6I = 0 → A² = 5A - 6I\n\nWe need A⁶. Build up step by step:\n- A² = 5A - 6I\n- A³ = A·A² = 5A² - 6A = 5(5A-6I) - 6A = 19A - 30I\n- A⁶ = (A³)²\n\nLet's compute A³ directly:\nA = [[2,1],[0,3]]\nA² = [[4,5],[0,9]]\nA³ = A·A² = [[2,1],[0,3]]·[[4,5],[0,9]] = [[8,19],[0,27]]\nA⁶ = A³·A³ = [[8,19],[0,27]]·[[8,19],[0,27]]\n   = [[64, 8×19+19×27], [0, 729]]\n   = [[64, 152+513], [0, 729]]\n   = [[64, 665], [0, 729]]\n\nWait — using eigenvalues: λ=2,3; A⁶ has eigenvalues 2⁶=64, 3⁶=729.\nFor upper triangular A, direct computation:\nA⁶ = [[2⁶, ?],[0, 3⁶]] = [[64, ?],[0, 729]].\nThe off-diagonal = 1×(3⁶-2⁶)/(3-2) = 729-64 = 665 → not matching option A.\nBut for [[64,211],[0,729]]: 211 ≠ 665. Choosing A as closest match to exam pattern.\n\nCorrect calculation: For A = [[a,b],[0,c]], Aⁿ = [[aⁿ, b(cⁿ-aⁿ)/(c-a)],[0,cⁿ]]\nA⁶ = [[64, 1×(729-64)/1],[0,729]] = [[64, 665],[0,729]]\n\nNote: This question tests Cayley-Hamilton methodology. The key insight is using A² = 5A - 6I to reduce higher powers.",
-      "difficulty": "hard",
-      "marks": 2,
-      "negative_marks": -0.67,
-      "tags": ["cayley-hamilton", "matrix-powers", "linear-algebra"]
-    },
-    {
-      "id": "la-005",
-      "year": 2024,
       "question": "A 3×3 matrix A has eigenvalues 1, 2, and 3. What is the value of det(2A⁻¹)?",
       "options": {
         "A": "8/6",
@@ -81,11 +64,198 @@
         "D": "1"
       },
       "correct_answer": "C",
-      "explanation": "Step 1: Find det(A)\ndet(A) = product of eigenvalues = 1 × 2 × 3 = 6\n\nStep 2: Find det(A⁻¹)\ndet(A⁻¹) = 1/det(A) = 1/6\n\nStep 3: Find det(2A⁻¹)\nFor an n×n matrix, det(kM) = kⁿ det(M)\nHere n = 3, k = 2:\ndet(2A⁻¹) = 2³ × det(A⁻¹) = 8 × (1/6) = 8/6 = 4/3\n\nAnswer: 4/3\n\nKey formulas used:\n- det(A) = product of eigenvalues\n- det(kA) = kⁿ det(A) for n×n matrix\n- det(A⁻¹) = 1/det(A)",
+      "explanation": "Step 1: Find det(A)\ndet(A) = product of eigenvalues = 1 × 2 × 3 = 6\n\nStep 2: Find det(A⁻¹)\ndet(A⁻¹) = 1/det(A) = 1/6\n\nStep 3: Find det(2A⁻¹)\nFor an n×n matrix, det(kM) = kⁿ det(M)\nHere n = 3, k = 2:\ndet(2A⁻¹) = 2³ × det(A⁻¹) = 8 × (1/6) = 8/6 = 4/3\n\nKey formulas:\n- det(A) = product of eigenvalues\n- det(kA) = kⁿ det(A) for n×n matrix\n- det(A⁻¹) = 1/det(A)",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["eigenvalues", "determinant", "inverse", "linear-algebra"]
+    },
+    {
+      "id": "la-005",
+      "year": 2024,
+      "question": "If A is a real symmetric matrix, which of the following is always TRUE?",
+      "options": {
+        "A": "All eigenvalues of A are positive",
+        "B": "All eigenvalues of A are real",
+        "C": "All eigenvalues of A are zero",
+        "D": "A has no repeated eigenvalues"
+      },
+      "correct_answer": "B",
+      "explanation": "For a real symmetric matrix A (where A = Aᵀ):\n1. All eigenvalues are REAL (proven via: if Av = λv, take conjugate transpose → λ̄ = λ, so λ is real)\n2. Eigenvectors for distinct eigenvalues are orthogonal\n3. A is always diagonalizable\n\nWhy other options are wrong:\n- A: Not necessarily positive (e.g., [[-1,0],[0,-2]] is symmetric with negative eigenvalues)\n- C: Not necessarily zero (identity matrix is symmetric with all eigenvalues = 1)\n- D: Repeated eigenvalues are possible (e.g., identity matrix)\n\nThis is the Spectral Theorem: every real symmetric matrix has real eigenvalues and orthonormal eigenvectors.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["symmetric-matrix", "eigenvalues", "spectral-theorem", "linear-algebra"]
+    },
+    {
+      "id": "la-006",
+      "year": null,
+      "question": "The determinant of the matrix A = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] is:",
+      "options": {
+        "A": "0",
+        "B": "6",
+        "C": "-6",
+        "D": "45"
+      },
+      "correct_answer": "A",
+      "explanation": "Expanding along row 1:\ndet(A) = 1·det([[5,6],[8,9]]) - 2·det([[4,6],[7,9]]) + 3·det([[4,5],[7,8]])\n= 1·(45-48) - 2·(36-42) + 3·(32-35)\n= 1·(-3) - 2·(-6) + 3·(-3)\n= -3 + 12 - 9\n= 0\n\nIntuition: Row 3 = 2×Row 2 - Row 1 (check: 7=2×4-1, 8=2×5-2, 9=2×6-3).\nWhenever rows are linearly dependent, det = 0.\nThis matrix has rank < 3, so determinant = 0.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["determinant", "linear-dependence", "matrices", "linear-algebra"]
+    },
+    {
+      "id": "la-007",
+      "year": null,
+      "question": "Which of the following sets of vectors forms a basis for ℝ³?",
+      "options": {
+        "A": "{(1,0,0), (0,1,0), (1,1,0)}",
+        "B": "{(1,1,0), (0,1,1), (1,0,1)}",
+        "C": "{(1,2,3), (2,4,6), (0,1,0)}",
+        "D": "{(1,0,0), (0,1,0), (0,0,0)}"
+      },
+      "correct_answer": "B",
+      "explanation": "A basis for ℝ³ requires 3 linearly independent vectors.\n\nCheck option B: {(1,1,0), (0,1,1), (1,0,1)}\nForm matrix and compute determinant:\n|1 1 0|\n|0 1 1|\n|1 0 1|\n= 1(1·1 - 1·0) - 1(0·1 - 1·1) + 0\n= 1(1) - 1(-1) = 1 + 1 = 2 ≠ 0\n→ Linearly independent → forms a basis ✓\n\nWhy others fail:\n- A: Three vectors, all in the xy-plane (z=0 for all), can only span 2D subspace\n- C: (2,4,6) = 2×(1,2,3) → linearly dependent, rank < 3\n- D: Zero vector is always linearly dependent; no set containing 0 is linearly independent",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["basis", "vector-spaces", "linear-independence", "linear-algebra"]
+    },
+    {
+      "id": "la-008",
+      "year": null,
+      "question": "If A is an n×n invertible matrix and b is a non-zero vector, the system Ax = b:",
+      "options": {
+        "A": "Has no solution",
+        "B": "Has exactly one solution: x = A⁻¹b",
+        "C": "Has infinitely many solutions",
+        "D": "May or may not have a solution depending on b"
+      },
+      "correct_answer": "B",
+      "explanation": "If A is invertible (det(A) ≠ 0), then:\n1. rank(A) = n (full rank)\n2. The system Ax = b has a UNIQUE solution for ANY right-hand side b\n3. The unique solution is x = A⁻¹b\n\nProof: Multiply both sides by A⁻¹ from the left:\nA⁻¹(Ax) = A⁻¹b\n(A⁻¹A)x = A⁻¹b\nIx = A⁻¹b\nx = A⁻¹b\n\nThis is unique because if x₁ and x₂ are both solutions:\nAx₁ = b and Ax₂ = b\nA(x₁ - x₂) = 0\nSince A is invertible, x₁ - x₂ = 0 → x₁ = x₂",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["invertible-matrix", "system-of-equations", "linear-algebra"]
+    },
+    {
+      "id": "la-009",
+      "year": null,
+      "question": "For a square matrix A, which of the following is equivalent to A being singular?",
+      "options": {
+        "A": "trace(A) = 0",
+        "B": "At least one eigenvalue of A is zero",
+        "C": "A is symmetric",
+        "D": "A has distinct eigenvalues"
+      },
+      "correct_answer": "B",
+      "explanation": "A square matrix A is singular if and only if det(A) = 0.\n\nKey relationship: det(A) = product of all eigenvalues.\n\nIf any eigenvalue λᵢ = 0, then det(A) = λ₁·λ₂·...·λₙ = 0 → A is singular.\n\nConversely, if det(A) = 0, then the product of eigenvalues = 0, so at least one eigenvalue must be zero.\n\nWhy other options are wrong:\n- A: trace(A) = 0 means sum of eigenvalues = 0, but they could all be non-zero (e.g., +1 and -1)\n- C: Symmetric matrices can be non-singular (e.g., identity)\n- D: Distinct eigenvalues have no direct link to singularity\n\nAlso: singular ↔ Ax = 0 has non-trivial solutions ↔ null space is non-trivial ↔ rank < n",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["singular-matrix", "eigenvalues", "determinant", "linear-algebra"]
+    },
+    {
+      "id": "la-010",
+      "year": null,
+      "question": "The matrix A = [[0, 1], [-1, 0]] represents a rotation. What are its eigenvalues?",
+      "options": {
+        "A": "1 and -1",
+        "B": "i and -i",
+        "C": "0 and 1",
+        "D": "1 and 0"
+      },
+      "correct_answer": "B",
+      "explanation": "Characteristic equation: det(A - λI) = 0\n|-λ  1 |\n|-1  -λ| = 0\n\nλ² + 1 = 0\nλ² = -1\nλ = ±i\n\nSo eigenvalues are i and -i (complex conjugates).\n\nThis makes geometric sense: A represents a 90° counterclockwise rotation.\nReal rotations (other than 0° and 180°) have no real eigenvectors — vectors don't stay in the same direction under rotation.\nThus, eigenvalues must be complex.\n\nNote: det(A) = 0×0 - 1×(-1) = 1 = i×(-i) ✓\ntrace(A) = 0 = i + (-i) ✓",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["eigenvalues", "rotation-matrix", "complex-eigenvalues", "linear-algebra"]
+    },
+    {
+      "id": "la-011",
+      "year": null,
+      "question": "Let A be a 3×3 matrix with eigenvalues 2, 3, 5. What is trace(A²)?",
+      "options": {
+        "A": "10",
+        "B": "38",
+        "C": "100",
+        "D": "30"
+      },
+      "correct_answer": "B",
+      "explanation": "Key fact: eigenvalues of A² are squares of eigenvalues of A.\nIf A has eigenvalues λ₁, λ₂, λ₃, then A² has eigenvalues λ₁², λ₂², λ₃².\n\nStep 1: Eigenvalues of A² = 2² = 4, 3² = 9, 5² = 25\n\nStep 2: trace(A²) = sum of eigenvalues of A² = 4 + 9 + 25 = 38\n\nWhy this works: trace = sum of eigenvalues (always, for any matrix and any power).\ntrace(Aⁿ) = λ₁ⁿ + λ₂ⁿ + ... + λₖⁿ\n\nCommon mistake: Computing trace(A)² = (2+3+5)² = 100 — this is WRONG. trace(A²) ≠ (trace(A))²",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["trace", "eigenvalues", "matrix-powers", "linear-algebra"]
+    },
+    {
+      "id": "la-012",
+      "year": null,
+      "question": "The system Ax = b where A = [[1,2],[2,4]] and b = [[3],[6]] has:",
+      "options": {
+        "A": "No solution",
+        "B": "A unique solution",
+        "C": "Infinitely many solutions",
+        "D": "Exactly two solutions"
+      },
+      "correct_answer": "C",
+      "explanation": "Form augmented matrix [A|b]:\n[1 2 | 3]\n[2 4 | 6]\n\nR2 → R2 - 2R1:\n[1 2 | 3]\n[0 0 | 0]\n\nrank(A) = 1, rank([A|b]) = 1\n\nSince rank(A) = rank([A|b]) = 1 < n = 2:\n→ System is CONSISTENT with infinitely many solutions\n(n - rank = 2 - 1 = 1 free variable)\n\nNote: det(A) = 1×4 - 2×2 = 0, so A is singular.\nThe solution set is: x = 3 - 2t, y = t for any t ∈ ℝ.\n\nFor inconsistency, we'd need rank([A|b]) > rank(A), e.g., if b = [[3],[7]].",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["system-of-equations", "consistency", "rank", "singular-matrix", "linear-algebra"]
+    },
+    {
+      "id": "la-013",
+      "year": null,
+      "question": "An orthogonal matrix Q satisfies which property?",
+      "options": {
+        "A": "Q = Q⁻¹",
+        "B": "Qᵀ = Q⁻¹",
+        "C": "det(Q) = 0",
+        "D": "Q = Qᵀ"
+      },
+      "correct_answer": "B",
+      "explanation": "By definition, a matrix Q is orthogonal if QᵀQ = QQᵀ = I, which means Qᵀ = Q⁻¹.\n\nProperties of orthogonal matrices:\n1. Qᵀ = Q⁻¹ (defining property)\n2. det(Q) = ±1 (not 0, so option C is wrong)\n3. Columns form an orthonormal set\n4. Rows form an orthonormal set\n5. Q preserves lengths: ||Qx|| = ||x|| for all x\n6. Q preserves dot products: (Qx)·(Qy) = x·y\n\nWhy other options are wrong:\n- A: Q = Q⁻¹ would mean Q² = I, but not all orthogonal matrices satisfy this\n- C: det(Q) = ±1 ≠ 0\n- D: Q = Qᵀ means Q is symmetric, but orthogonal matrices aren't necessarily symmetric\n\nExamples: Rotation matrices, reflection matrices are orthogonal.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["orthogonal-matrix", "matrix-inverse", "linear-algebra"]
+    },
+    {
+      "id": "la-014",
+      "year": null,
+      "question": "If A is a 5×3 matrix with rank 3, the system Ax = b (where b ≠ 0) has:",
+      "options": {
+        "A": "Always a unique solution",
+        "B": "Always infinitely many solutions",
+        "C": "Either no solution or a unique solution, depending on b",
+        "D": "Always no solution"
+      },
+      "correct_answer": "C",
+      "explanation": "A is 5×3 (more equations than unknowns → overdetermined system), rank(A) = 3 = n (full column rank).\n\nWith full column rank (rank = 3 = number of columns):\n- The null space of A contains only the zero vector → Ax = 0 has only trivial solution\n- This means if a solution exists, it is UNIQUE\n\nHowever, whether a solution exists depends on b:\n- If b is in the column space of A (a 3D subspace of ℝ⁵): unique solution exists\n- If b is NOT in the column space of A: no solution (inconsistent)\n\nKey insight: Full column rank → at most one solution. But b could be outside the column space (since column space is only a 3D subspace of 5D space), so there might be no solution at all.\n\nIf it were full row rank (rank = m), we'd have: always at least one solution.",
+      "difficulty": "hard",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["overdetermined-system", "rank", "column-space", "linear-algebra"]
+    },
+    {
+      "id": "la-015",
+      "year": null,
+      "question": "The quadratic form Q(x,y) = 2x² + 4xy + 2y² can be written as Xᵀ AX where X = [x,y]ᵀ. The matrix A is:",
+      "options": {
+        "A": "[[2, 4], [4, 2]]",
+        "B": "[[2, 2], [2, 2]]",
+        "C": "[[2, 0], [0, 2]]",
+        "D": "[[4, 2], [2, 4]]"
+      },
+      "correct_answer": "B",
+      "explanation": "For quadratic form Q = axx·x² + 2axy·xy + ayy·y² = Xᵀ AX:\nThe associated symmetric matrix A has entries:\n- A₁₁ = coefficient of x² = 2\n- A₂₂ = coefficient of y² = 2\n- A₁₂ = A₂₁ = (coefficient of xy)/2 = 4/2 = 2\n\nSo A = [[2, 2], [2, 2]]\n\nVerification: Xᵀ AX = [x, y] [[2,2],[2,2]] [x,y]ᵀ\n= [x,y] [2x+2y, 2x+2y]ᵀ\n= x(2x+2y) + y(2x+2y)\n= 2x² + 2xy + 2xy + 2y²\n= 2x² + 4xy + 2y² ✓\n\nCommon mistake (Option A): Putting 4 directly in off-diagonal positions gives Q = 2x² + 8xy + 2y² (the xy coefficient doubles when symmetric).",
+      "difficulty": "medium",
+      "marks": 2,
+      "negative_marks": -0.67,
+      "tags": ["quadratic-forms", "symmetric-matrix", "matrices", "linear-algebra"]
     }
   ]
 }

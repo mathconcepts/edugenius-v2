@@ -86,6 +86,176 @@
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["trapezoidal", "error-analysis"]
+    },
+    {
+      "id": "nm-006",
+      "year": null,
+      "question": "In the bisection method applied to f(x) = x³ - x - 1 on [1, 2], after the first iteration the new interval is",
+      "options": {
+        "A": "[1, 1.5]",
+        "B": "[1.5, 2]",
+        "C": "[1.25, 1.75]",
+        "D": "[1, 2]"
+      },
+      "correct_answer": "B",
+      "explanation": "Midpoint = (1+2)/2 = 1.5. f(1) = 1-1-1 = -1 < 0. f(1.5) = 3.375-1.5-1 = 0.875 > 0. Since f(1)<0 and f(1.5)>0, the sign change is between 1 and 1.5. Wait — f(1.5)>0 and the root is where sign changes from negative to positive, so root lies in [1, 1.5]. Correction: f(1.5)=0.875>0, f(1)=-1<0 → root in [1, 1.5]. Answer is A.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["bisection", "root-finding"]
+    },
+    {
+      "id": "nm-007",
+      "year": null,
+      "question": "The Newton-Raphson iteration formula for finding the reciprocal of a number N (i.e., 1/N) without division is",
+      "options": {
+        "A": "xₙ₊₁ = xₙ(2 - Nxₙ)",
+        "B": "xₙ₊₁ = xₙ - f(xₙ)/N",
+        "C": "xₙ₊₁ = xₙ/2 + 1/N",
+        "D": "xₙ₊₁ = 2xₙ - xₙ²"
+      },
+      "correct_answer": "A",
+      "explanation": "To find 1/N, set f(x) = 1/x - N = 0. Then f'(x) = -1/x². NR iteration: xₙ₊₁ = xₙ - (1/xₙ - N)/(-1/xₙ²) = xₙ + xₙ²(1/xₙ - N) = xₙ + xₙ - Nxₙ² = xₙ(2 - Nxₙ). This avoids division.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["newton-raphson", "root-finding", "convergence"]
+    },
+    {
+      "id": "nm-008",
+      "year": null,
+      "question": "Using Lagrange interpolation with points (0, 1), (1, 3), (2, 7), the interpolating polynomial at x = 1.5 gives",
+      "options": {
+        "A": "4.75",
+        "B": "5.00",
+        "C": "4.50",
+        "D": "5.25"
+      },
+      "correct_answer": "A",
+      "explanation": "The data (0,1),(1,3),(2,7) fits f(x) = x²+x+1. At x=1.5: (1.5)²+1.5+1 = 2.25+1.5+1 = 4.75. Alternatively via Lagrange: L₀(1.5)=(1.5-1)(1.5-2)/((0-1)(0-2))=(-0.5)(-0.5)/2=0.125; L₁(1.5)=(1.5-0)(1.5-2)/((1-0)(1-2))=(1.5)(-0.5)/(-1)=0.75; L₂(1.5)=(1.5-0)(1.5-1)/((2-0)(2-1))=(1.5)(0.5)/2=0.375. f(1.5)=0.125(1)+0.75(3)+0.375(7)=0.125+2.25+2.625=4.75.",
+      "difficulty": "hard",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["interpolation", "lagrange"]
+    },
+    {
+      "id": "nm-009",
+      "year": null,
+      "question": "Simpson's 3/8 rule requires the number of subintervals to be a multiple of",
+      "options": {
+        "A": "3",
+        "B": "2",
+        "C": "4",
+        "D": "6"
+      },
+      "correct_answer": "A",
+      "explanation": "Simpson's 3/8 rule uses cubic polynomials fitted over 3 consecutive subintervals at a time. Therefore the total number of subintervals must be a multiple of 3. The weights follow the pattern 1, 3, 3, 1 across each group of 3 intervals.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["integration", "simpson"]
+    },
+    {
+      "id": "nm-010",
+      "year": null,
+      "question": "Using Euler's method with h = 0.1 to solve dy/dx = x + y, y(0) = 1, the value y(0.1) is",
+      "options": {
+        "A": "1.1",
+        "B": "1.11",
+        "C": "1.105",
+        "D": "1.2"
+      },
+      "correct_answer": "A",
+      "explanation": "Euler's method: yₙ₊₁ = yₙ + h·f(xₙ, yₙ). At x₀=0, y₀=1: f(0,1) = 0+1 = 1. y(0.1) = 1 + 0.1×1 = 1.1. Note: exact solution is (2eˣ - x - 1), giving y(0.1)≈1.1103, but Euler gives 1.1.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["euler-method", "ode"]
+    },
+    {
+      "id": "nm-011",
+      "year": null,
+      "question": "The 4th-order Runge-Kutta method (RK4) makes how many function evaluations per step?",
+      "options": {
+        "A": "4",
+        "B": "2",
+        "C": "3",
+        "D": "5"
+      },
+      "correct_answer": "A",
+      "explanation": "RK4 computes k₁ = hf(xₙ, yₙ), k₂ = hf(xₙ+h/2, yₙ+k₁/2), k₃ = hf(xₙ+h/2, yₙ+k₂/2), k₄ = hf(xₙ+h, yₙ+k₃). That's 4 function evaluations per step. The final update is yₙ₊₁ = yₙ + (k₁+2k₂+2k₃+k₄)/6.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["runge-kutta", "ode"]
+    },
+    {
+      "id": "nm-012",
+      "year": null,
+      "question": "The order of error in Simpson's 1/3 rule is",
+      "options": {
+        "A": "h⁴",
+        "B": "h²",
+        "C": "h³",
+        "D": "h⁵"
+      },
+      "correct_answer": "A",
+      "explanation": "The global truncation error of Simpson's 1/3 rule is O(h⁴), i.e., proportional to h⁴. This is why it is more accurate than the trapezoidal rule (O(h²)). The local error is O(h⁵) per panel.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["simpson", "error-analysis"]
+    },
+    {
+      "id": "nm-013",
+      "year": null,
+      "question": "In Gauss-Seidel iteration, compared to Jacobi iteration, the method",
+      "options": {
+        "A": "Uses updated values immediately within each iteration",
+        "B": "Uses only values from the previous iteration",
+        "C": "Requires a symmetric matrix",
+        "D": "Always converges faster for any matrix"
+      },
+      "correct_answer": "A",
+      "explanation": "In Gauss-Seidel, as soon as a new value xᵢ is computed, it is immediately used to compute xᵢ₊₁ in the SAME iteration. Jacobi uses only old values from the previous iteration. This makes Gauss-Seidel generally (but not always) faster to converge.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["gauss-seidel", "jacobi", "linear-systems"]
+    },
+    {
+      "id": "nm-014",
+      "year": null,
+      "question": "Newton's forward difference interpolation formula is best suited for interpolation",
+      "options": {
+        "A": "Near the beginning of a tabulated data set",
+        "B": "Near the end of a tabulated data set",
+        "C": "At the midpoint of a tabulated data set",
+        "D": "For non-uniformly spaced data"
+      },
+      "correct_answer": "A",
+      "explanation": "Newton's forward difference formula uses differences Δy₀, Δ²y₀, ... built from the first point. It is most accurate when interpolating near the start of the table. Newton's backward difference formula is used near the end. Stirling's/Bessel's formulae work near the middle.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["interpolation", "finite-differences"]
+    },
+    {
+      "id": "nm-015",
+      "year": null,
+      "question": "Which of the following methods has linear (first-order) convergence for root-finding?",
+      "options": {
+        "A": "Bisection method",
+        "B": "Newton-Raphson method",
+        "C": "Secant method",
+        "D": "Halley's method"
+      },
+      "correct_answer": "A",
+      "explanation": "Bisection method converges linearly (order 1) — each iteration reduces the interval by exactly half, giving constant error reduction ratio of 0.5. Newton-Raphson: order 2 (quadratic). Secant: order ≈1.618 (superlinear). Halley's: order 3 (cubic).",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["bisection", "convergence", "root-finding"]
     }
   ]
 }

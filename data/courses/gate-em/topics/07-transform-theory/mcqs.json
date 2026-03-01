@@ -64,7 +64,7 @@
         "D": "1/z, |z|<1"
       },
       "correct_answer": "A",
-      "explanation": "Z{u[n]} = Σ(n=0 to ∞) z^(-n) = 1/(1-z^(-1)) = z/(z-1), converging for |z|>1.",
+      "explanation": "Z{u[n]} = sum(n=0 to inf) z^(-n) = 1/(1-z^(-1)) = z/(z-1), converging for |z|>1.",
       "difficulty": "medium",
       "marks": 2,
       "negative_marks": -0.67,
@@ -86,6 +86,176 @@
       "marks": 2,
       "negative_marks": -0.67,
       "tags": ["laplace", "ode", "inverse-laplace"]
+    },
+    {
+      "id": "tt-006",
+      "year": null,
+      "question": "The Laplace transform of sin(at) is",
+      "options": {
+        "A": "a/(s²+a²)",
+        "B": "s/(s²+a²)",
+        "C": "a/(s²-a²)",
+        "D": "1/(s²+a²)"
+      },
+      "correct_answer": "A",
+      "explanation": "L{sin(at)} = a/(s²+a²) for s>0. This is a standard result. Compare: L{cos(at)} = s/(s²+a²). Key mnemonic: sin gives 'a' (the frequency) in numerator, cos gives 's' in numerator.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["laplace", "standard-transforms"]
+    },
+    {
+      "id": "tt-007",
+      "year": null,
+      "question": "The inverse Laplace transform of 1/(s(s+1)) is",
+      "options": {
+        "A": "1 - e^(-t)",
+        "B": "e^(-t) - 1",
+        "C": "1 + e^(-t)",
+        "D": "e^t - 1"
+      },
+      "correct_answer": "A",
+      "explanation": "Partial fractions: 1/(s(s+1)) = A/s + B/(s+1). Solving: A=1, B=-1. So 1/(s(s+1)) = 1/s - 1/(s+1). Inverse LT: L^(-1){1/s} = 1 (unit step), L^(-1){1/(s+1)} = e^(-t). Therefore: f(t) = 1 - e^(-t).",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["inverse-laplace", "partial-fractions"]
+    },
+    {
+      "id": "tt-008",
+      "year": null,
+      "question": "The Fourier series of a periodic odd function contains",
+      "options": {
+        "A": "Only sine terms",
+        "B": "Only cosine terms",
+        "C": "Both sine and cosine terms",
+        "D": "Only a constant term"
+      },
+      "correct_answer": "A",
+      "explanation": "For an odd function f(t) [where f(-t) = -f(t)]: cosine coefficients aₙ = 0 (odd × even = odd, integrates to zero over symmetric interval). Only bₙ (sine) coefficients survive. For even functions, only cosine terms appear.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["fourier-series", "odd-function", "symmetry"]
+    },
+    {
+      "id": "tt-009",
+      "year": null,
+      "question": "If X(jω) is the Fourier transform of x(t), then the Fourier transform of x(t-t₀) is",
+      "options": {
+        "A": "e^(-jωt₀) X(jω)",
+        "B": "e^(jωt₀) X(jω)",
+        "C": "X(j(ω - t₀))",
+        "D": "X(jω) / t₀"
+      },
+      "correct_answer": "A",
+      "explanation": "Time shifting property of Fourier Transform: FT{x(t-t₀)} = e^(-jωt₀) X(jω). A time delay of t₀ introduces a linear phase shift of -ωt₀ in the frequency domain but does NOT change the magnitude spectrum |X(jω)|.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["fourier-transform", "time-shift"]
+    },
+    {
+      "id": "tt-010",
+      "year": null,
+      "question": "Parseval's theorem for Fourier transforms states that",
+      "options": {
+        "A": "Total signal energy is the same in time and frequency domains",
+        "B": "The Fourier transform of a real signal is conjugate symmetric",
+        "C": "Convolution in time equals addition in frequency",
+        "D": "Differentiation in time equals division by jω in frequency"
+      },
+      "correct_answer": "A",
+      "explanation": "Parseval's theorem: ∫|x(t)|²dt = (1/2π)∫|X(jω)|²dω. The total energy of a signal is conserved — it is the same whether computed in the time domain or frequency domain. This is the energy conservation principle for Fourier transforms.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["fourier-transform", "parseval", "energy"]
+    },
+    {
+      "id": "tt-011",
+      "year": null,
+      "question": "The Laplace transform of the unit impulse function δ(t) is",
+      "options": {
+        "A": "1",
+        "B": "1/s",
+        "C": "s",
+        "D": "e^(-s)"
+      },
+      "correct_answer": "A",
+      "explanation": "L{δ(t)} = integral(0 to inf) δ(t)e^(-st)dt = e^(-s·0) = 1. Fundamental pairs: L{δ(t)}=1, L{u(t)}=1/s, L{t}=1/s², L{δ'(t)}=s. The impulse transforms to constant 1, which is why it acts as the identity element for convolution.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["laplace", "impulse", "standard-transforms"]
+    },
+    {
+      "id": "tt-012",
+      "year": null,
+      "question": "The constant term a₀ in the Fourier series of f(t) = t on [-π, π] (period 2π) equals",
+      "options": {
+        "A": "0",
+        "B": "π",
+        "C": "π/2",
+        "D": "2/π"
+      },
+      "correct_answer": "A",
+      "explanation": "a₀ = (1/2π)∫_{-π}^{π} t dt = (1/2π)[t²/2]_{-π}^{π} = (1/2π)[(π²/2)-(π²/2)] = 0. Since f(t)=t is an odd function, its average value and all aₙ coefficients are zero. The Fourier series is a pure sine series: f(t) = 2Σ((-1)^(n+1)/n)sin(nt).",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["fourier-series", "odd-function"]
+    },
+    {
+      "id": "tt-013",
+      "year": null,
+      "question": "The convolution theorem for Laplace transforms states that L{f(t)*g(t)} =",
+      "options": {
+        "A": "F(s)·G(s)",
+        "B": "F(s) + G(s)",
+        "C": "F(s)/G(s)",
+        "D": "dF(s)/ds · G(s)"
+      },
+      "correct_answer": "A",
+      "explanation": "Convolution theorem: if (f*g)(t) = ∫₀^t f(τ)g(t-τ)dτ, then L{f*g} = F(s)·G(s). Convolution in time domain becomes multiplication in s-domain. This is useful for solving integral equations and computing inverse Laplace transforms.",
+      "difficulty": "easy",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["laplace", "convolution"]
+    },
+    {
+      "id": "tt-014",
+      "year": null,
+      "question": "The Z-transform of aⁿu[n] (where u[n] is the unit step sequence) is",
+      "options": {
+        "A": "z/(z-a), |z|>|a|",
+        "B": "z/(z+a), |z|>|a|",
+        "C": "1/(z-a), |z|>|a|",
+        "D": "a/(z-a), |z|>|a|"
+      },
+      "correct_answer": "A",
+      "explanation": "Z{aⁿu[n]} = Σ(n=0 to ∞) aⁿz^(-n) = Σ(a/z)ⁿ = 1/(1-a/z) = z/(z-a), converging for |z|>|a|. This fundamental Z-transform pair is analogous to L{e^(at)} = 1/(s-a) in Laplace transforms.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["z-transform", "standard-transforms"]
+    },
+    {
+      "id": "tt-015",
+      "year": null,
+      "question": "The initial value theorem of Laplace transforms states: lim(t→0⁺) f(t) =",
+      "options": {
+        "A": "lim(s→∞) s·F(s)",
+        "B": "lim(s→0) s·F(s)",
+        "C": "lim(s→∞) F(s)",
+        "D": "F(0)"
+      },
+      "correct_answer": "A",
+      "explanation": "Initial Value Theorem: lim(t→0⁺) f(t) = lim(s→∞) s·F(s). Final Value Theorem: lim(t→∞) f(t) = lim(s→0) s·F(s) (if all poles of sF(s) are in left half-plane). These theorems let us find initial/final values directly from F(s) without full inversion.",
+      "difficulty": "medium",
+      "marks": 1,
+      "negative_marks": -0.33,
+      "tags": ["laplace", "initial-value-theorem"]
     }
   ]
 }
