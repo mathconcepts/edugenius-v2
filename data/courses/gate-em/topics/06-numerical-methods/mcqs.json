@@ -97,8 +97,8 @@
         "C": "[1.25, 1.75]",
         "D": "[1, 2]"
       },
-      "correct_answer": "B",
-      "explanation": "Midpoint = (1+2)/2 = 1.5. f(1) = 1-1-1 = -1 < 0. f(1.5) = 3.375-1.5-1 = 0.875 > 0. Since f(1)<0 and f(1.5)>0, the sign change is between 1 and 1.5. Wait — f(1.5)>0 and the root is where sign changes from negative to positive, so root lies in [1, 1.5]. Correction: f(1.5)=0.875>0, f(1)=-1<0 → root in [1, 1.5]. Answer is A.",
+      "correct_answer": "A",
+      "explanation": "Midpoint = (1+2)/2 = 1.5. Evaluate: f(1) = 1-1-1 = -1 < 0, f(1.5) = 3.375-1.5-1 = 0.875 > 0. Since f(1)<0 and f(1.5)>0, the sign change (and hence the root) lies in [1, 1.5]. The new bisection interval is [1, 1.5].",
       "difficulty": "easy",
       "marks": 1,
       "negative_marks": -0.33,
