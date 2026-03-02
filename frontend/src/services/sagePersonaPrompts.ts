@@ -314,3 +314,47 @@ export function shouldUseRag(query: string): boolean {
 
   return !skipPatterns.some(p => p.test(trimmed));
 }
+
+// ── CAT PYQ RAG ──────────────────────────────────────────────────────────────
+
+import { buildStaticCatRagContext } from './catPyqContext';
+
+/**
+ * Build a Sage prompt with CAT PYQ context injected.
+ * Mirrors buildGateRagPrompt — same pattern, different exam.
+ */
+export function buildCatRagPrompt(
+  userQuery: string,
+  topicHint: string | undefined,
+  baseSystemPrompt: string
+): string {
+  const ragContext = buildStaticCatRagContext(topicHint);
+
+  return `${baseSystemPrompt}
+
+## CAT — Previous Year Questions (2019–2024)
+
+Use the following PYQs to ground your answers. When a student's question matches or relates to one of these, reference the CAT year naturally (e.g., "CAT 2022 tested this exact concept — here's how it appeared..."). This builds their confidence and shows what the exam actually tests.
+
+${ragContext}
+
+---
+When citing PYQs, keep it natural: "This is exactly the type of question CAT 2023 had" — not robotic.
+For TITA questions in your explanations, remind students: no negative marking, so always attempt them even with partial confidence.`;
+}
+
+/**
+ * Determine whether to inject CAT PYQ context for a given query.
+ */
+export function shouldUseCatRag(query: string): boolean {
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed.length < 10) return false;
+
+  const skipPatterns = [
+    /^(hi|hello|hey|thanks|thank you|ok|okay|got it|yes|no|sure)/,
+    /^(what is your name|who are you|can you help)/,
+    /^(next question|continue|go on|more)/,
+  ];
+
+  return !skipPatterns.some(p => p.test(trimmed));
+}

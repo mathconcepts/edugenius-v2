@@ -1,0 +1,246 @@
+{
+  "topic": "verbal-ability",
+  "exam_id": "cat",
+  "questions": [
+    {
+      "id": "va-001",
+      "year": 2023,
+      "question": "The four sentences (labelled P, Q, R, S) given below, when properly sequenced, form a coherent paragraph. Select the most logical order.\nP: The paradox at the heart of democracy is that it requires an informed citizenry to function but simultaneously produces conditions that make sustained, rigorous engagement with civic life very difficult.\nQ: Social media, in particular, has created an attention economy that rewards outrage over analysis, and brevity over nuance.\nR: This is not merely a technological problem but a structural one, embedded in how modern democratic systems distribute time, education, and cognitive resources unequally.\nS: Long-form journalism, deliberative forums, and civic education have been systematically defunded just as the information environment has become maximally complex.",
+      "options": {},
+      "correct_answer": "PQSR",
+      "explanation": "P opens with the central paradox (the main claim). Q elaborates with a specific example (social media as cause). S extends with another example of defunding that worsens the problem. R concludes by widening the scope — calling it a structural, not just technological, problem. Flow: paradox stated → tech cause → institutional cause → structural conclusion.",
+      "difficulty": "hard",
+      "marks": 3,
+      "negative_marks": 0,
+      "tags": ["para-jumbles", "democracy", "sequencing"],
+      "type": "tita"
+    },
+    {
+      "id": "va-002",
+      "year": 2022,
+      "question": "The four sentences (labelled P, Q, R, S) given below, when properly sequenced, form a coherent paragraph. Identify the sequence.\nP: It was not until the industrial revolution that humans began altering the Earth's chemistry on a scale large enough to be geologically significant.\nQ: For most of human history, our impact on the planet was local and temporary.\nR: Now, geologists debate whether to formalise this shift by declaring a new epoch — the Anthropocene.\nS: Rivers were dammed, forests cleared, and the atmosphere loaded with carbon — processes that leave identifiable stratigraphic signals.",
+      "options": {},
+      "correct_answer": "QPSR",
+      "explanation": "Q opens with the historical baseline (most of history = local impact). P introduces the turning point (industrial revolution). S gives specific examples of the changes. R ends with the present-day debate — the natural conclusion of the argument. Connector chain: 'most of history' → 'not until industrial revolution' → specific changes → present implication.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": 0,
+      "tags": ["para-jumbles", "environment", "sequencing"],
+      "type": "tita"
+    },
+    {
+      "id": "va-003",
+      "year": 2023,
+      "question": "Five sentences are given below, of which four when put together form a coherent paragraph. Identify the sentence that does NOT belong to the paragraph.\nA: The concept of 'emotional labour' was coined by sociologist Arlie Hochschild in her 1983 book The Managed Heart.\nB: Service workers are typically expected to manage not just their physical tasks but also their emotional expressions.\nC: Hochschild's research focused primarily on flight attendants and debt collectors — two professions with opposite emotional demands.\nD: The gig economy has made emotional labour invisible and unpaid, shifting its costs entirely onto individual workers.\nE: This suppression of authentic feelings for professional purposes can lead to burnout and a fragmented sense of self.",
+      "options": {
+        "A": "Sentence A",
+        "B": "Sentence B",
+        "C": "Sentence C",
+        "D": "Sentence D"
+      },
+      "correct_answer": "D",
+      "explanation": "Sentences A, B, C, and E cohere around the definition, context, research, and consequences of emotional labour as a concept. Sentence D shifts the focus to the gig economy specifically — a related but distinct topic not addressed in the other sentences. It breaks the coherent discussion of the original concept and its psychological effects.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["odd-sentence-out", "sociology"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-004",
+      "year": 2022,
+      "question": "Five sentences are given below. Four form a coherent paragraph. Identify the ODD sentence.\nA: Renaissance artists were among the first to use perspective mathematically, creating the illusion of depth on flat surfaces.\nB: The camera obscura, an optical device projecting inverted images of the outside world, was widely used by artists to achieve accuracy.\nC: Vermeer's meticulous attention to light and shadow has led many art historians to speculate that he used optical aids.\nD: The invention of photography in the 19th century eventually made many traditional painting techniques obsolete.\nE: David Hockney argues in his book 'Secret Knowledge' that the optical devices fundamentally changed how Western painting represented reality.",
+      "options": {
+        "A": "Sentence A",
+        "B": "Sentence B",
+        "C": "Sentence C",
+        "D": "Sentence D"
+      },
+      "correct_answer": "D",
+      "explanation": "Sentences A, B, C, and E all discuss the role of optical devices and aids in Renaissance and early modern painting. Sentence D introduces photography and its 19th century impact — a different era and a different technology — breaking the thematic coherence.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["odd-sentence-out", "art-history"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-005",
+      "year": 2024,
+      "question": "Select the best summary for the following paragraph:\n\"The ancient Stoics believed that virtue alone was sufficient for happiness, but they did not dismiss the role of external goods entirely. What they argued, rather subtly, was that health, wealth, and friendship are 'preferred indifferents' — things worth pursuing but not constitutive of the good life. The truly wise person can be happy even in chains, they said, because happiness is a function of character, not circumstance.\"",
+      "options": {
+        "A": "The Stoics believed that wealth and health are unimportant for leading a good life.",
+        "B": "According to Stoicism, genuine happiness depends entirely on one's inner character and virtue, not on external conditions, though external goods are still considered worth pursuing.",
+        "C": "Stoic philosophers argued that wise people are immune to suffering because they possess superior reasoning abilities.",
+        "D": "Ancient Stoics promoted a lifestyle of deliberate poverty and physical hardship to train the mind."
+      },
+      "correct_answer": "B",
+      "explanation": "Option A is too strong — 'unimportant' misrepresents 'preferred indifferents'. Option C distorts by attributing happiness to reasoning ability, not character/virtue. Option D adds information not in the passage (deliberate poverty/hardship). Option B accurately captures: virtue is sufficient for happiness, external goods are worth pursuing but not essential — matching 'preferred indifferents' and 'happiness is a function of character'.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["para-summary", "philosophy"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-006",
+      "year": 2021,
+      "question": "Select the best summary for the paragraph:\n\"Bureaucracies are designed for predictability. They excel at handling situations where rules can be pre-specified, where exceptions are rare, and where consistency matters more than creativity. But the modern world increasingly confronts bureaucracies with exactly the opposite: unprecedented situations, rapid change, and problems that require improvisation. The result is a persistent mismatch between the instrument of governance and the nature of the problems it must solve.\"",
+      "options": {
+        "A": "Bureaucracies are inefficient and should be replaced by more creative organisations.",
+        "B": "Bureaucracies were designed for predictable rule-based environments but now face complex, novel problems they are structurally ill-equipped to handle.",
+        "C": "Modern problems require modern solutions, and bureaucracies must embrace improvisation.",
+        "D": "Bureaucracies fail because they lack talented personnel capable of creative thinking."
+      },
+      "correct_answer": "B",
+      "explanation": "Option A is too strong ('should be replaced') — the passage only diagnoses the mismatch, not prescribes replacement. Option C is an external prescription not stated in the passage. Option D shifts blame to personnel — the passage blames the structural design. Option B accurately captures the mismatch between bureaucratic design (rule-based) and modern demands (novel/complex) without over-reaching.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["para-summary", "governance"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-007",
+      "year": 2020,
+      "question": "The four sentences (labelled P, Q, R, S) when properly sequenced form a coherent paragraph.\nP: These twin forces — digitalisation and globalisation — have reshaped not just what people buy, but how they form identities and communities.\nQ: The consequences are visible in the hollowing out of local high streets, the homogenisation of urban culture, and the anxious retreat into identity politics.\nR: For decades, economists treated global trade and digital disruption as unqualified goods, focusing on aggregate welfare gains while ignoring distributional costs.\nS: When the political backlash finally came — in Brexit, in Trumpism, in the rise of nationalist parties across Europe — it caught most mainstream economists by surprise.",
+      "options": {},
+      "correct_answer": "RPQS",
+      "explanation": "R opens with the economists' original framing (they ignored distributional costs). P elaborates on what those twin forces actually did (reshape identities — the consequences). Q specifies visible social consequences (high streets, homogenisation, identity politics). S concludes with the political backlash that surprised economists — the logical end point. Chain: economists missed it → forces reshaped society → visible consequences → political result.",
+      "difficulty": "hard",
+      "marks": 3,
+      "negative_marks": 0,
+      "tags": ["para-jumbles", "economics", "globalisation"],
+      "type": "tita"
+    },
+    {
+      "id": "va-008",
+      "year": 2019,
+      "question": "The four sentences (labelled P, Q, R, S) given below, when properly sequenced, form a coherent paragraph.\nP: He proposed instead the concept of 'bounded rationality' — the idea that humans make decisions that are good enough given the constraints of time, information, and cognitive capacity.\nQ: Herbert Simon challenged the classical economic assumption that humans are perfectly rational agents who always maximise utility.\nR: In organisations, this means that decision-making is not optimising but 'satisficing' — finding a solution that meets a threshold of acceptability.\nS: Simon's insight has been enormously influential, laying groundwork for behavioural economics and organisational theory alike.",
+      "options": {},
+      "correct_answer": "QPRS",
+      "explanation": "Q opens by introducing Herbert Simon and the challenge he posed to classical economics. P introduces his alternative concept (bounded rationality). R applies that concept to organisations (satisficing). S concludes with the legacy/influence — a classic conclusion move. The chain: Challenge → Alternative concept → Application → Legacy.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": 0,
+      "tags": ["para-jumbles", "economics", "behavioural-economics"],
+      "type": "tita"
+    },
+    {
+      "id": "va-009",
+      "year": 2023,
+      "question": "Choose the word that best fills the blank: The committee's report was deliberately ________, using language that could be interpreted in multiple ways to avoid committing to a specific course of action.",
+      "options": {
+        "A": "verbose",
+        "B": "equivocal",
+        "C": "laconic",
+        "D": "prescient"
+      },
+      "correct_answer": "B",
+      "explanation": "'Equivocal' means deliberately ambiguous or open to multiple interpretations — exactly what the sentence describes. 'Verbose' means unnecessarily wordy (not the same as ambiguous). 'Laconic' means using very few words. 'Prescient' means having foresight. Only 'equivocal' captures intentional ambiguity.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["vocabulary", "fill-in-the-blanks"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-010",
+      "year": 2022,
+      "question": "Choose the correct sentence:\nA: Neither the manager nor the employees was aware of the decision.\nB: Neither the manager nor the employees were aware of the decision.\nC: Neither the manager nor the employees has been aware of the decision.\nD: Neither the manager nor the employees have been aware of the decision.",
+      "options": {
+        "A": "A",
+        "B": "B",
+        "C": "C",
+        "D": "D"
+      },
+      "correct_answer": "B",
+      "explanation": "In 'neither...nor' constructions, the verb agrees with the noun closest to it. 'employees' is plural and closest to the verb, so the verb must be 'were' (plural past tense). Option A uses 'was' (singular) — wrong. Options C and D use present perfect — not appropriate here. Option B is correct.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["grammar", "subject-verb-agreement"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-011",
+      "year": 2021,
+      "question": "Five sentences are given; four form a coherent paragraph. Identify the odd sentence.\nA: The 'nocebo effect' is the lesser-known counterpart of the placebo effect, where negative expectations cause real harm.\nB: Patients who are told that a drug has unpleasant side effects are significantly more likely to experience them, even if given an inert substance.\nC: Medical researchers now actively debate how to ethically disclose drug side effects without triggering nocebo responses.\nD: The placebo effect has been extensively studied and is now used in clinical trials as a control condition.\nE: This raises profound questions about informed consent — how much information is therapeutic versus harmful to disclose.",
+      "options": {
+        "A": "Sentence A",
+        "B": "Sentence B",
+        "C": "Sentence C",
+        "D": "Sentence D"
+      },
+      "correct_answer": "D",
+      "explanation": "Sentences A, B, C, and E all coherently discuss the nocebo effect — its definition, evidence, ethical implications in disclosure. Sentence D shifts to the placebo effect and clinical trials — a related but distinct topic that breaks the nocebo-focused argument.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["odd-sentence-out", "medicine"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-012",
+      "year": 2024,
+      "question": "The four sentences (labelled P, Q, R, S) form a coherent paragraph when sequenced properly.\nP: The result is a profound irony: the tools designed to connect us have become the primary instruments of our fragmentation.\nQ: Each platform's algorithm learns individual preferences and progressively narrows the information diet of its users.\nR: Social media platforms were originally conceived as public squares — spaces for open exchange across communities.\nS: What begins as personalisation ends as polarisation, as users inhabit increasingly sealed epistemic bubbles.",
+      "options": {},
+      "correct_answer": "RQSP",
+      "explanation": "R opens with the original vision of social media (public squares). Q introduces how algorithms changed this (personalising feeds). S describes the consequence — polarisation and epistemic bubbles. P delivers the concluding irony — the inversion of the original intention. Classic argument structure: Ideal → Process → Consequence → Irony/Conclusion.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": 0,
+      "tags": ["para-jumbles", "social-media", "technology"],
+      "type": "tita"
+    },
+    {
+      "id": "va-013",
+      "year": 2019,
+      "question": "Select the best summary for the following paragraph:\n\"In most societies, memory is not a neutral record of the past but a site of ongoing contestation. Different groups — nations, communities, families — remember the same events in ways that reinforce their own identity and justify their current interests. History, in this sense, is less a discipline than a battlefield, where the past is perpetually rewritten to serve the present.\"",
+      "options": {
+        "A": "Historical memory is biased and unreliable because historians are politically motivated.",
+        "B": "Memory is collectively shaped and contested, serving current identities and interests rather than providing an objective account of the past.",
+        "C": "Nations and communities deliberately falsify history to serve political purposes.",
+        "D": "The study of history should be replaced by more objective social science methods."
+      },
+      "correct_answer": "B",
+      "explanation": "Option A incorrectly focuses on 'historians' — the passage is about communities and groups, not historians specifically. Option C uses 'deliberately falsify' — too strong; the passage says memory 'reinforces identity', not that it's deliberately falsified. Option D is prescriptive and not in the passage. Option B accurately captures: memory is contested and serves current interests — the core claim.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["para-summary", "history"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-014",
+      "year": 2020,
+      "question": "Choose the option where the given sentence is correctly placed in the paragraph.\nSentence: 'This is not a new observation — philosophers have remarked on it since at least the Stoics.'\nParagraph options — the sentence fits AFTER which line?\nA: 'We tend to suffer more in imagination than in reality.'\nB: 'Anxiety about the future colonises the present.'\nC: 'Mindfulness practice attempts to anchor attention to the present moment.'\nD: 'The therapeutic industry has grown enormously to address modern stress.'",
+      "options": {
+        "A": "After line A",
+        "B": "After line B",
+        "C": "After line C",
+        "D": "After line D"
+      },
+      "correct_answer": "A",
+      "explanation": "'This is not a new observation' refers back to a specific observation. Line A states: 'We tend to suffer more in imagination than in reality' — this is exactly the kind of philosophical observation the Stoics would have remarked upon. The sentence then adds historical depth to that claim. Lines B, C, D do not set up observations that the Stoics specifically addressed.",
+      "difficulty": "hard",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["sentence-placement", "philosophy"],
+      "type": "mcq"
+    },
+    {
+      "id": "va-015",
+      "year": 2022,
+      "question": "The four sentences (labelled P, Q, R, S) form a coherent paragraph when sequenced properly.\nP: What makes scientific revolutions so disorienting is not that they introduce new facts, but that they require abandoning old frameworks for understanding facts.\nQ: Thomas Kuhn called these framework shifts 'paradigm shifts' — moments when an entire scientific community must learn to see the world differently.\nR: The transition from Newtonian to Einsteinian physics is the canonical example: Einstein did not just add new equations but rendered old assumptions about space and time literally meaningless.\nS: For this reason, paradigm shifts are resisted fiercely by established scientists, who have built careers on the old framework.",
+      "options": {},
+      "correct_answer": "PQRS",
+      "explanation": "P introduces the central observation (revolutions require abandoning frameworks). Q introduces Kuhn's term for this (paradigm shifts). R gives the canonical example (Newton → Einstein). S explains why resistance occurs — a natural final observation about human behaviour in these shifts. Perfect linear chain: observation → concept → example → implication.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": 0,
+      "tags": ["para-jumbles", "philosophy-of-science"],
+      "type": "tita"
+    }
+  ]
+}

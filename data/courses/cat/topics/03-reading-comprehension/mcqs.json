@@ -1,0 +1,291 @@
+{
+  "topic": "reading-comprehension",
+  "exam_id": "cat",
+  "questions": [
+    {
+      "id": "rc-001",
+      "year": 2023,
+      "passage": "The history of economic thought can be read as a succession of attempts to solve the problem of distribution — how the total product of an economy is divided among those who contribute to its creation. Classical economists from Smith to Ricardo saw distribution as determined by the natural laws of supply and demand. Marx challenged this by insisting that distribution under capitalism systematically favoured capital over labour. The neoclassical revolution largely dissolved the question of distribution into a technical problem of marginal productivity, treating each factor of production as receiving its marginal contribution. This apparent resolution satisfied economists but papered over the fundamental question of whether marginal productivity has any ethical claim to determine distributive outcomes.",
+      "question": "The primary purpose of this passage is to:",
+      "options": {
+        "A": "Trace the history of economic thought from Smith to the neoclassicals",
+        "B": "Argue that Marx's critique of capitalism was correct",
+        "C": "Suggest that the neoclassical resolution of the distribution problem evaded rather than resolved its ethical dimension",
+        "D": "Describe the technical mechanisms by which wages and profits are determined"
+      },
+      "correct_answer": "C",
+      "explanation": "The passage traces history (A is partially true) but this is in service of a larger argument. The final sentence reveals the author's point: the neoclassical 'resolution' merely 'papered over' the ethical question. Option C captures this — the historical survey is evidence for the argument that neoclassicals evaded the ethical dimension. Option B (Marx was correct) is too strong and not the author's claim. Option D is a detail, not the main purpose.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["main-idea", "economics", "history-of-thought"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-002",
+      "year": 2023,
+      "passage": "The history of economic thought can be read as a succession of attempts to solve the problem of distribution — how the total product of an economy is divided among those who contribute to its creation. Classical economists from Smith to Ricardo saw distribution as determined by the natural laws of supply and demand. Marx challenged this by insisting that distribution under capitalism systematically favoured capital over labour. The neoclassical revolution largely dissolved the question of distribution into a technical problem of marginal productivity, treating each factor of production as receiving its marginal contribution. This apparent resolution satisfied economists but papered over the fundamental question of whether marginal productivity has any ethical claim to determine distributive outcomes.",
+      "question": "The author uses the phrase 'papered over' to suggest that the neoclassical approach:",
+      "options": {
+        "A": "Provided a temporary but ultimately insufficient empirical solution",
+        "B": "Created a mathematical formalism that was too complex for practical use",
+        "C": "Concealed a deeper ethical problem by recasting it as a technical one",
+        "D": "Deliberately ignored the contributions of Marx and classical economists"
+      },
+      "correct_answer": "C",
+      "explanation": "'Papered over' is a metaphor for concealment — covering something without truly fixing it. The sentence contrasts 'apparent resolution' (satisfying economists technically) with the 'fundamental question' (ethical legitimacy). Option C captures this: a technical solution that concealed the ethical problem. Option A misses the ethical dimension. Option B introduces complexity not mentioned. Option D asserts deliberate ignorance — too strong.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["vocabulary-in-context", "economics"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-003",
+      "year": 2023,
+      "passage": "The history of economic thought can be read as a succession of attempts to solve the problem of distribution — how the total product of an economy is divided among those who contribute to its creation. Classical economists from Smith to Ricardo saw distribution as determined by the natural laws of supply and demand. Marx challenged this by insisting that distribution under capitalism systematically favoured capital over labour. The neoclassical revolution largely dissolved the question of distribution into a technical problem of marginal productivity, treating each factor of production as receiving its marginal contribution. This apparent resolution satisfied economists but papered over the fundamental question of whether marginal productivity has any ethical claim to determine distributive outcomes.",
+      "question": "It can be inferred from the passage that the author would most likely agree with which of the following?",
+      "options": {
+        "A": "Classical economists provided the most accurate account of distributive justice",
+        "B": "Marginal productivity theory, while technically sophisticated, does not by itself justify particular distributions of income",
+        "C": "Economics should abandon its aspiration to be a technical science and become a branch of moral philosophy",
+        "D": "Marx's critique of capitalism remains the only valid framework for understanding economic distribution"
+      },
+      "correct_answer": "B",
+      "explanation": "The author ends by questioning 'whether marginal productivity has any ethical claim to determine distributive outcomes' — implying it does not automatically justify distributions. Option B correctly infers this. Option A is not supported. Option C goes too far — the author critiques the technical resolution of an ethical question but does not say economics should abandon technical methods entirely. Option D ('only valid framework') is too extreme.",
+      "difficulty": "hard",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["inference", "economics"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-004",
+      "year": 2022,
+      "passage": "Memory is not a recording device. When we remember, we do not play back a stored video of the past; we reconstruct the past from fragments, expectations, and the needs of the present. This reconstruction is profoundly social: our memories are shaped by what our communities consider memorable, what language makes expressible, and what our current identity requires the past to have been. The implication is troubling: memory is not a repository of what happened but a constantly revised narrative of what we need to have happened. Eyewitness testimony, which courts have long treated as the gold standard of evidence, may be among the most unreliable forms of knowledge we possess.",
+      "question": "The author's attitude toward eyewitness testimony can best be described as:",
+      "options": {
+        "A": "Appreciative of its social and legal significance",
+        "B": "Sceptical, given its susceptibility to reconstructive distortion",
+        "C": "Dismissive, arguing it should be entirely excluded from legal proceedings",
+        "D": "Ambivalent, acknowledging both its value and its limitations"
+      },
+      "correct_answer": "B",
+      "explanation": "The author describes eyewitness testimony as 'among the most unreliable forms of knowledge we possess' — a strongly sceptical position. However, the author does not say it should be 'entirely excluded' (Option C — too extreme). The author has a clear negative stance, not ambivalence (Option D). Option A contradicts the passage. Option B (sceptical due to reconstructive distortion) accurately reflects the author's position.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["tone", "psychology", "memory"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-005",
+      "year": 2022,
+      "passage": "Memory is not a recording device. When we remember, we do not play back a stored video of the past; we reconstruct the past from fragments, expectations, and the needs of the present. This reconstruction is profoundly social: our memories are shaped by what our communities consider memorable, what language makes expressible, and what our current identity requires the past to have been. The implication is troubling: memory is not a repository of what happened but a constantly revised narrative of what we need to have happened. Eyewitness testimony, which courts have long treated as the gold standard of evidence, may be among the most unreliable forms of knowledge we possess.",
+      "question": "According to the passage, which of the following most directly shapes what we remember?",
+      "options": {
+        "A": "The biological capacity of the hippocampus to encode information",
+        "B": "The intensity of the original emotional experience",
+        "C": "Community norms, language, and current identity needs",
+        "D": "The frequency with which we consciously recall an event"
+      },
+      "correct_answer": "C",
+      "explanation": "The passage explicitly states: 'our memories are shaped by what our communities consider memorable, what language makes expressible, and what our current identity requires the past to have been.' This directly maps to Option C. Options A, B, and D introduce factors (hippocampus, emotional intensity, recall frequency) not mentioned in the passage.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["specific-detail", "psychology", "memory"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-006",
+      "year": 2022,
+      "passage": "Memory is not a recording device. When we remember, we do not play back a stored video of the past; we reconstruct the past from fragments, expectations, and the needs of the present. This reconstruction is profoundly social: our memories are shaped by what our communities consider memorable, what language makes expressible, and what our current identity requires the past to have been. The implication is troubling: memory is not a repository of what happened but a constantly revised narrative of what we need to have happened. Eyewitness testimony, which courts have long treated as the gold standard of evidence, may be among the most unreliable forms of knowledge we possess.",
+      "question": "The passage suggests that the legal system's reliance on eyewitness testimony is:",
+      "options": {
+        "A": "A necessary concession to the imperfection of forensic evidence",
+        "B": "Based on a mistaken assumption about how memory works",
+        "C": "Appropriate, given the high accuracy of first-hand accounts",
+        "D": "A topic that requires further empirical investigation before conclusions can be drawn"
+      },
+      "correct_answer": "B",
+      "explanation": "Courts treat eyewitness testimony as 'gold standard' — but the passage argues memory is reconstructive and unreliable. Therefore the legal system's reliance is based on the mistaken assumption that memory is reliable (like a recording device). Option B captures this inference precisely. Options A and C contradict the passage. Option D suggests uncertainty — but the author makes a clear claim, not an open question.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["inference", "psychology", "law"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-007",
+      "year": 2021,
+      "passage": "The critics of globalisation have tended to focus on its economic disruptions — job losses, wage stagnation, and growing inequality within nations. These are real and serious costs. But the defenders of globalisation have been equally partial, choosing to emphasise aggregate welfare gains while understating the political and cultural dislocations that accompany economic integration. What both sides have failed to grapple with is the temporal dimension: globalisation's benefits tend to accrue slowly and diffusely, while its costs land suddenly and specifically on identifiable communities. This asymmetry in timing is not merely an economic curiosity but a political time bomb.",
+      "question": "The central argument of the passage is that:",
+      "options": {
+        "A": "Critics of globalisation exaggerate its economic costs",
+        "B": "Defenders of globalisation are largely correct that it increases aggregate welfare",
+        "C": "Both critics and defenders of globalisation miss the politically significant fact that its costs and benefits are distributed across different timescales",
+        "D": "Globalisation causes more harm than good to the nations that adopt it"
+      },
+      "correct_answer": "C",
+      "explanation": "The passage explicitly says 'What both sides have failed to grapple with is the temporal dimension' — the asymmetry between when costs arrive (sudden, specific) versus when benefits arrive (slow, diffuse). This is the central, novel argument the passage builds toward. Option A and B are partial — the author acknowledges both critics and defenders are 'partial'. Option D takes a stronger stance than the passage does.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["main-idea", "globalisation", "economics"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-008",
+      "year": 2021,
+      "passage": "The critics of globalisation have tended to focus on its economic disruptions — job losses, wage stagnation, and growing inequality within nations. These are real and serious costs. But the defenders of globalisation have been equally partial, choosing to emphasise aggregate welfare gains while understating the political and cultural dislocations that accompany economic integration. What both sides have failed to grapple with is the temporal dimension: globalisation's benefits tend to accrue slowly and diffusely, while its costs land suddenly and specifically on identifiable communities. This asymmetry in timing is not merely an economic curiosity but a political time bomb.",
+      "question": "The phrase 'political time bomb' in the passage most nearly means:",
+      "options": {
+        "A": "A situation where political parties exploit economic anxiety for electoral gain",
+        "B": "An accumulating political tension that will eventually produce a severe crisis",
+        "C": "A set of economic policies that will inevitably lead to political instability",
+        "D": "The danger of rushed trade agreements negotiated without public consultation"
+      },
+      "correct_answer": "B",
+      "explanation": "The metaphor 'political time bomb' follows from the timing asymmetry: communities bear sudden costs while diffuse benefits arrive later. This creates growing political pressure — a tension building toward eventual explosion (crisis). Option B captures the metaphor most accurately. Option A is too specific (party politics). Option C implies inevitability of instability — slightly too strong. Option D introduces trade agreement process — not in passage.",
+      "difficulty": "hard",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["vocabulary-in-context", "globalisation"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-009",
+      "year": 2020,
+      "passage": "Urban planning in the 20th century was dominated by a vision of the city as a machine — functional, efficient, and rationally organised. The high-water mark of this approach was the modernist housing project: vast tower blocks set in open green spaces, designed to provide hygienic living conditions and separate residential life from the noise and chaos of industry. By the 1970s, many of these projects had become synonymous with social deprivation and crime. The vision had failed not because it was poorly executed but because it was based on a flawed model of how communities form and function. Jane Jacobs famously argued that what planners called 'inefficiency' — the mix of uses, the narrow streets, the overlapping of activities — was in fact the engine of vibrant urban life.",
+      "question": "According to the passage, the failure of modernist housing projects was primarily due to:",
+      "options": {
+        "A": "Insufficient government funding for maintenance and upkeep",
+        "B": "Poor construction quality and inadequate green spaces",
+        "C": "A fundamental misunderstanding of how communities actually function",
+        "D": "The deliberate exclusion of lower-income residents from planning decisions"
+      },
+      "correct_answer": "C",
+      "explanation": "The passage explicitly states: 'The vision had failed not because it was poorly executed but because it was based on a flawed model of how communities form and function.' Option C directly reflects this. Options A, B, and D introduce factors not stated in the passage.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["specific-detail", "urban-planning", "sociology"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-010",
+      "year": 2020,
+      "passage": "Urban planning in the 20th century was dominated by a vision of the city as a machine — functional, efficient, and rationally organised. The high-water mark of this approach was the modernist housing project: vast tower blocks set in open green spaces, designed to provide hygienic living conditions and separate residential life from the noise and chaos of industry. By the 1970s, many of these projects had become synonymous with social deprivation and crime. The vision had failed not because it was poorly executed but because it was based on a flawed model of how communities form and function. Jane Jacobs famously argued that what planners called 'inefficiency' — the mix of uses, the narrow streets, the overlapping of activities — was in fact the engine of vibrant urban life.",
+      "question": "Jane Jacobs' argument, as presented in the passage, is best understood as a claim that:",
+      "options": {
+        "A": "Efficiency should not be a goal of urban planning",
+        "B": "What appears disorderly or inefficient in a city may actually generate social vitality",
+        "C": "Modernist planners were motivated by profit rather than social welfare",
+        "D": "Tower blocks should be demolished and replaced with narrow-street neighbourhoods"
+      },
+      "correct_answer": "B",
+      "explanation": "The passage says Jacobs argued what planners called 'inefficiency' — mixed uses, narrow streets, overlapping activities — 'was in fact the engine of vibrant urban life.' Option B captures this precisely: apparent inefficiency = actual vitality. Option A overstates (she is not against efficiency as a goal, just arguing real vitality looks like inefficiency). Option C introduces motivation — not in the passage. Option D is a physical prescription not implied.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["inference", "urban-planning"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-011",
+      "year": 2019,
+      "passage": "The dominant account of scientific progress portrays it as linear and cumulative: each generation of scientists builds on the verified findings of the last, incrementally expanding the edifice of knowledge. This narrative is comforting and, in many respects, accurate. But it obscures the episodes of radical discontinuity that punctuate the history of science — moments when entire theoretical frameworks are overturned, experimental methods are reinvented, and what counts as a valid question changes altogether. Kuhn's concept of the paradigm shift captures one dimension of this discontinuity, but the more disorienting implication is that the knowledge accumulated under the old paradigm may not be 'wrong' in any simple sense — it may simply become incommensurable with the new framework, no longer translatable into it.",
+      "question": "The author's attitude toward the 'dominant account of scientific progress' is best described as:",
+      "options": {
+        "A": "Wholly endorsing it as an accurate description of how science works",
+        "B": "Rejecting it as a politically motivated narrative designed to protect scientific authority",
+        "C": "Partially accepting it while pointing to significant aspects it obscures",
+        "D": "Dismissing it as a simplistic caricature held only by non-scientists"
+      },
+      "correct_answer": "C",
+      "explanation": "The author says the narrative is 'comforting and, in many respects, accurate' — partial acceptance. Then 'But it obscures the episodes of radical discontinuity' — pointing to limitations. This nuanced position matches Option C. Option A is too positive (ignores the 'but'). Option B is too political — not supported. Option D is too dismissive — the author finds value in the dominant account.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["tone", "philosophy-of-science"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-012",
+      "year": 2019,
+      "passage": "The dominant account of scientific progress portrays it as linear and cumulative: each generation of scientists builds on the verified findings of the last, incrementally expanding the edifice of knowledge. This narrative is comforting and, in many respects, accurate. But it obscures the episodes of radical discontinuity that punctuate the history of science — moments when entire theoretical frameworks are overturned, experimental methods are reinvented, and what counts as a valid question changes altogether. Kuhn's concept of the paradigm shift captures one dimension of this discontinuity, but the more disorienting implication is that the knowledge accumulated under the old paradigm may not be 'wrong' in any simple sense — it may simply become incommensurable with the new framework, no longer translatable into it.",
+      "question": "The word 'incommensurable' as used in the passage most nearly means:",
+      "options": {
+        "A": "Fundamentally flawed and requiring correction",
+        "B": "Impossible to measure or quantify",
+        "C": "Incompatible with and untranslatable into another framework",
+        "D": "Vastly superior to its predecessor"
+      },
+      "correct_answer": "C",
+      "explanation": "In context: old knowledge 'may not be wrong in any simple sense — it may simply become incommensurable with the new framework, no longer translatable into it.' The author explicitly defines incommensurable as 'no longer translatable into' the new framework — i.e., incompatible and untranslatable. Option C captures this directly. Options A, B, D are common meanings that don't fit this specific context.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["vocabulary-in-context", "philosophy-of-science"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-013",
+      "year": 2024,
+      "passage": "Artificial intelligence systems trained on large datasets exhibit a curious property: their performance improves predictably as the volume of training data increases, following what researchers call 'scaling laws'. This empirical regularity has been the driving force behind the race to build ever-larger models. But scaling laws have limits that are beginning to emerge. The low-hanging fruit of internet text has been largely consumed, and future gains will require either new algorithmic approaches, synthetic data generation, or entirely different paradigms of machine learning — none of which are guaranteed to deliver the same returns.",
+      "question": "The passage suggests that the future progress of large AI models is:",
+      "options": {
+        "A": "Assured, as synthetic data generation will replace internet text",
+        "B": "Dependent on fundamental algorithmic or paradigm innovations, with no guarantee of continued scaling returns",
+        "C": "Unlikely to continue, as scaling laws have been definitively disproven",
+        "D": "Limited only by computing hardware and energy costs"
+      },
+      "correct_answer": "B",
+      "explanation": "The passage says future gains require 'either new algorithmic approaches, synthetic data generation, or entirely different paradigms — none of which are guaranteed to deliver the same returns.' Option B captures: future progress requires innovation, and these are not guaranteed. Option A (assured via synthetic data) ignores 'none are guaranteed.' Option C (definitively disproven) is too strong. Option D (hardware/energy) is not mentioned.",
+      "difficulty": "medium",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["inference", "technology", "AI"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-014",
+      "year": 2024,
+      "passage": "Artificial intelligence systems trained on large datasets exhibit a curious property: their performance improves predictably as the volume of training data increases, following what researchers call 'scaling laws'. This empirical regularity has been the driving force behind the race to build ever-larger models. But scaling laws have limits that are beginning to emerge. The low-hanging fruit of internet text has been largely consumed, and future gains will require either new algorithmic approaches, synthetic data generation, or entirely different paradigms of machine learning — none of which are guaranteed to deliver the same returns.",
+      "question": "The phrase 'low-hanging fruit of internet text' refers to:",
+      "options": {
+        "A": "Easily accessible, high-quality training data that has now largely been used",
+        "B": "The simple language patterns that early AI models were trained on",
+        "C": "Social media content that is unsuitable for rigorous AI training",
+        "D": "Free, open-source datasets that are publicly available online"
+      },
+      "correct_answer": "A",
+      "explanation": "'Low-hanging fruit' metaphorically means easily accessible gains. Combined with 'largely consumed' (used up), the phrase means: the readily available training data (internet text) has been largely exhausted. Option A captures this — easily accessible high-quality data that has been used. Option B narrows to 'simple language patterns' — not the passage's meaning. Options C and D introduce characterisations not in the passage.",
+      "difficulty": "easy",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["vocabulary-in-context", "technology", "AI"],
+      "type": "mcq"
+    },
+    {
+      "id": "rc-015",
+      "year": 2021,
+      "passage": "The critics of globalisation have tended to focus on its economic disruptions — job losses, wage stagnation, and growing inequality within nations. These are real and serious costs. But the defenders of globalisation have been equally partial, choosing to emphasise aggregate welfare gains while understating the political and cultural dislocations that accompany economic integration. What both sides have failed to grapple with is the temporal dimension: globalisation's benefits tend to accrue slowly and diffusely, while its costs land suddenly and specifically on identifiable communities. This asymmetry in timing is not merely an economic curiosity but a political time bomb.",
+      "question": "The author describes both critics and defenders of globalisation as 'equally partial'. This suggests that the author believes:",
+      "options": {
+        "A": "Critics of globalisation are more wrong than its defenders",
+        "B": "Both camps have selectively emphasised certain aspects while ignoring others equally important",
+        "C": "The only valid position is to neither criticise nor defend globalisation",
+        "D": "Economic analysis of globalisation should be left to specialists rather than public commentators"
+      },
+      "correct_answer": "B",
+      "explanation": "'Equally partial' means each side has partial (incomplete) vision — critics focus on costs, defenders on benefits, both ignoring the temporal dimension. Option B accurately captures this. Option A implies critics are more wrong — not supported; 'equally' suggests symmetric partiality. Option C (neutral position) is not what the author argues. Option D introduces specialists — not in passage.",
+      "difficulty": "hard",
+      "marks": 3,
+      "negative_marks": -1,
+      "tags": ["inference", "globalisation", "critical-reading"],
+      "type": "mcq"
+    }
+  ]
+}

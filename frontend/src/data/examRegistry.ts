@@ -189,22 +189,32 @@ export const EXAM_REGISTRY: ExamConfig[] = [
   // ── CAT ──────────────────────────────────────────────────
   {
     id: 'cat',
-    name: 'CAT & MBA',
+    name: 'CAT & MBA Entrance',
     shortName: 'CAT',
     icon: '📊',
-    description: 'Crack CAT with structured quant, verbal, and DILR preparation.',
+    description: 'Crack CAT 2024 with AI-powered prep. Personalised Quant practice, VARC strategies, and DILR puzzle training — all tutored by Sage, your AI mentor.',
     category: 'management',
     duration: 120,
     totalQuestions: 66,
     difficultyDistribution: { easy: 0.25, medium: 0.50, hard: 0.25 },
-    topics: ['quant', 'verbal-ability', 'reading-comprehension', 'dilr'],
+    topics: ['quantitative-aptitude', 'verbal-ability', 'reading-comprehension', 'dilr'],
+    topicWeights: [
+      { topicId: 'dilr',                   priority: 'high' },
+      { topicId: 'reading-comprehension',   priority: 'high' },
+      { topicId: 'quantitative-aptitude',   priority: 'medium' },
+      { topicId: 'verbal-ability',          priority: 'medium' },
+    ],
     apiGated: {
-      explanations: 'gemini',
-      socraticTutor: 'gemini',
-      contentGeneration: 'gemini',
+      explanations: 'gemini',       // [PENDING_API: gemini]
+      socraticTutor: 'gemini',      // [PENDING_API: gemini]
+      contentGeneration: 'gemini',  // [PENDING_API: gemini]
     },
-    status: 'live',
+    // "live-stub" → switches to "live" when VITE_GEMINI_API_KEY is set via env
+    status: 'live-stub',
     route: 'cat',
+    launchDate: '2026-03-02',
+    marketingAngle: 'conversational-socratic',
+    competitorGap: ['dilr', 'reading-comprehension'],
   },
 ];
 

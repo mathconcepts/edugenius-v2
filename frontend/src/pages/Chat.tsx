@@ -25,7 +25,7 @@ import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
-import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag } from '@/services/sagePersonaPrompts';
+import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag } from '@/services/sagePersonaPrompts';
 import { getCohortSignals } from '@/services/networkEffectsEngine';
 import {
   createRootTrace,
@@ -717,6 +717,14 @@ export function Chat() {
       const isGateExam = updatedPersona.exam?.toUpperCase().includes('GATE');
       if (isGateExam && shouldUseRag(userText)) {
         sageSystemPrompt = buildGateRagPrompt(userText, detectedTopicId, sageSystemPrompt);
+      }
+
+      // Inject CAT PYQ context for CAT students (static bundle, same pattern as GATE EM)
+      const isCatExam =
+        updatedPersona.exam?.toUpperCase().includes('CAT') ||
+        updatedPersona.exam?.toUpperCase().includes('MBA');
+      if (isCatExam && shouldUseCatRag(userText)) {
+        sageSystemPrompt = buildCatRagPrompt(userText, detectedTopicId, sageSystemPrompt);
       }
 
       if (opener) {
