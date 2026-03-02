@@ -135,6 +135,10 @@ export interface Message {
     provider?: string;       // e.g. 'gemini', 'anthropic', 'mock'
     cohortPeers?: number;    // number of peers struggling with same topic (network effect)
     networkLoopId?: string;  // which network loop triggered this context
+    // Manim visualisation hints (set by arbitration layer)
+    manimTopic?: string;     // e.g. 'eigenvalue', 'integration' — triggers ManimViz render
+    manimLatex?: string;     // primary LaTeX expression extracted from response
+    manimTitle?: string;     // human-readable label for the visualisation
   };
 
   // Traceability

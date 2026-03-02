@@ -20,6 +20,9 @@ import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { AttachmentPreview } from '@/components/chat/AttachmentPreview';
 import { OutputBlockRenderer } from '@/components/chat/OutputBlockRenderer';
 import { DrawingCanvas } from '@/components/chat/DrawingCanvas';
+import { ManimViz } from '@/components/chat/ManimViz';
+import { ManimToggle } from '@/components/chat/ManimToggle';
+import { shouldRenderWithManim, extractPrimaryLatex } from '@/services/manimService';
 import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
@@ -258,6 +261,16 @@ function MessageBubble({
           </div>
         )}
 
+        {/* Manim Visualisation — rendered below assistant message when arbitration triggers */}
+        {!isUser && message.metadata?.manimTopic && (
+          <ManimViz
+            topic={message.metadata.manimTopic as string}
+            latex={message.metadata.manimLatex as string | undefined}
+            title={message.metadata.manimTitle as string | undefined}
+            sessionId={message.id}
+          />
+        )}
+
         {/* AI message footer */}
         {!isUser && (
           <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -422,7 +435,7 @@ function getContextualSuggestions(persona: StudentPersona): string[] {
 export function Chat() {
   const [searchParams] = useSearchParams();
   const { sessions, currentSessionId, isStreaming, createSession, setCurrentSession, deleteSession, addMessage, setStreaming, getCurrentSession } = useChatStore();
-  const { addNotification, userRole } = useAppStore();
+  const { addNotification, userRole, manimEnabled, manimServiceUrl } = useAppStore();
 
   const [selectedAgent, setSelectedAgent] = useState<AgentType>(
     (searchParams.get('agent') as AgentType) || 'sage'
@@ -692,8 +705,9 @@ export function Chat() {
 
     // ── Student Persona: update emotion + build adaptive system prompt ──
     let sageSystemPrompt: string | undefined;
-    // Hoist matchedSignal so deliverResponse can access it
+    // Hoist matchedSignal + detectedTopicId so deliverResponse can access them
     let matchedSignal: import('@/services/networkEffectsEngine').CohortSignal | undefined;
+    let detectedTopicId: string | undefined;
     if (isStudent) {
       const updatedPersona = updatePersonaAfterMessage(persona, userText, 'neutral');
       setPersona(updatedPersona);
@@ -710,7 +724,7 @@ export function Chat() {
       matchedSignal = cohortSignals.find(s =>
         userText.toLowerCase().includes(s.topicName.toLowerCase().split(' ')[0])
       );
-      const detectedTopicId = matchedSignal?.topicId;
+      detectedTopicId = matchedSignal?.topicId;
       sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId);
 
       // Inject GATE EM PYQ context for GATE students (no Supabase needed — static bundle)
@@ -785,6 +799,13 @@ export function Chat() {
       setSessionTrace({ ...activeTrace! });
 
       const outputBlocks = generateOutputBlocks(responseText, intent.intent);
+
+      // Manim arbitration: decide if this response warrants a visualisation
+      const manimTopic = manimEnabled
+        ? shouldRenderWithManim(userText, responseText, detectedTopicId)
+        : null;
+      const manimLatex = manimTopic ? extractPrimaryLatex(responseText) : undefined;
+
       addMessage(sessionId!, {
         role: 'assistant',
         content: responseText,
@@ -798,8 +819,13 @@ export function Chat() {
           processingMs: latency,
           confidence: intent.confidence,
           provider,
-          // Attach cohort peer count if a network signal was matched
           cohortPeers: matchedSignal?.studentsStruggling,
+          // Manim render hint — picked up by the message renderer
+          manimTopic: manimTopic ?? undefined,
+          manimLatex,
+          manimTitle: manimTopic
+            ? `${manimTopic.charAt(0).toUpperCase() + manimTopic.slice(1)} — ${detectedTopicId ?? ''}`
+            : undefined,
         },
       });
       setIsTyping(false);
@@ -1070,9 +1096,10 @@ export function Chat() {
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowModeSelector(false)} />
                       <motion.div initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                        className="absolute top-full right-0 mt-1 w-80 glass rounded-xl shadow-xl z-50 p-4">
+                        className="absolute top-full right-0 mt-1 w-80 glass rounded-xl shadow-xl z-50 p-4 space-y-4">
                         <LearningModeSelector currentMode={learningMode}
                           onModeChange={mode => { setLearningMode(mode); setShowModeSelector(false); }} compact={false} />
+                        <ManimToggle />
                       </motion.div>
                     </>
                   )}

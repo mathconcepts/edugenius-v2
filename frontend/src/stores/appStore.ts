@@ -31,6 +31,12 @@ interface AppState {
   // Playground mode
   playgroundMode: boolean;
   setPlaygroundMode: (enabled: boolean) => void;
+
+  // Manim visualisation feature flag
+  manimEnabled: boolean;
+  setManimEnabled: (enabled: boolean) => void;
+  manimServiceUrl: string;
+  setManimServiceUrl: (url: string) => void;
   
   // Notifications
   notifications: Notification[];
@@ -208,6 +214,12 @@ export const useAppStore = create<AppState>()(
       playgroundMode: true,
       setPlaygroundMode: (enabled) => set({ playgroundMode: enabled }),
 
+      // Manim visualisation
+      manimEnabled: false,  // OFF by default — opt-in feature
+      setManimEnabled: (enabled) => set({ manimEnabled: enabled }),
+      manimServiceUrl: 'http://localhost:7341',
+      setManimServiceUrl: (url) => set({ manimServiceUrl: url }),
+
       // Notifications
       notifications: [],
       addNotification: (notification) => set((state) => ({
@@ -255,6 +267,8 @@ export const useAppStore = create<AppState>()(
         sidebarOpen: state.sidebarOpen,
         userRole: state.userRole,
         playgroundMode: state.playgroundMode,
+        manimEnabled: state.manimEnabled,
+        manimServiceUrl: state.manimServiceUrl,
       }),
     }
   )
