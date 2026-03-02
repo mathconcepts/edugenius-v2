@@ -1,0 +1,317 @@
+/**
+ * signalBus.ts — EduGenius Agent Signal Bus
+ *
+ * Bi-directional event system connecting all 8 domain agents.
+ * Signals are persisted to IndexedDB (signal_queue store) so they
+ * survive page reloads and are delivered on the next agent heartbeat.
+ *
+ * Signal flow:
+ *   Agent emits signal → enqueueSignal() → IndexedDB
+ *   Agent checks inbox → drainPendingSignals() → processes + responds
+ *
+ * In the browser (no backend yet), agents run as service modules.
+ * When a backend is added, this module becomes the client side of a
+ * WebSocket or Server-Sent Events channel.
+ */
+
+import { enqueueSignal, drainPendingSignals, type AgentSignal } from './persistenceDB';
+import { updateTopicMastery, logInteraction } from './persistenceDB';
+
+// ─── Signal type catalogue ────────────────────────────────────────────────────
+
+export type SignalType = AgentSignal['type'];
+
+// ─── Typed emitters (one per signal type) ────────────────────────────────────
+
+/** Sage → Atlas: student couldn't understand a topic */
+export async function emitContentGap(params: {
+  studentId: string;
+  topicId: string;
+  examId: string;
+  missingType: 'analogy' | 'easier_variant' | 'visual' | 'step_by_step';
+  learningStyle?: string;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'CONTENT_GAP',
+    sourceAgent: 'sage',
+    targetAgent: 'atlas',
+    payload: params,
+    studentId: params.studentId,
+    topicId: params.topicId,
+  });
+}
+
+/** Sage → Atlas: multiple students struggling on same concept */
+export async function emitStrugglePattern(params: {
+  topicId: string;
+  examId: string;
+  studentId: string;
+  incorrectCount: number;
+  masteryScore: number;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'STRUGGLE_PATTERN',
+    sourceAgent: 'sage',
+    targetAgent: 'atlas',
+    payload: params,
+    studentId: params.studentId,
+    topicId: params.topicId,
+  });
+}
+
+/** Sage/Oracle → Oracle+Mentor: student mastered a concept */
+export async function emitMasteryAchieved(params: {
+  studentId: string;
+  topicId: string;
+  examId: string;
+  masteryScore: number;
+  sessionDurationMs: number;
+}): Promise<void> {
+  // Fire to both Oracle (analytics) and Mentor (celebration nudge)
+  await Promise.all([
+    enqueueSignal({
+      type: 'MASTERY_ACHIEVED',
+      sourceAgent: 'sage',
+      targetAgent: 'oracle',
+      payload: params,
+      studentId: params.studentId,
+      topicId: params.topicId,
+    }),
+    enqueueSignal({
+      type: 'MASTERY_ACHIEVED',
+      sourceAgent: 'sage',
+      targetAgent: 'mentor',
+      payload: params,
+      studentId: params.studentId,
+      topicId: params.topicId,
+    }),
+  ]);
+}
+
+/** Sage → Mentor: student showing frustration */
+export async function emitFrustrationAlert(params: {
+  studentId: string;
+  topicId: string;
+  examId: string;
+  severity: 1 | 2 | 3 | 4 | 5;
+  sessionMessageCount: number;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'FRUSTRATION_ALERT',
+    sourceAgent: 'sage',
+    targetAgent: 'mentor',
+    payload: params,
+    studentId: params.studentId,
+    topicId: params.topicId,
+  });
+}
+
+/** Oracle → Mentor: student hasn't logged in */
+export async function emitChurnRisk(params: {
+  studentId: string;
+  examId: string;
+  daysInactive: number;
+  lastTopicId: string;
+  riskScore: number; // 0-1
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'CHURN_RISK',
+    sourceAgent: 'oracle',
+    targetAgent: 'mentor',
+    payload: params,
+    studentId: params.studentId,
+  });
+}
+
+/** Sage → Oracle+Mentor: a breakthrough moment ("I get it now!") */
+export async function emitBreakthrough(params: {
+  studentId: string;
+  topicId: string;
+  examId: string;
+  sessionMinutes: number;
+}): Promise<void> {
+  await Promise.all([
+    enqueueSignal({
+      type: 'BREAKTHROUGH',
+      sourceAgent: 'sage',
+      targetAgent: 'oracle',
+      payload: params,
+      studentId: params.studentId,
+      topicId: params.topicId,
+    }),
+    enqueueSignal({
+      type: 'BREAKTHROUGH',
+      sourceAgent: 'sage',
+      targetAgent: 'mentor',
+      payload: params,
+      studentId: params.studentId,
+      topicId: params.topicId,
+    }),
+  ]);
+}
+
+// ─── Interaction recorder (Sage → persistence → Oracle) ──────────────────────
+
+/**
+ * Call this after every Sage response.
+ * Updates: topic mastery (BKT), interaction log, optionally fires signals.
+ */
+export async function recordSageInteraction(params: {
+  studentId: string;
+  examId: string;
+  topicId: string;
+  sessionId: string;
+  messageCount: number;
+  correct?: boolean;
+  timeSpentMs?: number;
+  emotionDetected?: string;
+  responseRating?: number;
+  triggeredBreakthrough?: boolean;
+}): Promise<void> {
+  const {
+    studentId, examId, topicId, sessionId, messageCount,
+    correct, timeSpentMs = 0, emotionDetected, responseRating,
+    triggeredBreakthrough = false,
+  } = params;
+
+  // 1. Log the raw interaction
+  await logInteraction({
+    studentId,
+    examId,
+    topicId,
+    sessionId,
+    messageCount,
+    correct,
+    timeSpentMs,
+    emotionDetected,
+    responseRating,
+  });
+
+  // 2. Update BKT mastery if we have a correctness signal
+  if (correct !== undefined) {
+    const updated = await updateTopicMastery(studentId, examId, topicId, correct);
+
+    // 3. Fire mastery signal if newly mastered
+    if (updated.isMastered && updated.consecutiveCorrect === 3) {
+      await emitMasteryAchieved({
+        studentId,
+        topicId,
+        examId,
+        masteryScore: updated.masteryScore,
+        sessionDurationMs: timeSpentMs,
+      });
+    }
+
+    // 4. Fire struggle signal at threshold
+    if (!correct && updated.incorrectCount === 3) {
+      await emitStrugglePattern({
+        topicId,
+        examId,
+        studentId,
+        incorrectCount: updated.incorrectCount,
+        masteryScore: updated.masteryScore,
+      });
+    }
+  }
+
+  // 5. Breakthrough signal
+  if (triggeredBreakthrough) {
+    await emitBreakthrough({
+      studentId,
+      topicId,
+      examId,
+      sessionMinutes: Math.round(timeSpentMs / 60000),
+    });
+  }
+
+  // 6. Frustration signal
+  if (emotionDetected === 'frustrated') {
+    const { getTopicMastery: getTM } = await import('./persistenceDB');
+    const mastery = await getTM(studentId, examId, topicId);
+    if ((mastery?.incorrectCount ?? 0) >= 2) {
+      await emitFrustrationAlert({
+        studentId,
+        topicId,
+        examId,
+        severity: Math.min(5, mastery?.incorrectCount ?? 2) as 1|2|3|4|5,
+        sessionMessageCount: messageCount,
+      });
+    }
+  }
+}
+
+// ─── Agent inbox processors ───────────────────────────────────────────────────
+
+/**
+ * Atlas processes its signal inbox.
+ * In production, Atlas agent's heartbeat calls this.
+ * In browser context, it's a no-op that logs pending work.
+ */
+export async function processAtlasInbox(): Promise<{
+  contentGaps: AgentSignal[];
+  strugglePatterns: AgentSignal[];
+}> {
+  const signals = await drainPendingSignals('atlas');
+  const contentGaps = signals.filter((s) => s.type === 'CONTENT_GAP');
+  const strugglePatterns = signals.filter((s) => s.type === 'STRUGGLE_PATTERN');
+
+  if (contentGaps.length > 0) {
+    console.log(`[Atlas] ${contentGaps.length} content gaps to address:`, contentGaps.map(s => s.payload));
+  }
+  if (strugglePatterns.length > 0) {
+    console.log(`[Atlas] ${strugglePatterns.length} struggle patterns detected:`, strugglePatterns.map(s => s.payload));
+  }
+
+  return { contentGaps, strugglePatterns };
+}
+
+/**
+ * Mentor processes its inbox — churn risks + mastery achievements + frustrations.
+ */
+export async function processMentorInbox(): Promise<{
+  churnRisks: AgentSignal[];
+  masteries: AgentSignal[];
+  frustrations: AgentSignal[];
+  breakthroughs: AgentSignal[];
+}> {
+  const signals = await drainPendingSignals('mentor');
+  return {
+    churnRisks:    signals.filter((s) => s.type === 'CHURN_RISK'),
+    masteries:     signals.filter((s) => s.type === 'MASTERY_ACHIEVED'),
+    frustrations:  signals.filter((s) => s.type === 'FRUSTRATION_ALERT'),
+    breakthroughs: signals.filter((s) => s.type === 'BREAKTHROUGH'),
+  };
+}
+
+/**
+ * Oracle processes its inbox — mastery events + breakthroughs.
+ */
+export async function processOracleInbox(): Promise<AgentSignal[]> {
+  return drainPendingSignals('oracle');
+}
+
+// ─── Cohort alert detection (runs in browser on login) ───────────────────────
+
+/**
+ * Detects if the current topic is known to be hard (cohort-level signal).
+ * In production, this would pull from Oracle's cohort database.
+ * For now: static known-hard list + topic mastery data.
+ */
+export async function checkCohortAlert(topicId: string): Promise<{
+  isHardTopic: boolean;
+  alertMessage: string | null;
+}> {
+  const HARD_TOPIC_ALERTS: Record<string, string> = {
+    'complex-variables':  '📊 Many GATE students find complex variables tricky — you\'re not alone',
+    'numerical-methods':  '📊 Numerical methods has the lowest mastery rate in GATE EM — let\'s tackle it together',
+    'transform-theory':   '📊 Laplace & Fourier transforms trip up most students the first time',
+    'dilr':               '📊 DILR is the hardest CAT section on time management — pacing matters as much as logic',
+    'reading-comprehension': '📊 RC is 70% strategy, 30% speed — most students try to do it backwards',
+  };
+
+  const alert = HARD_TOPIC_ALERTS[topicId] ?? null;
+  return {
+    isHardTopic: !!alert,
+    alertMessage: alert,
+  };
+}

@@ -265,6 +265,70 @@ export function getSageOpener(persona: StudentPersona, isFirstMessage: boolean):
 }
 
 
+// ── SagePersonaConfig builder (used by Lens path in Chat.tsx) ────────────────
+
+/**
+ * Build a SagePersonaConfig from a StudentPersona.
+ * Used by the Lens path to get the base config before lens injection.
+ */
+export function buildSagePersonaConfig(
+  persona: StudentPersona,
+  topicId?: string,
+): SagePersonaConfig {
+  return {
+    systemPrompt: buildSageSystemPrompt(persona, topicId),
+    responseStyle: {
+      maxLength: persona.prefersShortAnswers ? 'short' : 'medium',
+      useEmoji: persona.emotionalState === 'motivated' || persona.emotionalState === 'confident',
+      useAnalogies: persona.prefersAnalogies,
+      challengeLevel:
+        persona.tier === 'advanced' ? 'challenging'
+        : persona.tier === 'struggling' ? 'supportive'
+        : 'neutral',
+      tone:
+        persona.emotionalState === 'frustrated' || persona.emotionalState === 'exhausted' ? 'warm'
+        : persona.emotionalState === 'confident' ? 'peer'
+        : persona.emotionalState === 'motivated' ? 'coach'
+        : 'calm',
+    },
+    openingStyle: getSageOpener(persona, false),
+  };
+}
+
+// ── Lens-Integrated Prompt Builder ────────────────────────────────────────────
+
+import { lensContextToPrompt, type LensContext } from './lensEngine';
+
+/**
+ * Build the final Sage system prompt using LensContext.
+ * This is the primary prompt builder — replaces direct persona calls in Chat.tsx.
+ *
+ * Usage:
+ *   const lens = await buildLensContext({ ... });
+ *   const prompt = buildLensPrompt(lens, basePersonaConfig);
+ *   → pass prompt to Gemini API
+ */
+export function buildLensPrompt(
+  lens: LensContext,
+  basePersonaConfig: SagePersonaConfig
+): string {
+  const lensAddendum = lensContextToPrompt(lens);
+
+  // Inject PYQ context if available
+  let pyqSection = '';
+  if (lens.hasPYQContext && lens.examId === 'gate-engineering-maths') {
+    const { buildStaticRagContext } = require('./gateEmPyqContext');
+    const pyqCtx = buildStaticRagContext(lens.topicId);
+    pyqSection = `\n\n## GATE EM PYQ CONTEXT\n${pyqCtx}`;
+  } else if (lens.hasPYQContext && lens.examId === 'cat') {
+    const { buildStaticCatRagContext } = require('./catPyqContext');
+    const pyqCtx = buildStaticCatRagContext(lens.topicId);
+    pyqSection = `\n\n## CAT PYQ CONTEXT\n${pyqCtx}`;
+  }
+
+  return `${basePersonaConfig.systemPrompt}\n\n${lensAddendum}${pyqSection}`;
+}
+
 // ── RAG-Enhanced Prompt Builder ────────────────────────────────────────────────
 
 import { buildStaticRagContext } from './gateEmPyqContext';

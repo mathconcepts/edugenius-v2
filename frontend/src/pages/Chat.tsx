@@ -22,7 +22,12 @@ import { OutputBlockRenderer } from '@/components/chat/OutputBlockRenderer';
 import { DrawingCanvas } from '@/components/chat/DrawingCanvas';
 import { ManimViz } from '@/components/chat/ManimViz';
 import { ManimToggle } from '@/components/chat/ManimToggle';
+import { NextConceptCard } from '@/components/chat/NextConceptCard';
+import { MasteryBadge } from '@/components/chat/MasteryBadge';
 import { shouldRenderWithManim, extractPrimaryLatex } from '@/services/manimService';
+import { buildLensContext, type LensContext } from '@/services/lensEngine';
+import { recordSageInteraction } from '@/services/signalBus';
+import { saveStudentProfile } from '@/services/persistenceDB';
 import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
@@ -158,12 +163,22 @@ function MessageBubble({
   isExpanded,
   onToggleExpand,
   userRole,
+  dismissedCards,
+  onDismissCard,
+  newlyMastered,
+  onDismissMastery,
+  isLastMessage,
 }: {
   message: Message;
   onCopy: () => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
   userRole: string;
+  dismissedCards?: Set<string>;
+  onDismissCard?: (id: string) => void;
+  newlyMastered?: { topicId: string; score: number } | null;
+  onDismissMastery?: () => void;
+  isLastMessage?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
@@ -284,6 +299,25 @@ function MessageBubble({
                 latex={message.metadata.manimLatex as string | undefined}
                 title={message.metadata.manimTitle as string | undefined}
                 sessionId={message.id}
+              />
+            )}
+
+            {/* Next Concept Card — shows weak-topic suggestion below last assistant message */}
+            {message.metadata?.lensNextTopic && message.metadata?.lensExamRoute &&
+             !dismissedCards?.has(message.id) && (
+              <NextConceptCard
+                suggestion={message.metadata.lensNextTopic}
+                examRoute={message.metadata.lensExamRoute}
+                onDismiss={() => onDismissCard?.(message.id)}
+              />
+            )}
+
+            {/* Mastery celebration — fires once when concept is mastered */}
+            {newlyMastered && isLastMessage && (
+              <MasteryBadge
+                topicName={newlyMastered.topicId.replace(/-/g, ' ')}
+                masteryScore={newlyMastered.score}
+                onDismiss={onDismissMastery}
               />
             )}
 
@@ -462,6 +496,12 @@ export function Chat() {
   const [isTyping, setIsTyping] = useState(false);
   // Student persona — loaded from localStorage, updated live during session
   const [persona, setPersona] = useState<StudentPersona>(() => loadPersona());
+  // Lens context — personalization brain output for last response
+  const [lensContext, setLensContext] = useState<LensContext | null>(null);
+  // Dismissed next-concept cards (by message id)
+  const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
+  // Mastered topics to celebrate
+  const [newlyMastered, setNewlyMastered] = useState<{topicId: string; score: number} | null>(null);
   // studentContext injected into system context from URL params
   const studentContextParam = searchParams.get('studentContext');
   const studentContextMsg = studentContextParam
@@ -729,38 +769,67 @@ export function Chat() {
     if (isStudent) {
       const updatedPersona = updatePersonaAfterMessage(persona, userText, 'neutral');
       setPersona(updatedPersona);
+
+      // ── Persist persona to IndexedDB (cross-session memory) ──────────────
+      saveStudentProfile(updatedPersona).catch(() => {}); // non-blocking
+
       // Wire 8 — Cohort aggregation: refresh cohort insights after every message
       try {
         const { aggregatePersonasToCohort, pushCohortInsights } = await import('@/services/personaContentBridge');
         const freshCohort = aggregatePersonasToCohort([updatedPersona]);
         pushCohortInsights(freshCohort);
       } catch { /* non-blocking */ }
-      // Prepend opener to the message context for first turn
-      const opener = getSageOpener(updatedPersona, history.length === 0);
+
       // Detect topic from message for network context injection
       const cohortSignals = getCohortSignals(updatedPersona.exam ?? 'JEE Main');
       matchedSignal = cohortSignals.find(s =>
         userText.toLowerCase().includes(s.topicName.toLowerCase().split(' ')[0])
       );
       detectedTopicId = matchedSignal?.topicId;
-      sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId);
 
-      // Inject GATE EM PYQ context for GATE students (no Supabase needed — static bundle)
+      // ── Build Lens Context (personalization brain) ────────────────────────
       const isGateExam = updatedPersona.exam?.toUpperCase().includes('GATE');
-      if (isGateExam && shouldUseRag(userText)) {
-        sageSystemPrompt = buildGateRagPrompt(userText, detectedTopicId, sageSystemPrompt);
-      }
-
-      // Inject CAT PYQ context for CAT students (static bundle, same pattern as GATE EM)
-      const isCatExam =
-        updatedPersona.exam?.toUpperCase().includes('CAT') ||
+      const isCatExam = updatedPersona.exam?.toUpperCase().includes('CAT') ||
         updatedPersona.exam?.toUpperCase().includes('MBA');
-      if (isCatExam && shouldUseCatRag(userText)) {
-        sageSystemPrompt = buildCatRagPrompt(userText, detectedTopicId, sageSystemPrompt);
+      const examId = isGateExam ? 'gate-engineering-maths' : isCatExam ? 'cat' : 'jee-main';
+      const hasPYQContext = (isGateExam && shouldUseRag(userText)) ||
+        (isCatExam && shouldUseCatRag(userText));
+
+      let activeLensCtx: LensContext | null = null;
+      try {
+        activeLensCtx = await buildLensContext({
+          studentId: updatedPersona.studentId,
+          topicId: detectedTopicId ?? 'general',
+          examId,
+          sessionId: sessionId ?? 'session-0',
+          sessionMessageCount: history.length,
+          hasPYQContext,
+        });
+        setLensContext(activeLensCtx);
+      } catch { /* non-blocking — fall back to legacy prompt */ }
+
+      // ── Build system prompt (Lens-first, legacy fallback) ─────────────────
+      if (activeLensCtx) {
+        const { buildLensPrompt } = await import('@/services/sagePersonaPrompts');
+        const baseConfig = (await import('@/services/sagePersonaPrompts')).buildSagePersonaConfig(
+          updatedPersona,
+          detectedTopicId
+        );
+        sageSystemPrompt = buildLensPrompt(activeLensCtx, baseConfig);
+      } else {
+        // Legacy path (no IndexedDB or first load)
+        sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId);
+        if (isGateExam && shouldUseRag(userText)) {
+          sageSystemPrompt = buildGateRagPrompt(userText, detectedTopicId, sageSystemPrompt);
+        }
+        if (isCatExam && shouldUseCatRag(userText)) {
+          sageSystemPrompt = buildCatRagPrompt(userText, detectedTopicId, sageSystemPrompt);
+        }
       }
 
+      // Prepend opener to the message context for first turn
+      const opener = getSageOpener(updatedPersona, history.length === 0);
       if (opener) {
-        // Inject opener as a preamble hint into the system prompt
         sageSystemPrompt = `${sageSystemPrompt}\n\nOPENER (use this as your first sentence): "${opener}"`;
       }
     }
@@ -844,8 +913,34 @@ export function Chat() {
           manimTitle: manimTopic
             ? `${manimTopic.charAt(0).toUpperCase() + manimTopic.slice(1)} — ${detectedTopicId ?? ''}`
             : undefined,
+          // Lens context hint — for NextConceptCard rendering
+          lensNextTopic: lensContext?.suggestedNextContent ?? undefined,
+          lensExamRoute: lensContext?.examId === 'gate-engineering-maths' ? 'gate-em'
+            : lensContext?.examId === 'cat' ? 'cat' : undefined,
         },
       });
+
+      // ── Record interaction in IndexedDB (fires signals, updates BKT) ──────
+      if (isStudent && lensContext) {
+        recordSageInteraction({
+          studentId: lensContext.studentId,
+          examId: lensContext.examId,
+          topicId: lensContext.topicId,
+          sessionId: sessionId!,
+          messageCount: history.length + 1,
+          timeSpentMs: latency,
+        }).then(async () => {
+          // Check if newly mastered after recording
+          const { getTopicMastery } = await import('@/services/persistenceDB');
+          const mastery = await getTopicMastery(
+            lensContext.studentId, lensContext.examId, lensContext.topicId
+          );
+          if (mastery?.isMastered && mastery.consecutiveCorrect === 3) {
+            setNewlyMastered({ topicId: lensContext.topicId, score: mastery.masteryScore });
+          }
+        }).catch(() => {}); // non-blocking
+      }
+
       setIsTyping(false);
       setStreaming(false);
     };
@@ -1218,7 +1313,7 @@ export function Chat() {
             </div>
           ) : (
             <>
-              {currentSession.messages.map(message => (
+              {currentSession.messages.map((message, idx) => (
                 <MessageBubble
                   key={message.id}
                   message={message}
@@ -1230,6 +1325,11 @@ export function Chat() {
                     return n;
                   })}
                   userRole={userRole}
+                  dismissedCards={dismissedCards}
+                  onDismissCard={(id) => setDismissedCards(prev => new Set([...prev, id]))}
+                  newlyMastered={newlyMastered}
+                  onDismissMastery={() => setNewlyMastered(null)}
+                  isLastMessage={idx === currentSession.messages.length - 1}
                 />
               ))}
 
