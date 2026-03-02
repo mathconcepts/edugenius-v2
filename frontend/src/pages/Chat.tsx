@@ -226,10 +226,10 @@ function MessageBubble({
           )}
           {message.content && (
             <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-2xl rounded-br-sm px-4 py-3 shadow-md shadow-primary-900/20">
-              <p className="text-sm leading-relaxed">{message.content}</p>
+              <p className="text-sm md:text-[15px] leading-relaxed md:leading-[1.75]">{message.content}</p>
             </div>
           )}
-          <p className="text-[10px] text-surface-600 mt-1 mr-1">
+          <p className="text-[11px] md:text-[10px] text-surface-600 mt-1 mr-1">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
@@ -272,7 +272,7 @@ function MessageBubble({
 
             {/* Message text — directly on page (book-page feel) */}
             {message.content && (
-              <div className="text-sm leading-relaxed text-white/90">
+              <div className="text-[15px] leading-[1.75] text-white/90 prose-mobile">
                 {shouldCollapse && !isExpanded ? (
                   <>
                     <p>{message.content.slice(0, PREVIEW_LENGTH)}...</p>
@@ -1073,7 +1073,7 @@ export function Chat() {
   }
 
   return (
-    <div className="h-[calc(100vh-7rem)] md:h-[calc(100vh-7rem)] h-[calc(100dvh-7.5rem)] flex gap-5">
+    <div className="h-[calc(100dvh-7rem)] md:h-[calc(100dvh-7rem)] flex gap-5">
       {/* Hidden file inputs */}
       <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = ''; }} />
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageFile(e.target.files[0]); e.target.value = ''; }} />
@@ -1407,13 +1407,16 @@ export function Chat() {
           </div>
         )}
 
-        {/* Input area — extra bottom padding on mobile for thumb zone */}
-        <div className="p-3 pb-3 md:pb-3 border-t border-surface-700/50">
+        {/* Input area — thumb-zone friendly, safe area bottom padding */}
+        <div
+          className="p-3 border-t border-surface-700/50"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+        >
           <div className="flex items-end gap-2">
             {/* Attach menu */}
             <div className="relative">
               <button onClick={() => setShowAttachMenu(!showAttachMenu)}
-                className="p-2 hover:bg-surface-800 rounded-lg transition-colors text-surface-400 hover:text-white">
+                className="p-3 hover:bg-surface-800 rounded-xl transition-colors text-surface-400 hover:text-white touch-manipulation min-w-[46px] min-h-[46px] flex items-center justify-center">
                 <Paperclip className="w-5 h-5" />
               </button>
               <AnimatePresence>
@@ -1454,8 +1457,8 @@ export function Chat() {
                     ? (userRole === 'teacher' ? 'Ask anything about your students or lessons...' : 'Ask anything — type, paste an image, or draw your problem')
                     : `Ask ${displayAgent?.name} anything... (paste images, type equations)`}
                 rows={1}
-                className="input resize-none pr-3 text-sm"
-                style={{ minHeight: '42px', maxHeight: '120px' }}
+                className="input resize-none pr-3 text-[16px] md:text-sm"
+                style={{ minHeight: '46px', maxHeight: '120px' }}
               />
             </div>
 
@@ -1464,8 +1467,13 @@ export function Chat() {
 
             {/* Send */}
             <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || isStreaming}
-              className={clsx('p-2.5 rounded-xl transition-all',
-                (input.trim() || attachments.length > 0) ? 'bg-primary-500 hover:bg-primary-400 text-white' : 'bg-surface-800 text-surface-500')}>
+              className={clsx(
+                'p-3 rounded-xl transition-all touch-manipulation',
+                'min-w-[46px] min-h-[46px] flex items-center justify-center',
+                (input.trim() || attachments.length > 0)
+                  ? 'bg-primary-500 hover:bg-primary-400 active:bg-primary-600 text-white shadow-lg shadow-primary-500/25'
+                  : 'bg-surface-800 text-surface-500'
+              )}>
               <Send className="w-5 h-5" />
             </button>
           </div>

@@ -31,29 +31,49 @@ const TEACHER_TABS = [
 function MobileTabBar({ role }: { role: 'student' | 'teacher' }) {
   const tabs = role === 'student' ? STUDENT_TABS : TEACHER_TABS;
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-stretch safe-area-pb">
+    <nav
+      className={clsx(
+        'fixed bottom-0 left-0 right-0 z-40 flex items-stretch',
+        'bg-surface-950/95 dark:bg-surface-950/95 border-t border-surface-800/80',
+        'backdrop-blur-md',
+      )}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
       {tabs.map(tab => (
-        <NavLink key={tab.to} to={tab.to} end={tab.end}
+        <NavLink
+          key={tab.to}
+          to={tab.to}
+          end={tab.end}
           className={({ isActive }) =>
-            clsx('flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-w-0 transition-colors',
+            clsx(
+              'flex-1 flex flex-col items-center justify-center py-2.5 gap-1 min-w-0',
+              'touch-manipulation transition-colors duration-150',
               isActive
-                ? 'text-blue-600 dark:text-blue-400'
+                ? 'text-primary-400'
                 : tab.highlight
-                  ? 'text-indigo-500 dark:text-indigo-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-indigo-400'
+                  : 'text-surface-500 dark:text-surface-500'
             )
-          }>
+          }
+        >
           {({ isActive }) => (
             <>
               {tab.highlight ? (
-                <div className={clsx('w-12 h-12 -mt-6 rounded-full flex items-center justify-center shadow-lg transition-all',
-                  isActive ? 'bg-blue-600 scale-110' : 'bg-indigo-600')}>
-                  <tab.icon size={22} className="text-white" />
+                <div className={clsx(
+                  'w-12 h-12 -mt-6 rounded-2xl flex items-center justify-center shadow-xl transition-all duration-200',
+                  isActive
+                    ? 'bg-primary-500 scale-110 shadow-primary-500/40'
+                    : 'bg-indigo-600 shadow-indigo-600/30'
+                )}>
+                  <tab.icon size={22} className="text-white" strokeWidth={isActive ? 2.5 : 2} />
                 </div>
               ) : (
-                <tab.icon size={22} className={isActive ? 'stroke-[2.5]' : 'stroke-2'} />
+                <tab.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
               )}
-              <span className={clsx('text-[10px] font-medium', tab.highlight && !isActive ? 'mt-1' : '')}>
+              <span className={clsx(
+                'text-[11px] font-medium leading-none',
+                tab.highlight && !isActive ? 'mt-1' : '',
+              )}>
                 {tab.label}
               </span>
             </>
@@ -69,23 +89,34 @@ function MobileTabBar({ role }: { role: 'student' | 'teacher' }) {
 function MobileTopBar({ role }: { role: 'student' | 'teacher' }) {
   const { theme, toggleTheme } = useAppStore();
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4">
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-          E
+    <header
+      className={clsx(
+        'fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4',
+        'bg-surface-950/95 border-b border-surface-800/80 backdrop-blur-md',
+      )}
+      style={{
+        height: 'calc(56px + env(safe-area-inset-top, 0px))',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+      }}
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center shadow-lg">
+          <span className="text-white font-bold text-sm">E</span>
         </div>
-        <span className="font-semibold text-gray-900 dark:text-white text-sm">EduGenius</span>
+        <span className="font-bold text-white text-base tracking-tight">EduGenius</span>
       </div>
       <div className="flex items-center gap-2">
         {role === 'student' && (
-          <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded-full">
-            <span className="text-sm">🔥</span>
-            <span className="text-xs font-bold text-orange-600 dark:text-orange-400">12</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/15 border border-orange-500/25 rounded-full touch-manipulation">
+            <span className="text-base leading-none">🔥</span>
+            <span className="text-sm font-bold text-orange-400">12</span>
           </div>
         )}
         <button onClick={toggleTheme}
-          className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-          <span className="text-base">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-800/80 border border-surface-700/60 touch-manipulation hover:bg-surface-700/80 transition-colors">
+          <span className="text-base leading-none">{theme === 'dark' ? '☀️' : '🌙'}</span>
         </button>
       </div>
     </header>
@@ -111,9 +142,11 @@ export function Layout() {
   // ── MOBILE LAYOUT (student/teacher on small screens) ──────────────────
   if (isMobileRole) {
     return (
-      <div className={clsx('min-h-screen transition-colors duration-200',
-        theme === 'dark' ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900')}>
-        {/* Desktop sidebar (md+) */}
+      <div className={clsx(
+        'min-h-dvh transition-colors duration-200',
+        theme === 'dark' ? 'bg-surface-950 text-white' : 'bg-gray-50 text-gray-900'
+      )}>
+        {/* Desktop sidebar + header (md+) */}
         <div className="hidden md:block">
           <Sidebar />
           <Header />
@@ -122,18 +155,21 @@ export function Layout() {
         <div className="block md:hidden">
           <MobileTopBar role={userRole as 'student' | 'teacher'} />
         </div>
+
         {/* Content */}
         <main className={clsx(
           /* Desktop: sidebar offset */
           'md:pt-16 md:transition-all',
           sidebarOpen ? 'md:pl-[240px]' : 'md:pl-[56px]',
-          /* Mobile: top bar + bottom tab bar */
-          'pt-14 pb-20 md:pb-0',
+          /* Mobile: below top bar (56px), above bottom tab bar (64px + safe area) */
+          'pt-[56px] pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0',
         )}>
-          <div className="p-4 md:p-6">
+          {/* Mobile: comfortable content padding with safe area sides */}
+          <div className="p-4 md:p-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
             <Outlet />
           </div>
         </main>
+
         {/* Mobile bottom tab (< md) */}
         <div className="block md:hidden">
           <MobileTabBar role={userRole as 'student' | 'teacher'} />
