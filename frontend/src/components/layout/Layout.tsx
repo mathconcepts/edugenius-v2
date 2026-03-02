@@ -126,7 +126,7 @@ export function Layout() {
         <main className={clsx(
           /* Desktop: sidebar offset */
           'md:pt-16 md:transition-all',
-          sidebarOpen ? 'md:pl-[260px]' : 'md:pl-[72px]',
+          sidebarOpen ? 'md:pl-[240px]' : 'md:pl-[56px]',
           /* Mobile: top bar + bottom tab bar */
           'pt-14 pb-20 md:pb-0',
         )}>
@@ -150,7 +150,7 @@ export function Layout() {
       <Sidebar />
       <Header />
       <main className={clsx('pt-16 min-h-screen transition-all',
-        sidebarOpen ? 'pl-[260px]' : 'pl-[72px]')}>
+        sidebarOpen ? 'pl-[240px]' : 'pl-[56px]')}>
         <div className="p-6">
           <Outlet />
         </div>

@@ -355,6 +355,29 @@ export function CEODashboard() {
         {showOpsModal && <RunOpsModal onClose={() => setShowOpsModal(false)} />}
       </AnimatePresence>
 
+      {/* ── Priority Banner — #1 thing needing attention ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative flex items-center gap-4 px-5 py-4 rounded-xl bg-amber-500/8 border border-amber-500/30 overflow-hidden"
+        style={{ borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}
+      >
+        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center">
+          <AlertCircle className="w-5 h-5 text-amber-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70 mb-0.5">Priority Alert</p>
+          <p className="text-sm font-semibold text-white">Herald is awaiting blog approval — 3 posts ready to publish</p>
+          <p className="text-xs text-surface-400 mt-0.5">Approving now boosts organic reach by ~40% for the week</p>
+        </div>
+        <button
+          onClick={() => navigate('/blog')}
+          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-sm font-semibold border border-amber-500/30 transition-all"
+        >
+          Review <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </motion.div>
+
       {/* ── Hero Revenue Strip ── */}
       <div className="bg-gradient-to-r from-primary-600/20 to-emerald-600/20 border border-primary-500/30 rounded-2xl p-6">
         <div className="flex items-center justify-between">

@@ -388,43 +388,61 @@ function SetupScreen({ onStart }: { onStart: (cfg: SessionConfig) => void }) {
         <p className="text-zinc-400 text-sm">Sharpen your skills. AI explanations on every question.</p>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
-        {/* Exam */}
+      <div className="glass rounded-2xl p-6 space-y-5">
+        {/* Exam — pill chips with gradient active state */}
         <div>
-          <p className="text-sm font-medium text-zinc-300 mb-2">📋 Exam Target</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-surface-400 mb-3">📋 Exam Target</p>
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-none">
             {EXAMS.map(e => (
-              <button key={e} onClick={() => setCfg(c => ({ ...c, exam: e }))}
-                className={clsx('px-3 py-1.5 rounded-lg text-sm border transition-all',
-                  pill(cfg.exam === e, 'bg-blue-600 border-blue-500'))}>
+              <button
+                key={e}
+                onClick={() => setCfg(c => ({ ...c, exam: e }))}
+                className={clsx(
+                  'flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all',
+                  cfg.exam === e
+                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 border-primary-500 text-white shadow-md shadow-primary-900/30'
+                    : 'bg-surface-800/60 border-surface-700 text-surface-300 hover:border-surface-500 hover:text-white'
+                )}>
                 {e}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Subject */}
+        {/* Subject — pill chips */}
         <div>
-          <p className="text-sm font-medium text-zinc-300 mb-2">📚 Subject</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-surface-400 mb-3">📚 Subject</p>
           <div className="flex flex-wrap gap-2">
             {SUBJECTS.map(s => (
-              <button key={s} onClick={() => setCfg(c => ({ ...c, subject: s }))}
-                className={clsx('px-3 py-1.5 rounded-lg text-sm border transition-all',
-                  pill(cfg.subject === s, 'bg-purple-600 border-purple-500'))}>
+              <button
+                key={s}
+                onClick={() => setCfg(c => ({ ...c, subject: s }))}
+                className={clsx(
+                  'px-4 py-2 rounded-full text-sm font-semibold border transition-all',
+                  cfg.subject === s
+                    ? 'bg-gradient-to-r from-accent-600 to-accent-500 border-accent-500 text-white shadow-md shadow-accent-900/30'
+                    : 'bg-surface-800/60 border-surface-700 text-surface-300 hover:border-surface-500 hover:text-white'
+                )}>
                 {s}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Difficulty */}
+        {/* Difficulty — pill chips */}
         <div>
-          <p className="text-sm font-medium text-zinc-300 mb-2">⚡ Difficulty</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-surface-400 mb-3">⚡ Difficulty</p>
+          <div className="flex gap-2">
             {DIFFICULTIES.map(d => (
-              <button key={d} onClick={() => setCfg(c => ({ ...c, difficulty: d }))}
-                className={clsx('px-3 py-1.5 rounded-lg text-sm border capitalize transition-all',
-                  pill(cfg.difficulty === d, 'bg-orange-600 border-orange-500'))}>
+              <button
+                key={d}
+                onClick={() => setCfg(c => ({ ...c, difficulty: d }))}
+                className={clsx(
+                  'flex-1 py-2 rounded-full text-sm font-semibold border capitalize transition-all',
+                  cfg.difficulty === d
+                    ? 'bg-gradient-to-r from-orange-600 to-amber-500 border-orange-500 text-white shadow-md shadow-orange-900/20'
+                    : 'bg-surface-800/60 border-surface-700 text-surface-300 hover:border-surface-500 hover:text-white'
+                )}>
                 {d}
               </button>
             ))}
@@ -433,12 +451,18 @@ function SetupScreen({ onStart }: { onStart: (cfg: SessionConfig) => void }) {
 
         {/* Count */}
         <div>
-          <p className="text-sm font-medium text-zinc-300 mb-2">🔢 Questions</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-surface-400 mb-3">🔢 Questions</p>
           <div className="flex gap-3">
             {SESSION_SIZES.map(n => (
-              <button key={n} onClick={() => setCfg(c => ({ ...c, count: n }))}
-                className={clsx('flex-1 py-3 rounded-xl text-lg font-bold border transition-all',
-                  pill(cfg.count === n, 'bg-emerald-600 border-emerald-500'))}>
+              <button
+                key={n}
+                onClick={() => setCfg(c => ({ ...c, count: n }))}
+                className={clsx(
+                  'flex-1 py-3 rounded-2xl text-lg font-black border transition-all',
+                  cfg.count === n
+                    ? 'bg-gradient-to-b from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-900/30'
+                    : 'bg-surface-800/60 border-surface-700 text-surface-300 hover:border-surface-500 hover:text-white'
+                )}>
                 {n}
               </button>
             ))}
@@ -446,20 +470,20 @@ function SetupScreen({ onStart }: { onStart: (cfg: SessionConfig) => void }) {
         </div>
 
         {/* Timer toggle */}
-        <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-xl">
+        <div className="flex items-center justify-between p-4 glass-card rounded-xl">
           <div>
-            <p className="text-sm font-medium text-zinc-300">⏱ Timed Mode</p>
-            <p className="text-xs text-zinc-500">{cfg.timerPerQuestion}s per question</p>
+            <p className="text-sm font-semibold text-white">⏱ Timed Mode</p>
+            <p className="text-xs text-surface-500 mt-0.5">{cfg.timerPerQuestion}s per question · exam simulation</p>
           </div>
           <button onClick={() => setCfg(c => ({ ...c, timed: !c.timed }))}
-            className={clsx('w-12 h-6 rounded-full relative transition-colors', cfg.timed ? 'bg-blue-600' : 'bg-zinc-600')}>
-            <div className={clsx('absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all', cfg.timed ? 'left-6' : 'left-0.5')} />
+            className={clsx('w-12 h-6 rounded-full relative transition-colors flex-shrink-0', cfg.timed ? 'bg-primary-500' : 'bg-surface-600')}>
+            <div className={clsx('absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all', cfg.timed ? 'left-6' : 'left-0.5')} />
           </button>
         </div>
 
         <button onClick={() => onStart(cfg)}
-          className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2">
-          <Play size={20} /> Start Session ({cfg.count} Questions)
+          className="w-full py-4 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-2xl font-bold text-base hover:opacity-90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary-900/30">
+          <Play size={18} /> Start Session · {cfg.count} Questions
         </button>
       </div>
 

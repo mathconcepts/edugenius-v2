@@ -183,127 +183,145 @@ function MessageBubble({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={clsx('flex gap-3', isUser && 'flex-row-reverse')}
+      className={clsx('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}
     >
-      {/* Avatar */}
-      <div className={clsx(
-        'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1',
-        isUser ? 'bg-gradient-to-br from-primary-400 to-accent-400' : 'bg-surface-800'
-      )}>
-        {isUser ? <User className="w-4 h-4 text-white" /> : <span className="text-lg">{agent?.emoji || '🤖'}</span>}
-      </div>
+      {/* ── USER bubble: gradient pill, no avatar ── */}
+      {isUser ? (
+        <div className="max-w-[75%] flex flex-col items-end group">
+          {/* User attachments */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2 justify-end">
+              {message.attachments.map(att => (
+                <div key={att.id} className="max-w-xs">
+                  {att.type === 'image' || att.type === 'drawing' ? (
+                    <img src={att.url} alt={att.name} className="rounded-xl max-h-48 object-contain border border-surface-700" />
+                  ) : att.type === 'audio' ? (
+                    <div className="px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-xl text-xs text-green-400 flex items-center gap-2">
+                      <Mic className="w-3 h-3" />{att.transcript || att.name}
+                    </div>
+                  ) : (
+                    <div className="px-3 py-2 bg-surface-800 border border-surface-700 rounded-xl text-xs text-surface-400 flex items-center gap-2">
+                      <FileText className="w-3 h-3" /> {att.name}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {message.content && (
+            <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-2xl rounded-br-sm px-4 py-3 shadow-md shadow-primary-900/20">
+              <p className="text-sm leading-relaxed">{message.content}</p>
+            </div>
+          )}
+          <p className="text-[10px] text-surface-600 mt-1 mr-1">
+            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      ) : (
+        /* ── ASSISTANT bubble: book-page style, no bg, agent avatar ── */
+        <>
+          {/* Agent avatar */}
+          <div className="flex-shrink-0 mt-1">
+            <div className={clsx(
+              'w-9 h-9 rounded-full flex items-center justify-center text-lg shadow-md',
+              agent?.id === 'sage'   ? 'bg-gradient-to-br from-amber-500 to-yellow-400' :
+              agent?.id === 'scout'  ? 'bg-gradient-to-br from-blue-500 to-cyan-400' :
+              agent?.id === 'atlas'  ? 'bg-gradient-to-br from-green-500 to-emerald-400' :
+              agent?.id === 'mentor' ? 'bg-gradient-to-br from-purple-500 to-violet-400' :
+              agent?.id === 'oracle' ? 'bg-gradient-to-br from-orange-500 to-amber-400' :
+              agent?.id === 'herald' ? 'bg-gradient-to-br from-indigo-500 to-purple-400' :
+                                       'bg-gradient-to-br from-surface-600 to-surface-500'
+            )}>
+              <span>{agent?.emoji || '🤖'}</span>
+            </div>
+          </div>
 
-      {/* Bubble */}
-      <div className={clsx('max-w-[75%] group', isUser && 'items-end flex flex-col')}>
-        {/* Intent badge (AI messages only) */}
-        {!isUser && message.intent && message.intent.intent !== 'general' && (
-          <IntentBadge {...message.intent} />
-        )}
+          {/* Content area — no bubble background */}
+          <div className="flex-1 max-w-[80%] group">
+            {/* Agent name badge */}
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs font-semibold text-surface-300">{agent?.name || 'AI'}</span>
+              <span className="text-[10px] text-surface-600">·</span>
+              <span className="text-[10px] text-surface-600">
+                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
 
-        {/* User attachments */}
-        {isUser && message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2 justify-end">
-            {message.attachments.map(att => (
-              <div key={att.id} className="max-w-xs">
-                {att.type === 'image' || att.type === 'drawing' ? (
-                  <img src={att.url} alt={att.name} className="rounded-xl max-h-48 object-contain border border-surface-700" />
-                ) : att.type === 'audio' ? (
-                  <div className="px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-xl text-xs text-green-400 flex items-center gap-2">
-                    <Mic className="w-3 h-3" />
-                    {att.transcript || att.name}
-                  </div>
+            {/* Intent badge */}
+            {message.intent && message.intent.intent !== 'general' && (
+              <div className="mb-2">
+                <IntentBadge {...message.intent} />
+              </div>
+            )}
+
+            {/* Message text — directly on page (book-page feel) */}
+            {message.content && (
+              <div className="text-sm leading-relaxed text-white/90">
+                {shouldCollapse && !isExpanded ? (
+                  <>
+                    <p>{message.content.slice(0, PREVIEW_LENGTH)}...</p>
+                    <button onClick={onToggleExpand} className="mt-2 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors">
+                      Show full answer ↓
+                    </button>
+                  </>
                 ) : (
-                  <div className="px-3 py-2 bg-surface-800 border border-surface-700 rounded-xl text-xs text-surface-400 flex items-center gap-2">
-                    <FileText className="w-3 h-3" /> {att.name}
-                  </div>
+                  <>
+                    <OutputBlockRenderer blocks={message.outputBlocks || []} fallback={message.content} />
+                    {shouldCollapse && isExpanded && (
+                      <button onClick={onToggleExpand} className="mt-2 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors">
+                        Show less ↑
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Message content */}
-        {message.content && (
-          <div className={clsx(
-            'rounded-2xl px-4 py-3',
-            isUser
-              ? 'bg-primary-600 text-white rounded-br-md'
-              : 'bg-surface-800 text-white rounded-bl-md'
-          )}>
-            {isUser ? (
-              <p className="text-sm leading-relaxed">{message.content}</p>
-            ) : shouldCollapse && !isExpanded ? (
-              <>
-                <p className="text-sm leading-relaxed">{message.content.slice(0, PREVIEW_LENGTH)}...</p>
-                <button
-                  onClick={onToggleExpand}
-                  className="mt-2 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors"
+            {/* Manim Visualisation */}
+            {message.metadata?.manimTopic && (
+              <ManimViz
+                topic={message.metadata.manimTopic as string}
+                latex={message.metadata.manimLatex as string | undefined}
+                title={message.metadata.manimTitle as string | undefined}
+                sessionId={message.id}
+              />
+            )}
+
+            {/* Action row — hover only */}
+            <div className="flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-surface-500 hover:text-white transition-colors px-2 py-1 rounded-md hover:bg-surface-800/60">
+                {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+              <button className="flex items-center gap-1 text-xs text-surface-500 hover:text-green-400 transition-colors px-2 py-1 rounded-md hover:bg-surface-800/60">
+                <Sparkles className="w-3 h-3" /> Good
+              </button>
+              <button className="flex items-center gap-1 text-xs text-surface-500 hover:text-red-400 transition-colors px-2 py-1 rounded-md hover:bg-surface-800/60">
+                <RefreshCw className="w-3 h-3" /> Retry
+              </button>
+              {message.metadata?.processingMs && (
+                <span className="text-[10px] text-surface-700 ml-auto">{message.metadata.processingMs}ms</span>
+              )}
+              {/* Trace badge — visible to CEO/admin */}
+              {message.traceId && userRole !== 'student' && userRole !== 'teacher' && (
+                <Link
+                  to={`/trace/${message.traceId}`}
+                  className="flex items-center gap-1 text-xs text-surface-600 hover:text-primary-400 transition-colors font-mono ml-auto"
+                  title="View full trace"
                 >
-                  Show full answer ↓
-                </button>
-              </>
-            ) : (
-              <>
-                <OutputBlockRenderer
-                  blocks={message.outputBlocks || []}
-                  fallback={message.content}
-                />
-                {shouldCollapse && isExpanded && (
-                  <button
-                    onClick={onToggleExpand}
-                    className="mt-2 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors"
-                  >
-                    Show less ↑
-                  </button>
-                )}
-              </>
-            )}
+                  🔗 {message.traceId.slice(0, 8)}
+                </Link>
+              )}
+              {/* Peer solidarity badge */}
+              {message.role === 'assistant' && userRole === 'student' && message.metadata?.cohortPeers && (
+                <span className="text-xs text-blue-400 bg-blue-900/20 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                  👥 {message.metadata.cohortPeers} peers studying this
+                </span>
+              )}
+            </div>
           </div>
-        )}
-
-        {/* Manim Visualisation — rendered below assistant message when arbitration triggers */}
-        {!isUser && message.metadata?.manimTopic && (
-          <ManimViz
-            topic={message.metadata.manimTopic as string}
-            latex={message.metadata.manimLatex as string | undefined}
-            title={message.metadata.manimTitle as string | undefined}
-            sessionId={message.id}
-          />
-        )}
-
-        {/* AI message footer */}
-        {!isUser && (
-          <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-surface-500 hover:text-white transition-colors">
-              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-            {message.metadata?.processingMs && (
-              <span className="text-xs text-surface-600">{message.metadata.processingMs}ms</span>
-            )}
-            {/* Trace badge — visible to CEO/admin */}
-            {message.traceId && userRole !== 'student' && userRole !== 'teacher' && (
-              <Link
-                to={`/trace/${message.traceId}`}
-                className="flex items-center gap-1 text-xs text-surface-600 hover:text-primary-400 transition-colors font-mono"
-                title="View full trace"
-              >
-                🔗 {message.traceId.slice(0, 8)}
-              </Link>
-            )}
-            {/* Peer solidarity badge — visible to students on AI responses */}
-            {message.role === 'assistant' && userRole === 'student' && message.metadata?.cohortPeers && (
-              <span className="text-xs text-blue-400 bg-blue-900/20 border border-blue-500/20 px-2 py-0.5 rounded-full">
-                👥 {message.metadata.cohortPeers} peers studying this
-              </span>
-            )}
-          </div>
-        )}
-
-        <p className="text-xs text-surface-600 mt-1">
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </p>
-      </div>
+        </>
+      )}
     </motion.div>
   );
 }
@@ -1110,7 +1128,7 @@ export function Chat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5" onPaste={handlePaste}>
+        <div className="flex-1 overflow-y-auto p-5 space-y-8" onPaste={handlePaste}>
           {!currentSession || currentSession.messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               <div className={clsx('w-20 h-20 rounded-2xl bg-gradient-to-br flex items-center justify-center text-4xl mb-4', displayAgent?.color || 'from-primary-500 to-accent-500')}>
@@ -1216,21 +1234,27 @@ export function Chat() {
               ))}
 
               {isTyping && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                  <div className={clsx('w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center text-lg', currentAgent?.color || 'from-primary-500 to-accent-500')}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 items-center">
+                  {/* Agent avatar */}
+                  <div className={clsx(
+                    'w-9 h-9 rounded-full flex items-center justify-center text-lg shadow-md flex-shrink-0',
+                    currentAgent?.id === 'sage'   ? 'bg-gradient-to-br from-amber-500 to-yellow-400' :
+                    currentAgent?.id === 'scout'  ? 'bg-gradient-to-br from-blue-500 to-cyan-400' :
+                    currentAgent?.id === 'atlas'  ? 'bg-gradient-to-br from-green-500 to-emerald-400' :
+                    'bg-gradient-to-br from-surface-600 to-surface-500'
+                  )}>
                     {currentAgent?.emoji}
                   </div>
-                  <div className="bg-surface-800 rounded-2xl rounded-bl-md px-4 py-3">
-                    <div className="flex gap-1.5 items-center">
-                      {[0, 150, 300].map(delay => (
-                        <span key={delay} className="w-2 h-2 bg-surface-500 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
-                      ))}
-                      {lastIntent && lastIntent.intent !== 'general' && (
-                        <span className="ml-2 text-xs text-surface-600 flex items-center gap-1">
-                          <Brain className="w-3 h-3" /> {lastIntent.intent.replace(/_/g, ' ')}...
-                        </span>
-                      )}
-                    </div>
+                  {/* Typing dots — minimal, no heavy bubble bg */}
+                  <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-surface-800/60 border border-surface-700/40">
+                    <span className="typing-dot w-2 h-2 bg-surface-400 rounded-full" />
+                    <span className="typing-dot w-2 h-2 bg-surface-400 rounded-full" />
+                    <span className="typing-dot w-2 h-2 bg-surface-400 rounded-full" />
+                    {lastIntent && lastIntent.intent !== 'general' && (
+                      <span className="ml-2 text-xs text-surface-600 flex items-center gap-1">
+                        <Brain className="w-3 h-3" /> {lastIntent.intent.replace(/_/g, ' ')}...
+                      </span>
+                    )}
                   </div>
                 </motion.div>
               )}
