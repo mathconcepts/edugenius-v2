@@ -24,6 +24,7 @@ import { ManimViz } from '@/components/chat/ManimViz';
 import { ManimToggle } from '@/components/chat/ManimToggle';
 import { NextConceptCard } from '@/components/chat/NextConceptCard';
 import { MasteryBadge } from '@/components/chat/MasteryBadge';
+import { MobileChatUI, useIsMobile } from '@/components/chat/MobileChatUI';
 import { shouldRenderWithManim, extractPrimaryLatex } from '@/services/manimService';
 import { buildLensContext, type LensContext } from '@/services/lensEngine';
 import { recordSageInteraction } from '@/services/signalBus';
@@ -1039,6 +1040,37 @@ export function Chat() {
         ? ['Create a quiz on quadratic equations', 'Which students are struggling?', 'Generate a lesson plan', 'Explain photosynthesis simply']
         : SUGGESTIONS_BY_AGENT.sage)
     : suggestions;
+
+  // ── Mobile shortcut — render simplified mobile UI ────────────────────────
+  const isMobile = useIsMobile();
+  const currentSessionMessages = currentSession?.messages ?? [];
+  if (isMobile && isStudent) {
+    return (
+      <MobileChatUI
+        messages={currentSessionMessages}
+        isTyping={isTyping}
+        onSend={(text) => {
+          // Wire into the same handleSend flow by setting input and triggering
+          // We use a ref trick to avoid duplicating the full send logic
+          void (async () => {
+            // Directly invoke handleSend with the text pre-set
+            const fakeEvent = { target: { value: text } } as React.ChangeEvent<HTMLInputElement>;
+            setInput(text);
+            // Small delay to let state settle, then send
+            await new Promise(r => setTimeout(r, 0));
+            handleSend();
+          })();
+        }}
+        examName={persona.exam ?? 'Exam'}
+        quickReplies={[
+          { id: 'qr1', text: '📝 Practice MCQ', icon: '📝' },
+          { id: 'qr2', text: '🔢 Formula sheet', icon: '🔢' },
+          { id: 'qr3', text: '📋 PYQ', icon: '📋' },
+          { id: 'qr4', text: "🤔 Explain again", icon: '🤔' },
+        ]}
+      />
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-7rem)] md:h-[calc(100vh-7rem)] h-[calc(100dvh-7.5rem)] flex gap-5">
