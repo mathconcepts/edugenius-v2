@@ -142,6 +142,9 @@ export interface Message {
     // Lens Engine hints (set by personalization layer)
     lensNextTopic?: import('../services/lensEngine').NextContentSuggestion;
     lensExamRoute?: string;  // e.g. 'gate-em', 'cat' — for NextConceptCard routing
+    // Topper intelligence hints
+    topperTopicId?: string;  // e.g. 'linear-algebra' — for TopperInsightCard
+    topperExamId?: string;   // e.g. 'gate-engineering-maths'
   };
 
   // Traceability

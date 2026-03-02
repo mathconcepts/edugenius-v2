@@ -25,6 +25,7 @@ import { ManimToggle } from '@/components/chat/ManimToggle';
 import { NextConceptCard } from '@/components/chat/NextConceptCard';
 import { MasteryBadge } from '@/components/chat/MasteryBadge';
 import { MobileChatUI, useIsMobile } from '@/components/chat/MobileChatUI';
+import { TopperTipChip } from '@/components/chat/TopperInsightCard';
 import { shouldRenderWithManim, extractPrimaryLatex } from '@/services/manimService';
 import { buildLensContext, type LensContext } from '@/services/lensEngine';
 import { recordSageInteraction } from '@/services/signalBus';
@@ -311,6 +312,22 @@ function MessageBubble({
                 examRoute={message.metadata.lensExamRoute}
                 onDismiss={() => onDismissCard?.(message.id)}
               />
+            )}
+
+            {/* Topper Insight Chips — strategy + trap for the detected topic */}
+            {!isUser && message.metadata?.topperTopicId && message.metadata?.topperExamId && (
+              <div className="mt-2 space-y-1.5">
+                <TopperTipChip
+                  examId={message.metadata.topperExamId}
+                  topicId={message.metadata.topperTopicId}
+                  variant="strategy"
+                />
+                <TopperTipChip
+                  examId={message.metadata.topperExamId}
+                  topicId={message.metadata.topperTopicId}
+                  variant="trap"
+                />
+              </div>
             )}
 
             {/* Mastery celebration — fires once when concept is mastered */}
@@ -918,6 +935,9 @@ export function Chat() {
           lensNextTopic: lensContext?.suggestedNextContent ?? undefined,
           lensExamRoute: lensContext?.examId === 'gate-engineering-maths' ? 'gate-em'
             : lensContext?.examId === 'cat' ? 'cat' : undefined,
+          // Topper intelligence — render insight chips below this response
+          topperTopicId: lensContext?.topicId !== 'general' ? lensContext?.topicId : detectedTopicId,
+          topperExamId: lensContext?.examId,
         },
       });
 

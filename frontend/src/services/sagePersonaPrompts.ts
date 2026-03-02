@@ -314,7 +314,7 @@ export function buildLensPrompt(
 ): string {
   const lensAddendum = lensContextToPrompt(lens);
 
-  // Inject PYQ context if available
+  // ── PYQ context ──
   let pyqSection = '';
   if (lens.hasPYQContext && lens.examId === 'gate-engineering-maths') {
     const { buildStaticRagContext } = require('./gateEmPyqContext');
@@ -326,7 +326,24 @@ export function buildLensPrompt(
     pyqSection = `\n\n## CAT PYQ CONTEXT\n${pyqCtx}`;
   }
 
-  return `${basePersonaConfig.systemPrompt}\n\n${lensAddendum}${pyqSection}`;
+  // ── Topper intelligence ──
+  // Inject topper strategies + common traps whenever a specific topic is known.
+  // This is the bi-directional link: TopperIntel → Sage.
+  let topperSection = '';
+  if (lens.topicId && lens.examId) {
+    const { getTopperPromptAddendum } = require('./topperIntelligence');
+    const phase = lens.examUrgency === 'critical'
+      ? 'exam_ready'
+      : lens.currentEmotion === 'frustrated' || lens.currentEmotion === 'anxious'
+        ? 'first_encounter'
+        : 'consolidating';
+    const topperAddendum = getTopperPromptAddendum(lens.examId, lens.topicId, phase, true, true);
+    if (topperAddendum) {
+      topperSection = `\n\n${topperAddendum}`;
+    }
+  }
+
+  return `${basePersonaConfig.systemPrompt}\n\n${lensAddendum}${pyqSection}${topperSection}`;
 }
 
 // ── RAG-Enhanced Prompt Builder ────────────────────────────────────────────────

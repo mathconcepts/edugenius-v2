@@ -657,6 +657,23 @@ function QuizScreen({
 
     // Wire 5 + 6 — AI explanation with network context + teaching strategy
     buildAIExplanation(q, isCorrect);
+
+    // Wire 7 — Topper Intelligence: Sage→TopperIntel signal on incorrect answer
+    // Oracle picks this up to track which lessons-learned need more exposure
+    if (!isCorrect) {
+      import('@/services/topperIntelligence').then(({ recordStudentMistake }) => {
+        const examSlug = config.exam === 'GATE EM' ? 'gate-engineering-maths' : config.exam === 'CAT' ? 'cat' : 'general';
+        const topicSlug = q.topic?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') ?? 'unknown';
+        recordStudentMistake({
+          studentId: 'anonymous',
+          topicId: topicSlug,
+          examId: examSlug,
+          mistakeType: 'conceptual',
+          mistakeDescription: `Incorrectly answered: "${q.question.slice(0, 100)}"`,
+          sessionId: sessionId.current,
+        }).catch(() => {/* non-blocking */});
+      });
+    }
   };
 
   const handleSkip = useCallback(() => {
@@ -812,20 +829,46 @@ function QuizScreen({
 
           {/* Explanation — static fallback + Wires 5 & 6 AI explanation */}
           {revealed && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-5 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-              <p className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1"><Lightbulb size={12} /> Sage Explanation</p>
-              {loadingExplanation ? (
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                  Sage is personalising your explanation…
-                </div>
-              ) : aiExplanation ? (
-                <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{aiExplanation}</p>
-              ) : (
-                <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{q.explanation}</p>
-              )}
-            </motion.div>
+            <>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="mt-5 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                <p className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1"><Lightbulb size={12} /> Sage Explanation</p>
+                {loadingExplanation ? (
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    Sage is personalising your explanation…
+                  </div>
+                ) : aiExplanation ? (
+                  <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{aiExplanation}</p>
+                ) : (
+                  <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">{q.explanation}</p>
+                )}
+              </motion.div>
+
+              {/* Topper insight — shown after answer is revealed */}
+              {(() => {
+                // Map question topic to topper insight key
+                const examSlug = config.exam === 'GATE EM' ? 'gate-engineering-maths' : config.exam === 'CAT' ? 'cat' : null;
+                const topicSlug = q.topic
+                  ?.toLowerCase()
+                  .replace(/\s+/g, '-')
+                  .replace(/[^a-z0-9-]/g, '');
+                const { getTopperInsight } = require('@/services/topperIntelligence');
+                const insight = examSlug ? getTopperInsight(examSlug, topicSlug) : null;
+                if (!insight) return null;
+                const { TopperInsightPanel } = require('@/components/chat/TopperInsightCard');
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-3"
+                  >
+                    <TopperInsightPanel insight={insight} />
+                  </motion.div>
+                );
+              })()}
+            </>
           )}
         </motion.div>
       </AnimatePresence>

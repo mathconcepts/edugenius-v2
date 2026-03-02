@@ -26,6 +26,7 @@ import {
 } from './persistenceDB';
 import { loadPersona, type StudentPersona, type LearningStyle, type EmotionalState } from './studentPersonaEngine';
 import { getExamById } from '../data/examRegistry';
+import { getTopperPromptAddendum } from './topperIntelligence';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -279,6 +280,27 @@ export async function buildLensContext(opts: BuildLensOptions): Promise<LensCont
       studentId,
       topicId,
     });
+  }
+
+  // ── Topper intelligence: inject before response if topic is known ────────
+  if (topicId !== 'general') {
+    const studyPhase: import('./topperIntelligence').StudyPhase =
+      examUrgency === 'critical' ? 'exam_ready'
+      : (topicMastery?.masteryScore ?? 0) < 0.4 ? 'first_encounter'
+      : (topicMastery?.masteryScore ?? 0) < 0.7 ? 'building'
+      : 'consolidating';
+
+    const topperAddendum = getTopperPromptAddendum(examId, topicId, studyPhase, !isFirstTime, true);
+    if (topperAddendum) {
+      // Store in signal queue for Sage to pick up
+      await enqueueSignal({
+        type: 'CONTENT_GAP',
+        sourceAgent: 'lens',
+        targetAgent: 'sage',
+        payload: { topperAddendum, topicId, examId, phase: studyPhase },
+        topicId,
+      });
+    }
   }
 
   return {
