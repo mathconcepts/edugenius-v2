@@ -1,6 +1,6 @@
 /**
  * Content Management — CEO/Admin view
- * Generation sources: Prompt | Document Upload | API / MCP | AI Agent | Wolfram ∑ | Batch ⚡
+ * Generation sources: Prompt | Document Upload | API / MCP | AI Agent | Wolfram ∑ | Batch ⚡ | Auto ⚙️
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -9,7 +9,7 @@ import {
   Upload, Globe, Bot, Sparkles,
   X, Check, Loader2, Eye, Edit3, BarChart3, Plus, Brain,
   Calculator, Download, RefreshCw, ExternalLink, Zap, ChevronDown, ChevronUp, Settings,
-  Clock, Gauge,
+  Clock, Gauge, Play, Pause, Square, AlertCircle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
@@ -40,6 +40,18 @@ import {
   formatBackoffRemaining,
 } from '@/services/rateLimitService';
 import { getSourceBadge } from '@/services/contentArbitrationService';
+import {
+  startAutomationRun,
+  cancelCurrentRun as cancelAutomationRun,
+  updateAutomationConfig,
+  selectTopicsForNextRun,
+  getAutomationState,
+  setAutomationStateDirectly,
+  type AutomationRun,
+  type ScoredTopic,
+} from '@/services/contentAutomationService';
+import { useContentStore } from '@/stores/contentStore';
+import { getLiveExams } from '@/data/examRegistry';
 
 // ── Types & data ─────────────────────────────────────────────────────────────
 
@@ -83,6 +95,7 @@ const SOURCE_TABS = [
   { id: 'agent', icon: Bot, label: 'AI Agent' },
   { id: 'wolfram', icon: Calculator, label: 'Wolfram ∑' },
   { id: 'batch', icon: Zap, label: 'Batch ⚡' },
+  { id: 'auto', icon: Settings, label: 'Auto ⚙️' },
 ] as const;
 
 type SourceTab = typeof SOURCE_TABS[number]['id'];
@@ -1532,16 +1545,615 @@ function BatchPanel({ onGenerated }: PanelWithOutputProps) {
   );
 }
 
+// ── Automation Panel ──────────────────────────────────────────────────────────
+
+function AutomationPanel({ onGenerated }: PanelWithOutputProps) {
+  const store = useContentStore();
+  const {
+    config,
+    automationStatus,
+    currentRun,
+    runHistory,
+    totalGenerated,
+    totalVerified,
+    setAutomationEnabled,
+    updateConfig: storeUpdateConfig,
+    addGeneratedContentBulk,
+    setCurrentRun,
+    setAutomationStatus,
+    addRunToHistory,
+    incrementTotals,
+  } = store;
+
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
+  const [topicQueue, setTopicQueue] = useState<ScoredTopic[]>([]);
+  const [error, setError] = useState('');
+
+  // Refresh topic queue on mount and every 30s
+  useEffect(() => {
+    const refreshQueue = () => {
+      const state = getAutomationState();
+      const scored = selectTopicsForNextRun(state);
+      setTopicQueue(scored);
+    };
+    refreshQueue();
+    const id = setInterval(refreshQueue, 30000);
+    return () => clearInterval(id);
+  }, [config]);
+
+  // Auto-start logic
+  useEffect(() => {
+    if (config.enabled && config.triggerMode === 'continuous' && automationStatus === 'idle') {
+      handleRunNow();
+    }
+    let timer: ReturnType<typeof setInterval> | null = null;
+    if (config.enabled && config.triggerMode === 'scheduled') {
+      const intervalMs = config.intervalMinutes * 60 * 1000;
+      timer = setInterval(() => {
+        if (automationStatus === 'idle') handleRunNow();
+      }, intervalMs);
+    }
+    return () => { if (timer) clearInterval(timer); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.enabled, config.triggerMode, config.intervalMinutes, automationStatus]);
+
+  const handleRunNow = async () => {
+    if (automationStatus === 'running') return;
+    setError('');
+    setBatchProgress(null);
+    setAutomationStatus('running');
+
+    // Sync config to singleton before running
+    updateAutomationConfig(config);
+
+    const currentState = getAutomationState();
+
+    try {
+      const run = await startAutomationRun(
+        { ...currentState, config },
+        (p) => {
+          setBatchProgress({ ...p });
+          // Sync current run id into store
+          const latest = getAutomationState();
+          if (latest.currentRun) setCurrentRun(latest.currentRun);
+        },
+        (completedRun, newContent) => {
+          // Sync completed run back to store
+          addRunToHistory(completedRun);
+          addGeneratedContentBulk(newContent);
+          incrementTotals(newContent.length, completedRun.verifiedCount);
+          setCurrentRun(completedRun);
+
+          // Surface first item to parent output panel
+          if (newContent.length > 0) {
+            onGenerated(newContent[0]);
+          }
+
+          // Refresh topic queue after run
+          const updatedState = getAutomationState();
+          setTopicQueue(selectTopicsForNextRun(updatedState));
+        },
+      );
+
+      if (run.status === 'cancelled') {
+        setAutomationStatus('idle');
+      } else if (run.status === 'failed') {
+        setAutomationStatus('error');
+        setError(run.error ?? 'Automation run failed');
+      } else {
+        setAutomationStatus('idle');
+      }
+    } catch (err) {
+      setAutomationStatus('error');
+      setError(err instanceof Error ? err.message : 'Automation failed');
+    } finally {
+      setBatchProgress(null);
+    }
+  };
+
+  const handlePause = () => {
+    setAutomationStatus('paused');
+    setAutomationStateDirectly({ status: 'paused' });
+  };
+
+  const handleStop = () => {
+    cancelAutomationRun();
+    setAutomationStatus('idle');
+    setCurrentRun(undefined);
+    setBatchProgress(null);
+    setError('');
+  };
+
+  const handleConfigChange = <K extends keyof typeof config>(
+    key: K,
+    value: typeof config[K],
+  ) => {
+    storeUpdateConfig({ [key]: value });
+    updateAutomationConfig({ [key]: value });
+  };
+
+  const liveExams = getLiveExams();
+
+  // Status badge
+  const statusBadge = () => {
+    switch (automationStatus) {
+      case 'running':
+        return (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/20 text-green-400 text-xs font-semibold border border-green-500/30">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> RUNNING
+          </span>
+        );
+      case 'paused':
+        return (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-semibold border border-yellow-500/30">
+            <Pause className="w-3 h-3" /> PAUSED
+          </span>
+        );
+      case 'error':
+        return (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold border border-red-500/30">
+            <AlertCircle className="w-3 h-3" /> ERROR
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-700 text-surface-400 text-xs font-semibold border border-surface-600">
+            <span className="w-2 h-2 rounded-full bg-surface-500" /> IDLE
+          </span>
+        );
+    }
+  };
+
+  // Format duration between two ISO strings
+  const formatDuration = (startStr: string, endStr?: string): string => {
+    const start = new Date(startStr).getTime();
+    const end = endStr ? new Date(endStr).getTime() : Date.now();
+    const ms = end - start;
+    if (ms < 60000) return `${Math.round(ms / 1000)}s`;
+    return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* ── Header ── */}
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/25">
+        <span className="text-2xl">🤖</span>
+        <div className="flex-1">
+          <p className="font-bold text-white">Content Automation</p>
+          <p className="text-xs text-surface-400 mt-0.5">
+            Continuously generates content for all live exams — scored by competitor gaps, freshness, and exam priority
+          </p>
+        </div>
+        {statusBadge()}
+      </div>
+
+      {/* ── Status strip ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-3 rounded-xl bg-surface-800/50 border border-surface-700/50 text-center">
+          <p className="text-xl font-bold text-primary-300">{totalGenerated}</p>
+          <p className="text-[10px] text-surface-500 mt-0.5">Total Generated</p>
+        </div>
+        <div className="p-3 rounded-xl bg-surface-800/50 border border-surface-700/50 text-center">
+          <p className="text-xl font-bold text-green-300">{totalVerified}</p>
+          <p className="text-[10px] text-surface-500 mt-0.5">Wolfram Verified</p>
+        </div>
+        <div className="p-3 rounded-xl bg-surface-800/50 border border-surface-700/50 text-center">
+          <p className="text-xl font-bold text-accent-300">{runHistory.length}</p>
+          <p className="text-[10px] text-surface-500 mt-0.5">Runs Completed</p>
+        </div>
+      </div>
+
+      {/* ── Configuration ── */}
+      <div className="space-y-3 p-4 rounded-xl border border-surface-700/50 bg-surface-900/30">
+        <p className="text-xs font-semibold text-surface-300 uppercase tracking-wider flex items-center gap-2">
+          <Settings className="w-3.5 h-3.5" /> Configuration
+        </p>
+
+        {/* Enabled toggle + trigger mode */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-surface-400 mb-1.5 block">Automation</label>
+            <button
+              onClick={() => {
+                const next = !config.enabled;
+                setAutomationEnabled(next);
+                handleConfigChange('enabled', next);
+              }}
+              className={clsx(
+                'w-full py-2 rounded-xl text-sm font-medium border transition-all',
+                config.enabled
+                  ? 'bg-green-500/15 border-green-500/40 text-green-300'
+                  : 'bg-surface-800 border-surface-700 text-surface-400 hover:border-surface-500',
+              )}
+            >
+              {config.enabled ? '✓ Enabled' : 'Disabled'}
+            </button>
+          </div>
+          <div>
+            <label className="text-xs text-surface-400 mb-1.5 block">Trigger Mode</label>
+            <select
+              className="input w-full text-sm"
+              value={config.triggerMode}
+              onChange={e => handleConfigChange('triggerMode', e.target.value as typeof config.triggerMode)}
+            >
+              <option value="manual">Manual</option>
+              <option value="scheduled">Every {config.intervalMinutes}min</option>
+              <option value="gap_driven">Gap Driven</option>
+              <option value="continuous">Continuous</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Interval (only for scheduled) */}
+        {config.triggerMode === 'scheduled' && (
+          <div>
+            <label className="text-xs text-surface-400 mb-1.5 block">
+              Interval — {config.intervalMinutes} minutes
+            </label>
+            <input
+              type="range" min={15} max={480} step={15}
+              value={config.intervalMinutes}
+              onChange={e => handleConfigChange('intervalMinutes', Number(e.target.value))}
+              className="w-full accent-primary-500"
+            />
+            <div className="flex justify-between text-[9px] text-surface-600 mt-0.5">
+              <span>15m</span><span>8h</span>
+            </div>
+          </div>
+        )}
+
+        {/* Target exams */}
+        <div>
+          <label className="text-xs text-surface-400 mb-1.5 block">Target Exams</label>
+          <div className="flex flex-wrap gap-1.5">
+            {liveExams.map(exam => {
+              const active = config.targetExams.includes(exam.id);
+              return (
+                <button
+                  key={exam.id}
+                  onClick={() => {
+                    const next = active
+                      ? config.targetExams.filter(id => id !== exam.id)
+                      : [...config.targetExams, exam.id];
+                    handleConfigChange('targetExams', next);
+                  }}
+                  className={clsx(
+                    'text-xs px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1',
+                    active
+                      ? 'bg-primary-500/20 border-primary-500/50 text-primary-300'
+                      : 'bg-surface-800 border-surface-700 text-surface-400 hover:border-surface-500',
+                  )}
+                >
+                  {active && <Check className="w-2.5 h-2.5" />}
+                  {exam.shortName}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Format + counts row */}
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <label className="text-xs text-surface-400 mb-1.5 block">Format</label>
+            <select
+              className="input w-full text-xs"
+              value={config.targetFormats[0] ?? 'mcq_set'}
+              onChange={e =>
+                handleConfigChange('targetFormats', [e.target.value as ContentOutputFormat])
+              }
+            >
+              {CONTENT_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-surface-400 mb-1.5 block">Count/topic</label>
+            <input
+              type="number" min={1} max={30} className="input w-full text-xs"
+              value={config.countPerTopic}
+              onChange={e => handleConfigChange('countPerTopic', Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-surface-400 mb-1.5 block">Per batch</label>
+            <input
+              type="number" min={1} max={20} className="input w-full text-xs"
+              value={config.itemsPerBatch}
+              onChange={e => handleConfigChange('itemsPerBatch', Number(e.target.value))}
+            />
+          </div>
+        </div>
+
+        {/* Checkboxes */}
+        <div className="flex flex-col gap-2">
+          {[
+            {
+              key: 'prioritizeCompetitorGaps' as const,
+              label: 'Prioritise competitor gaps',
+              desc: '+30 score for underserved topics',
+            },
+            {
+              key: 'prioritizeStaleContent' as const,
+              label: `Regenerate stale content (>${config.stalenessThresholdDays} days)`,
+              desc: '+15 score for old content',
+            },
+            {
+              key: 'autoPublish' as const,
+              label: 'Auto-mark ready for review',
+              desc: 'Sets readyForReview=true on all generated items',
+            },
+          ].map(({ key, label, desc }) => (
+            <label key={key} className="flex items-start gap-2.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={config[key] as boolean}
+                onChange={e => handleConfigChange(key, e.target.checked)}
+                className="w-3.5 h-3.5 accent-primary-500 mt-0.5 flex-shrink-0"
+              />
+              <div>
+                <span className="text-xs text-surface-200">{label}</span>
+                <p className="text-[10px] text-surface-500">{desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Topic Queue ── */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-surface-300 uppercase tracking-wider">
+            🎯 Topic Queue (next run)
+          </p>
+          <button
+            onClick={() => {
+              const state = getAutomationState();
+              updateAutomationConfig(config);
+              setTopicQueue(selectTopicsForNextRun({ ...state, config }));
+            }}
+            className="text-[10px] text-surface-500 hover:text-surface-300 flex items-center gap-1 transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" /> Refresh
+          </button>
+        </div>
+
+        {topicQueue.length === 0 ? (
+          <p className="text-xs text-surface-500 py-3 text-center">
+            No topics selected — check exam targets above
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {topicQueue.map((t, i) => (
+              <div
+                key={`${t.examId}::${t.topicId}`}
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-surface-800/40 border border-surface-700/40"
+              >
+                <span className="text-xs text-surface-500 w-4 flex-shrink-0">{i + 1}.</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate capitalize">
+                    {t.topicId.replace(/-/g, ' ')}
+                  </p>
+                  <p className="text-[10px] text-surface-500">{t.examName}</p>
+                </div>
+                <span className="text-[10px] font-semibold text-accent-300">
+                  Score: {t.score}
+                </span>
+                <span className={clsx(
+                  'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                  t.suggestedFormat === 'mcq_set'
+                    ? 'bg-green-500/15 text-green-400'
+                    : t.suggestedFormat === 'blog_post'
+                    ? 'bg-blue-500/15 text-blue-400'
+                    : 'bg-surface-700 text-surface-400',
+                )}>
+                  {t.suggestedFormat === 'mcq_set' ? '🔢 W' : t.suggestedFormat === 'blog_post' ? '📝 B' : '🧠 L'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Action buttons ── */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleRunNow}
+          disabled={automationStatus === 'running' || topicQueue.length === 0}
+          className={clsx(
+            'flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all',
+            automationStatus !== 'running' && topicQueue.length > 0
+              ? 'bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-400 hover:to-accent-400 text-white shadow-lg'
+              : 'bg-surface-700 text-surface-500 cursor-not-allowed',
+          )}
+        >
+          {automationStatus === 'running'
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Running…</>
+            : <><Play className="w-4 h-4" /> Run Now</>}
+        </button>
+
+        {automationStatus === 'running' && (
+          <>
+            <button
+              onClick={handlePause}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10 transition-all"
+            >
+              <Pause className="w-4 h-4" /> Pause
+            </button>
+            <button
+              onClick={handleStop}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all"
+            >
+              <Square className="w-4 h-4" /> Stop
+            </button>
+          </>
+        )}
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/25">
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <p className="text-xs text-red-300">{error}</p>
+        </div>
+      )}
+
+      {/* ── Current Run Progress ── */}
+      {automationStatus === 'running' && batchProgress && (
+        <div className="space-y-2 p-4 rounded-xl bg-surface-900/40 border border-surface-700/50">
+          <p className="text-xs font-semibold text-surface-300 uppercase tracking-wider">
+            📊 Current Run
+          </p>
+
+          {/* Prefetch phase indicator */}
+          {batchProgress.prefetchPhase && (
+            <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/20 w-fit">
+              <Calculator className="w-3 h-3" />
+              Pre-fetching Wolfram {batchProgress.prefetchDone}/{batchProgress.prefetchTotal}
+            </span>
+          )}
+
+          {/* Progress bar */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-surface-400 truncate max-w-[70%]">
+                {batchProgress.currentItem
+                  ? `⏳ ${batchProgress.currentItem.slice(0, 40)}`
+                  : 'Processing…'}
+              </span>
+              <span className="text-primary-300 font-medium">{batchProgress.overallPercent}%</span>
+            </div>
+            <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
+              <motion.div
+                className={clsx(
+                  'h-full rounded-full',
+                  batchProgress.waitingForRateLimit
+                    ? 'bg-gradient-to-r from-orange-500 to-yellow-500'
+                    : 'bg-gradient-to-r from-primary-500 to-accent-500',
+                )}
+                initial={{ width: 0 }}
+                animate={{ width: `${batchProgress.overallPercent}%` }}
+                transition={{ duration: 0.4 }}
+              />
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="flex gap-3 flex-wrap text-[10px] text-surface-400">
+            <span>✅ {batchProgress.done} done</span>
+            <span>❌ {batchProgress.failed} failed</span>
+            <span>🔢 {batchProgress.verifiedCount} verified</span>
+            {batchProgress.rateLimitHits > 0 && (
+              <span className="text-orange-400">
+                {batchProgress.rateLimitHits} rate limit{batchProgress.rateLimitHits !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Run History ── */}
+      {runHistory.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-surface-300 uppercase tracking-wider">
+            📋 Run History
+          </p>
+          <div className="rounded-xl border border-surface-700/50 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-surface-700/50 text-[10px] text-surface-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left font-medium">Time</th>
+                  <th className="px-3 py-2 text-left font-medium">Topics</th>
+                  <th className="px-3 py-2 text-left font-medium">Result</th>
+                  <th className="px-3 py-2 text-left font-medium">Duration</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-800/50">
+                {runHistory.map(run => (
+                  <tr
+                    key={run.id}
+                    className="hover:bg-surface-800/20 transition-colors"
+                  >
+                    <td className="px-3 py-2.5 text-surface-400">
+                      {new Date(run.startedAt).toLocaleString(undefined, {
+                        month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="px-3 py-2.5 text-surface-300">
+                      {run.topicsAttempted.length} topics
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className="flex items-center gap-2">
+                        <span className="text-green-400">✅ {run.topicsSucceeded.length}</span>
+                        <span className="text-red-400">❌ {run.topicsFailed.length}</span>
+                        {run.verifiedCount > 0 && (
+                          <span className="text-green-300">🔢 {run.verifiedCount}</span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-surface-400">
+                      {run.completedAt
+                        ? formatDuration(run.startedAt, run.completedAt)
+                        : '—'}
+                      {run.status === 'cancelled' && (
+                        <span className="ml-1.5 text-[9px] text-yellow-400">cancelled</span>
+                      )}
+                      {run.status === 'failed' && (
+                        <span className="ml-1.5 text-[9px] text-red-400">failed</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
+
+// ── Convert GeneratedContent to ContentItem (for the table) ──────────────────
+
+function generatedToContentItem(g: GeneratedContent): ContentItem {
+  const typeMap: Record<string, ContentItem['type']> = {
+    mcq_set: 'question',
+    quiz: 'question',
+    lesson_notes: 'lesson',
+    blog_post: 'blog',
+    flashcard_set: 'lesson',
+    formula_sheet: 'lesson',
+    worked_example: 'lesson',
+    summary: 'lesson',
+  };
+  return {
+    id: g.id,
+    title: g.title,
+    type: typeMap[g.format] ?? 'lesson',
+    subject: g.examTarget,
+    status: g.readyForReview ? 'review' : 'draft',
+    author: '🤖 AI Auto',
+    createdAt: new Date(g.generatedAt).toISOString().split('T')[0],
+  };
+}
 
 export default function Content() {
   const [activeSource, setActiveSource] = useState<SourceTab>('prompt');
   const [filter, setFilter] = useState('all');
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
 
+  const { generatedContent: autoContent } = useContentStore();
+
+  // Merge mock + auto-generated content for the table
+  const autoItems: ContentItem[] = autoContent.slice(0, 50).map(generatedToContentItem);
+  const allContent: ContentItem[] = [...autoItems, ...mockContent];
+
   const filteredContent = filter === 'all'
-    ? mockContent
-    : mockContent.filter(c => c.status === filter || c.type === filter);
+    ? allContent
+    : allContent.filter(c => c.status === filter || c.type === filter);
 
   const cohortInsight = getCohortInsights();
 
@@ -1632,6 +2244,7 @@ export default function Content() {
             {activeSource === 'agent' && <AgentPanel onGenerated={handleGenerated} />}
             {activeSource === 'wolfram' && <WolframPanel onGenerated={handleGenerated} />}
             {activeSource === 'batch' && <BatchPanel onGenerated={handleGenerated} />}
+            {activeSource === 'auto' && <AutomationPanel onGenerated={handleGenerated} />}
           </motion.div>
         </AnimatePresence>
 
@@ -1680,7 +2293,14 @@ export default function Content() {
               {filteredContent.map(item => (
                 <tr key={item.id} className="hover:bg-surface-800/30 transition-colors">
                   <td className="py-3.5">
-                    <p className="font-medium text-sm">{item.title}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                      <p className="font-medium text-sm">{item.title}</p>
+                      {item.author === '🤖 AI Auto' && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary-500/15 text-primary-300 border border-primary-500/20 font-medium">
+                          🤖 AI Auto
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-surface-500">{item.createdAt} · {item.author}</p>
                   </td>
                   <td className="py-3.5">
