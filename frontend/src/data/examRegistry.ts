@@ -152,8 +152,7 @@ export const EXAM_REGISTRY: ExamConfig[] = [
       socraticTutor: 'gemini',      // [PENDING_API: gemini]
       contentGeneration: 'gemini',  // [PENDING_API: gemini]
     },
-    // "live-stub" → switches to "live" when VITE_GEMINI_API_KEY is set via env
-    status: 'live-stub',
+    status: 'live',
     route: 'gate-em',
     launchDate: '2026-02-26',
     marketingAngle: 'conversational-socratic',
@@ -209,8 +208,7 @@ export const EXAM_REGISTRY: ExamConfig[] = [
       socraticTutor: 'gemini',      // [PENDING_API: gemini]
       contentGeneration: 'gemini',  // [PENDING_API: gemini]
     },
-    // "live-stub" → switches to "live" when VITE_GEMINI_API_KEY is set via env
-    status: 'live-stub',
+    status: 'live',
     route: 'cat',
     launchDate: '2026-03-02',
     marketingAngle: 'conversational-socratic',

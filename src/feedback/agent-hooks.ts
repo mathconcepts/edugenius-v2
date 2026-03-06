@@ -14,9 +14,10 @@
 import type { FeedbackTicket, TicketStats } from './types';
 import { onFeedbackEvent, feedbackService } from './service';
 import { slaMonitor, type SLAWarning, type SLABreachReport } from './sla-monitor';
+import { getEventBus } from '../events/event-bus';
 
 // ============================================================================
-// Event Bus Integration (lightweight stub — replaces with real EventBus)
+// Event Bus Integration — wired to real EventBus
 // ============================================================================
 
 interface AgentEvent {
@@ -28,13 +29,30 @@ interface AgentEvent {
   correlationId?: string;
 }
 
-// In a production setup, this would call getEventBus().publish(...)
+// Publishes to the real EventBus using the analytics.event wildcard channel.
+// Each agent's internal router picks up events addressed to it via the 'target' field.
 function dispatchToAgent(event: AgentEvent): void {
-  console.log(`[AgentHook] → ${event.agent}${event.subAgent ? '.' + event.subAgent : ''}: ${event.type}`, {
-    priority: event.priority,
-    payload: event.payload,
-  });
-  // TODO: getEventBus().publish(event)
+  const eventKey = `${event.agent.toLowerCase()}.analytics.event` as `${string}.analytics.event`;
+  try {
+    getEventBus().publish(eventKey, {
+      agent: event.agent,
+      subAgent: event.subAgent,
+      eventType: event.type,
+      payload: event.payload,
+      correlationId: event.correlationId,
+    }, {
+      priority: event.priority,
+      correlationId: event.correlationId,
+      source: 'feedback' as any,
+    });
+  } catch (err) {
+    // Graceful fallback: log but don't crash the feedback pipeline
+    console.warn(`[AgentHook] EventBus publish failed for ${event.agent}.${event.type}:`, err);
+    console.log(`[AgentHook] → ${event.agent}${event.subAgent ? '.' + event.subAgent : ''}: ${event.type}`, {
+      priority: event.priority,
+      payload: event.payload,
+    });
+  }
 }
 
 // ============================================================================

@@ -703,8 +703,55 @@ export const useNotebookStore = create<NotebookState>()(
           totalSolved: solved.length,
           totalTimeMinutes: Math.round(totalTime / 60),
           overallAccuracy: attempted > 0 ? (correct / attempted) * 100 : 0,
-          currentStreak: 0, // TODO: Calculate actual streak
-          longestStreak: 0,
+          currentStreak: (() => {
+            // Calculate streak: consecutive days with at least 1 problem attempted
+            const activityDays = new Set(
+              problems
+                .filter((p) => p.lastAttemptedAt)
+                .map((p) => new Date(p.lastAttemptedAt).toISOString().split('T')[0])
+            );
+            let streak = 0;
+            const today = new Date();
+            for (let i = 0; i < 365; i++) {
+              const d = new Date(today);
+              d.setDate(today.getDate() - i);
+              const dayStr = d.toISOString().split('T')[0];
+              if (activityDays.has(dayStr)) {
+                streak++;
+              } else if (i > 0) {
+                // Allow today to be empty (day not over yet) but break on any prior gap
+                break;
+              }
+            }
+            return streak;
+          })(),
+          longestStreak: (() => {
+            const activityDays = Array.from(
+              new Set(
+                problems
+                  .filter((p) => p.lastAttemptedAt)
+                  .map((p) => new Date(p.lastAttemptedAt).toISOString().split('T')[0])
+              )
+            ).sort();
+            let longest = 0;
+            let current = 0;
+            for (let i = 0; i < activityDays.length; i++) {
+              if (i === 0) {
+                current = 1;
+              } else {
+                const prev = new Date(activityDays[i - 1]);
+                const curr = new Date(activityDays[i]);
+                const diffDays = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+                if (diffDays === 1) {
+                  current++;
+                } else {
+                  current = 1;
+                }
+              }
+              if (current > longest) longest = current;
+            }
+            return longest;
+          })(),
           byDifficulty,
           bySubject,
           timeByDay,

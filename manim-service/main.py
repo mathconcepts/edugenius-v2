@@ -355,6 +355,108 @@ async def render_quick(req: QuickRenderRequest, request: Request):
         render_ms=render_ms
     )
 
+# ─── SymPy Verification Endpoint ─────────────────────────────────────────────
+
+class VerifyRequest(BaseModel):
+    operation: str          # 'simplify' | 'equivalent' | 'evaluate' | 'steps'
+    params: dict            # e.g. {'expression': 'x**2 + 2*x + 1', 'expected': '(x+1)**2'}
+
+class VerifyResponse(BaseModel):
+    success: bool
+    simplified: Optional[str] = None
+    evaluated: Optional[str] = None
+    equivalent: Optional[bool] = None
+    steps: Optional[list] = None
+    error: Optional[str] = None
+
+def _run_sympy_safe(operation: str, params: dict) -> dict:
+    """Run SymPy operations in a restricted scope."""
+    try:
+        from sympy import (
+            sympify, simplify, latex, N, symbols, expand, factor,
+            solve, diff, integrate, trigsimp, radsimp, nsimplify,
+            Symbol
+        )
+        from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
+
+        transformations = standard_transformations + (implicit_multiplication_application,)
+
+        def safe_parse(expr_str: str):
+            # Only allow safe characters
+            if re.search(r'[^a-zA-Z0-9\s\+\-\*\/\^\(\)\.\,\_\=\<\>]', expr_str):
+                raise ValueError(f"Unsafe characters in expression: {expr_str}")
+            return parse_expr(expr_str, transformations=transformations)
+
+        if operation == 'simplify':
+            expr = safe_parse(params.get('expression', ''))
+            simplified = simplify(expr)
+            return {
+                'success': True,
+                'simplified': str(simplified),
+                'steps': [f"Original: {expr}", f"Simplified: {simplified}"],
+            }
+
+        elif operation == 'equivalent':
+            expr1 = safe_parse(params.get('expression', ''))
+            expr2 = safe_parse(params.get('expected', ''))
+            diff_expr = simplify(expr1 - expr2)
+            equivalent = diff_expr == 0
+            return {
+                'success': True,
+                'equivalent': equivalent,
+                'simplified': str(simplify(expr1)),
+                'steps': [
+                    f"Expression 1: {expr1}",
+                    f"Expression 2: {expr2}",
+                    f"Difference: {diff_expr}",
+                    f"Equivalent: {equivalent}",
+                ],
+            }
+
+        elif operation == 'evaluate':
+            expr = safe_parse(params.get('expression', ''))
+            subs = params.get('substitutions', {})
+            sym_subs = {Symbol(k): safe_parse(str(v)) for k, v in subs.items()}
+            result = expr.subs(sym_subs)
+            evaluated = N(result, 6)
+            return {
+                'success': True,
+                'evaluated': str(evaluated),
+                'simplified': str(result),
+            }
+
+        elif operation == 'steps':
+            expr = safe_parse(params.get('expression', ''))
+            steps = []
+            expanded = expand(expr)
+            factored = factor(expr)
+            simplified = simplify(expr)
+            if str(expanded) != str(expr):
+                steps.append(f"Expand: {expanded}")
+            if str(factored) != str(expr):
+                steps.append(f"Factor: {factored}")
+            if str(simplified) != str(expr):
+                steps.append(f"Simplify: {simplified}")
+            return {
+                'success': True,
+                'simplified': str(simplified),
+                'steps': steps or [f"Already in simplest form: {expr}"],
+            }
+
+        else:
+            return {'success': False, 'error': f"Unknown operation: {operation}"}
+
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
+@app.post("/verify", response_model=VerifyResponse)
+async def verify_math(req: VerifyRequest):
+    """Verify or simplify mathematical expressions using SymPy."""
+    result = _run_sympy_safe(req.operation, req.params)
+    return VerifyResponse(**result)
+
+
 @app.get("/media/{filename}")
 async def serve_media(filename: str):
     # Sanitise filename

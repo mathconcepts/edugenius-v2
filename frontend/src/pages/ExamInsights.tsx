@@ -529,6 +529,24 @@ const MOCK_TOPPERS: Record<ExamType, TopperStory[]> = {
       ],
       turningPoint: 'I gave 50 mocks. The last 20 felt easy. Mock exposure is everything in CAT.',
     },
+    {
+      id: '2', name: 'Pooja Krishnaswamy', rank: 99.94, year: 2024,
+      topTips: [
+        'DILR is the great equalizer — practice 2 novel sets daily, not familiar ones. Unfamiliarity is the real exam.',
+        'RC: identify the author\'s tone in the first paragraph. Every subsequent question filters through it.',
+        'Skip questions strategically — spending 8+ minutes on one DILR set when you\'re stuck is a percentile killer',
+      ],
+      turningPoint: 'I stopped trying to attempt all questions and started maximising accuracy on what I attempted. Went from 95 to 99.9 percentile.',
+    },
+    {
+      id: '3', name: 'Arjit Sachdeva', rank: 99.71, year: 2023,
+      topTips: [
+        'Quant: the 40-20-40 rule — 40% time for easy questions, 20% medium, skip the rest',
+        'Verbal Ability: para-jumbles follow logical anchors — find the mandatory first and last sentence first',
+        'Mock analysis time = mock taking time. Never take a mock without spending equal time reviewing every wrong answer',
+      ],
+      turningPoint: 'CAT 2022 I scored 97 percentile. I spent 2023 obsessing over what separated 99 from 97 — turns out it was 4-5 questions per section. That precision focus changed everything.',
+    },
   ],
   UPSC: [
     {
@@ -550,6 +568,24 @@ const MOCK_TOPPERS: Record<ExamType, TopperStory[]> = {
         'General Aptitude: easy 15 marks. Never skip it for technical prep.',
       ],
       turningPoint: 'I focussed on understanding over memorisation. GATE rewards deep understanding of fundamentals over rote.',
+    },
+    {
+      id: '2', name: 'Ananya Desai', rank: 3, year: 2024,
+      topTips: [
+        'Engineering Mathematics is 13–15 marks — master Linear Algebra and Calculus first, highest ROI topics',
+        'Colour-code your rough work: blue for setup, red for calculation, green for final answer. Prevents silly mistakes under pressure.',
+        'Daily mock cadence in the last 4 weeks is non-negotiable — all GATE AIR-1s cite this consistently',
+      ],
+      turningPoint: 'I spent 70% of my time on the top 5 high-weightage topics. Depth over breadth — that\'s the GATE topper mindset.',
+    },
+    {
+      id: '3', name: 'Rohan Mathur', rank: 21, year: 2023,
+      topTips: [
+        'Numerical answer questions need systematic rough-work — never skip steps, examiner penalties are unforgiving',
+        'Complex Variables and Numerical Methods are weak spots for most students — use this as your edge',
+        'Spaced revision: D+1, D+7, D+30 after every topic. Use the Sage tutor to quiz yourself',
+      ],
+      turningPoint: 'I treated every doubt as a 24-hour emergency — never let a concept sit unresolved overnight. Sage\'s Socratic approach helped me find my own gaps.',
     },
   ],
 };

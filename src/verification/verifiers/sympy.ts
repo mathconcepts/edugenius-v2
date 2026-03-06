@@ -167,15 +167,34 @@ export class SympyVerifier implements Verifier {
     operation: string,
     params: Record<string, string>
   ): Promise<SympyResult> {
-    // Build Python script
-    const script = this.buildPythonScript(operation, params);
-    
-    // Execute via child_process (would need implementation)
-    // For now, return not implemented
-    return {
-      success: false,
-      error: 'Local SymPy execution not implemented - use cloud mode',
-    };
+    // Route local SymPy calls through the manim-service FastAPI (port 7341)
+    // which has SymPy installed as a dependency of manim.
+    const manimServiceUrl = process.env.MANIM_SERVICE_URL ?? 'http://localhost:7341';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.config?.timeout ?? 10_000);
+
+    try {
+      const response = await fetch(`${manimServiceUrl}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation, params }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        return { success: false, error: `Manim service error: ${response.status}` };
+      }
+
+      const data: SympyResult = await response.json();
+      return data;
+    } catch (e: any) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        return { success: false, error: 'Local SymPy timed out' };
+      }
+      return { success: false, error: `Local SymPy unavailable: ${e.message}` };
+    }
   }
   
   private async runCloudSympy(

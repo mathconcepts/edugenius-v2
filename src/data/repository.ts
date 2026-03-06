@@ -432,6 +432,171 @@ export class CachedRepository<T extends BaseEntity> implements Repository<T> {
 }
 
 // ============================================================================
+// PostgreSQL Repository
+// ============================================================================
+
+export class PostgresRepository<T extends BaseEntity> implements Repository<T> {
+  private pool: import('pg').Pool | null = null;
+  private tableName: string;
+
+  constructor(entityName: string, private _indexFields: (keyof T)[] = []) {
+    this.tableName = entityName.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+    this.initPool();
+  }
+
+  private initPool(): void {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      console.warn(`[PostgresRepository:${this.tableName}] DATABASE_URL not set — queries will fail gracefully`);
+      return;
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Pool } = require('pg');
+      this.pool = new Pool({
+        connectionString,
+        max: 10,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 5_000,
+      });
+      this.pool!.on('error', (err: Error) => {
+        console.error(`[PostgresRepository:${this.tableName}] Pool error:`, err.message);
+      });
+    } catch (e) {
+      console.error(`[PostgresRepository:${this.tableName}] Failed to init pool:`, e);
+    }
+  }
+
+  private async query<R = unknown>(sql: string, params: unknown[] = []): Promise<R[]> {
+    if (!this.pool) throw new Error(`[PostgresRepository:${this.tableName}] DATABASE_URL not configured`);
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(sql, params);
+      return result.rows as R[];
+    } finally {
+      client.release();
+    }
+  }
+
+  async findById(id: UUID): Promise<T | null> {
+    const rows = await this.query<T>(`SELECT * FROM ${this.tableName} WHERE id = $1 LIMIT 1`, [id]);
+    return rows[0] ?? null;
+  }
+
+  async findOne(params: QueryParams<T>): Promise<T | null> {
+    const result = await this.findMany({ ...params, pagination: { page: 1, limit: 1 } });
+    return result.data[0] ?? null;
+  }
+
+  async findMany(params?: QueryParams<T>): Promise<PaginatedResult<T>> {
+    const conditions: string[] = ['deleted_at IS NULL'];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (params?.filters) {
+      for (const filter of params.filters) {
+        const opMap: Record<FilterOperator, string> = {
+          eq: '=', ne: '!=', gt: '>', gte: '>=', lt: '<', lte: '<=',
+          in: '= ANY', nin: '!= ALL', like: 'LIKE', ilike: 'ILIKE',
+          contains: '@>', startsWith: 'LIKE', endsWith: 'LIKE', exists: 'IS NOT NULL',
+        };
+        const op = opMap[filter.operator] ?? '=';
+        if (filter.operator === 'in' || filter.operator === 'nin') {
+          conditions.push(`${String(filter.field)} ${op}($${idx++})`);
+        } else {
+          conditions.push(`${String(filter.field)} ${op} $${idx++}`);
+        }
+        values.push(filter.value);
+      }
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const orderBy = params?.sort ? `ORDER BY ${String(params.sort.field)} ${params.sort.direction.toUpperCase()}` : 'ORDER BY created_at DESC';
+    const limit = params?.pagination?.limit ?? 50;
+    const offset = ((params?.pagination?.page ?? 1) - 1) * limit;
+
+    const countRows = await this.query<{ count: string }>(`SELECT COUNT(*) as count FROM ${this.tableName} ${where}`, values);
+    const total = parseInt(countRows[0]?.count ?? '0', 10);
+
+    const dataRows = await this.query<T>(
+      `SELECT * FROM ${this.tableName} ${where} ${orderBy} LIMIT $${idx++} OFFSET $${idx++}`,
+      [...values, limit, offset]
+    );
+
+    return {
+      data: dataRows,
+      total,
+      page: params?.pagination?.page ?? 1,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async create(data: Omit<T, keyof BaseEntity>): Promise<T> {
+    const id = randomUUID();
+    const now = new Date();
+    const record = { id, ...data, createdAt: now, updatedAt: now };
+    const keys = Object.keys(record);
+    const placeholders = keys.map((_, i) => `$${i + 1}`);
+    const rows = await this.query<T>(
+      `INSERT INTO ${this.tableName} (${keys.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+      Object.values(record)
+    );
+    return rows[0];
+  }
+
+  async update(id: UUID, data: Partial<T>): Promise<T> {
+    const updates = { ...data, updatedAt: new Date() };
+    const keys = Object.keys(updates);
+    const sets = keys.map((k, i) => `${k} = $${i + 2}`);
+    const rows = await this.query<T>(
+      `UPDATE ${this.tableName} SET ${sets.join(', ')} WHERE id = $1 RETURNING *`,
+      [id, ...Object.values(updates)]
+    );
+    if (!rows[0]) throw new Error(`[PostgresRepository] Entity ${id} not found`);
+    return rows[0];
+  }
+
+  async delete(id: UUID): Promise<boolean> {
+    const rows = await this.query(`UPDATE ${this.tableName} SET deleted_at = NOW() WHERE id = $1 RETURNING id`, [id]);
+    return rows.length > 0;
+  }
+
+  async createMany(data: Omit<T, keyof BaseEntity>[]): Promise<T[]> {
+    return Promise.all(data.map((d) => this.create(d)));
+  }
+
+  async updateMany(ids: UUID[], data: Partial<T>): Promise<number> {
+    const updates = { ...data, updatedAt: new Date() };
+    const keys = Object.keys(updates);
+    const sets = keys.map((k, i) => `${k} = $${i + 2}`);
+    const rows = await this.query(
+      `UPDATE ${this.tableName} SET ${sets.join(', ')} WHERE id = ANY($1) RETURNING id`,
+      [ids, ...Object.values(updates)]
+    );
+    return rows.length;
+  }
+
+  async deleteMany(ids: UUID[]): Promise<number> {
+    const rows = await this.query(
+      `UPDATE ${this.tableName} SET deleted_at = NOW() WHERE id = ANY($1) RETURNING id`,
+      [ids]
+    );
+    return rows.length;
+  }
+
+  async count(filters?: FilterParams<T>): Promise<number> {
+    const result = await this.findMany({ filters });
+    return result.total;
+  }
+
+  async exists(id: UUID): Promise<boolean> {
+    const rows = await this.query(`SELECT 1 FROM ${this.tableName} WHERE id = $1 AND deleted_at IS NULL LIMIT 1`, [id]);
+    return rows.length > 0;
+  }
+}
+
+// ============================================================================
 // Repository Factory
 // ============================================================================
 
@@ -460,11 +625,13 @@ export function createRepository<T extends BaseEntity>(
       repository = new InMemoryRepository<T>(indexFields);
       break;
     case 'postgres':
-      // TODO: Implement PostgresRepository
-      throw new Error('PostgreSQL repository not yet implemented');
+      repository = new PostgresRepository<T>(_entityName, indexFields);
+      break;
     case 'mongodb':
-      // TODO: Implement MongoRepository
-      throw new Error('MongoDB repository not yet implemented');
+      // MongoDB: lower priority — use Postgres or InMemory for now
+      console.warn('[Repository] MongoDB not implemented — falling back to InMemory');
+      repository = new InMemoryRepository<T>(indexFields);
+      break;
     default:
       throw new Error(`Unknown repository type: ${config.type}`);
   }

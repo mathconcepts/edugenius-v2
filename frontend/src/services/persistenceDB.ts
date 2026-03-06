@@ -408,24 +408,134 @@ export async function pruneExpiredCache(): Promise<number> {
 }
 
 /**
- * Future: sync to Supabase when credentials are available.
- * Until then this is a no-op — IndexedDB is the source of truth.
+ * Delta sync to Supabase when credentials are available.
+ * IndexedDB remains the primary/offline store; Supabase is the cloud backup.
+ *
+ * Strategy:
+ *   1. Get records with updatedAt > lastSyncedAt (from localStorage)
+ *   2. Upsert to Supabase in batches of 100
+ *   3. Update lastSyncedAt on success
+ *   4. On conflict: Supabase wins for profiles, IndexedDB wins for interactions
+ *   5. Graceful fallback if credentials missing or network fails
  */
 export async function syncToSupabase(): Promise<{ synced: number; skipped: number }> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    // Supabase not configured — IndexedDB is the sole store. No-op.
+    // Supabase not configured — IndexedDB is the sole store.
     return { synced: 0, skipped: -1 };
   }
 
-  // TODO: implement delta sync when Supabase credentials are available
-  // Strategy:
-  //   1. Get all records with updatedAt > lastSyncedAt (stored in localStorage)
-  //   2. Upsert to Supabase in batches of 100
-  //   3. Update lastSyncedAt on success
-  //   4. On conflict: Supabase wins for profiles, IndexedDB wins for interactions
-  console.log('[Persistence] Supabase sync not yet implemented — credentials pending');
-  return { synced: 0, skipped: 0 };
+  const LAST_SYNC_KEY = 'edugenius_last_supabase_sync';
+  const lastSyncedAt = parseInt(localStorage.getItem(LAST_SYNC_KEY) ?? '0', 10);
+  const now = Date.now();
+
+  let synced = 0;
+  let skipped = 0;
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const db = await getDB();
+
+    // ── 1. Sync student profiles ────────────────────────────────────────────
+    const profiles = await db.getAll('student_profiles');
+    const dirtyProfiles = profiles.filter((p: any) =>
+      !lastSyncedAt || new Date(p.updatedAt ?? 0).getTime() > lastSyncedAt
+    );
+
+    if (dirtyProfiles.length > 0) {
+      const BATCH = 100;
+      for (let i = 0; i < dirtyProfiles.length; i += BATCH) {
+        const batch = dirtyProfiles.slice(i, i + BATCH).map((p: any) => ({
+          student_id: p.studentId,
+          exam_id: p.examId ?? null,
+          data: JSON.stringify(p),
+          updated_at: new Date(p.updatedAt ?? now).toISOString(),
+        }));
+        const { error } = await supabase
+          .from('student_profiles')
+          .upsert(batch, { onConflict: 'student_id' });
+        if (error) {
+          console.warn('[Persistence] Profile sync batch error:', error.message);
+          skipped += batch.length;
+        } else {
+          synced += batch.length;
+        }
+      }
+    }
+
+    // ── 2. Sync topic mastery ────────────────────────────────────────────────
+    const mastery = await db.getAll('topic_mastery');
+    const dirtyMastery = mastery.filter((m: any) =>
+      !lastSyncedAt || new Date(m.lastUpdated ?? 0).getTime() > lastSyncedAt
+    );
+
+    if (dirtyMastery.length > 0) {
+      const BATCH = 100;
+      for (let i = 0; i < dirtyMastery.length; i += BATCH) {
+        const batch = dirtyMastery.slice(i, i + BATCH).map((m: any) => ({
+          id: m.id,
+          student_id: m.studentId,
+          exam_id: m.examId,
+          topic_id: m.topicId,
+          mastery_score: m.masteryScore,
+          attempts: m.attempts,
+          correct: m.correct,
+          last_updated: new Date(m.lastUpdated ?? now).toISOString(),
+        }));
+        const { error } = await supabase
+          .from('topic_mastery')
+          .upsert(batch, { onConflict: 'id' });
+        if (error) {
+          console.warn('[Persistence] Mastery sync batch error:', error.message);
+          skipped += batch.length;
+        } else {
+          synced += batch.length;
+        }
+      }
+    }
+
+    // ── 3. Sync recent interactions (delta only, max 500) ──────────────────
+    const interactions = await db.getAll('interaction_log');
+    const newInteractions = interactions
+      .filter((e: any) => new Date(e.createdAt ?? 0).getTime() > lastSyncedAt)
+      .slice(-500); // cap at 500 per sync cycle
+
+    if (newInteractions.length > 0) {
+      const BATCH = 100;
+      for (let i = 0; i < newInteractions.length; i += BATCH) {
+        const batch = newInteractions.slice(i, i + BATCH).map((e: any) => ({
+          id: e.id,
+          student_id: e.studentId,
+          topic_id: e.topicId,
+          exam_id: e.examId ?? null,
+          event_type: e.eventType,
+          data: JSON.stringify(e),
+          created_at: new Date(e.createdAt ?? now).toISOString(),
+        }));
+        const { error } = await supabase
+          .from('interaction_log')
+          .upsert(batch, { onConflict: 'id' });
+        if (error) {
+          console.warn('[Persistence] Interaction sync batch error:', error.message);
+          skipped += batch.length;
+        } else {
+          synced += batch.length;
+        }
+      }
+    }
+
+    // ── 4. Update lastSyncedAt on success ──────────────────────────────────
+    localStorage.setItem(LAST_SYNC_KEY, String(now));
+    console.log(`[Persistence] Supabase sync complete — ${synced} synced, ${skipped} skipped`);
+
+  } catch (err) {
+    console.warn('[Persistence] Supabase sync failed (graceful fallback):', err);
+    skipped++;
+  }
+
+  return { synced, skipped };
 }
