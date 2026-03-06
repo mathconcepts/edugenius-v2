@@ -27,6 +27,8 @@ import {
 import { loadPersona, type StudentPersona, type LearningStyle, type EmotionalState } from './studentPersonaEngine';
 import { getExamById } from '../data/examRegistry';
 import { getTopperPromptAddendum } from './topperIntelligence';
+import type { BehavioralSignals } from './behavioralSignals';
+import { getDueTopics, getOverdueTopics } from './spacedRepetition';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +39,23 @@ export type ContentStrategy =
   | 'quick_refresh'      // Student knows it, just needs a reminder
   | 'challenge_up'       // Student is confident — push harder
   | 'first_time';        // Student has never asked about this topic
+
+export type ContentFormat =
+  | 'text_explanation'   // default — plain prose
+  | 'worked_example'     // show a solved problem step-by-step
+  | 'analogy_bridge'     // explain via analogy to something familiar
+  | 'mcq_probe'          // ask a MCQ to test understanding first
+  | 'visual_ascii'       // ASCII diagram or table
+  | 'formula_card'       // just the formula + variables explained
+  | 'pyq_anchor'         // start with a real past question
+  | 'compare_contrast';  // two concepts side-by-side
+
+export type DeliveryPersona =
+  | 'warm_coach'         // encouraging, personal
+  | 'sharp_peer'         // direct, peer-to-peer, no fluff
+  | 'calm_mentor'        // measured, step-by-step
+  | 'energetic_pusher'   // motivating, short punchy sentences
+  | 'gentle_rescuer';    // for students in distress
 
 export interface NextContentSuggestion {
   topicId: string;
@@ -83,6 +102,13 @@ export interface LensContext {
   // ── Derived strategy
   contentStrategy: ContentStrategy;
   suggestedNextContent: NextContentSuggestion | null;
+
+  // ── Hyper-personalization (v2)
+  behavioralSignals: BehavioralSignals | null;
+  srDueTopics: string[];             // topics due for review via SM-2
+  srOverdueTopics: string[];         // topics OVERDUE — surface urgently
+  contentFormat: ContentFormat;      // auto-selected delivery format
+  deliveryPersona: DeliveryPersona;  // how Sage should sound THIS response
 
   // ── Raw persona (for downstream use)
   persona: StudentPersona;
@@ -181,6 +207,51 @@ async function suggestNextContent(
   return null;
 }
 
+// ─── Content format picker ────────────────────────────────────────────────────
+
+function pickContentFormat(
+  lens: Partial<LensContext>,
+  behavioral: BehavioralSignals | null
+): ContentFormat {
+  // Overloaded student → simplest possible format
+  if (behavioral?.cognitiveLoad === 'overloaded') return 'formula_card';
+
+  // First time on topic → build intuition with analogy
+  if (lens.isFirstTimeOnTopic) return 'analogy_bridge';
+
+  // Exam critical + < 14 days → anchor to real past question
+  if (lens.examUrgency === 'critical' && lens.isTopicExamCritical) return 'pyq_anchor';
+
+  // Visual learner + complex topic → ASCII diagram/table
+  if (lens.learningStyle === 'visual' && lens.cohortStruggleAlert) return 'visual_ascii';
+
+  // Practice-first learner → probe with MCQ before explaining
+  if (lens.learningStyle === 'practice-first') return 'mcq_probe';
+
+  // Student mastered but came back → deepen with compare/contrast
+  if (lens.isTopicMastered) return 'compare_contrast';
+
+  // Weak topic + already tried before → show a full worked example
+  if (lens.isTopicWeak && (lens.timesAskedAboutTopic ?? 0) > 1) return 'worked_example';
+
+  return 'text_explanation';
+}
+
+// ─── Delivery persona picker ──────────────────────────────────────────────────
+
+function pickDeliveryPersona(
+  emotion: EmotionalState,
+  behavioral: BehavioralSignals | null,
+  tier: StudentPersona['tier']
+): DeliveryPersona {
+  if (emotion === 'frustrated' || emotion === 'anxious') return 'gentle_rescuer';
+  if (emotion === 'exhausted' || behavioral?.cognitiveLoad === 'overloaded') return 'calm_mentor';
+  if (emotion === 'motivated' || behavioral?.confidenceSignal === 'high') return 'energetic_pusher';
+  if (tier === 'advanced') return 'sharp_peer';
+  if (tier === 'struggling') return 'warm_coach';
+  return 'calm_mentor';
+}
+
 // ─── Main Builder ─────────────────────────────────────────────────────────────
 
 export interface BuildLensOptions {
@@ -193,6 +264,8 @@ export interface BuildLensOptions {
   detectedEmotion?: EmotionalState;
   /** Whether static PYQ context exists for this topic */
   hasPYQContext?: boolean;
+  /** Optional behavioral micro-signals from the chat interface */
+  behavioralSignals?: BehavioralSignals | null;
 }
 
 export async function buildLensContext(opts: BuildLensOptions): Promise<LensContext> {
@@ -203,16 +276,19 @@ export async function buildLensContext(opts: BuildLensOptions): Promise<LensCont
     sessionMessageCount,
     detectedEmotion,
     hasPYQContext = false,
+    behavioralSignals = null,
   } = opts;
 
   // ── Load all data sources in parallel ────────────────────────────────────
-  const [persona, topicMastery, weakTopics, masteredTopics, interactionCount] =
+  const [persona, topicMastery, weakTopics, masteredTopics, interactionCount, srDueRecords, srOverdueRecords] =
     await Promise.all([
       loadStudentPersonaFromDB(studentId),
       getTopicMastery(studentId, examId, topicId),
       getWeakTopics(studentId, examId, 5),
       getMasteredTopics(studentId, examId),
       getInteractionCount(studentId, topicId),
+      getDueTopics(studentId, examId, 10).catch(() => []),
+      getOverdueTopics(studentId, examId).catch(() => []),
     ]);
 
   const exam = getExamById(examId);
@@ -246,6 +322,25 @@ export async function buildLensContext(opts: BuildLensOptions): Promise<LensCont
   const suggestedNextContent = await suggestNextContent(
     studentId, examId, topicId, examUrgency
   );
+
+  // ── Hyper-personalization: format + persona ───────────────────────────────
+  // Build a partial LensContext for format/persona pickers (before full object exists)
+  const partialLens: Partial<LensContext> = {
+    isFirstTimeOnTopic: isFirstTime,
+    examUrgency,
+    isTopicExamCritical,
+    learningStyle: persona.learningStyle,
+    cohortStruggleAlert,
+    isTopicMastered,
+    isTopicWeak,
+    timesAskedAboutTopic: interactionCount,
+  };
+
+  const contentFormat = pickContentFormat(partialLens, behavioralSignals);
+  const deliveryPersona = pickDeliveryPersona(emotion, behavioralSignals, persona.tier);
+
+  const srDueTopics = srDueRecords.map((r) => r.topicId);
+  const srOverdueTopics = srOverdueRecords.map((r) => r.topicId);
 
   // ── Fire signals for struggling students ─────────────────────────────────
   if (topicMastery && topicMastery.incorrectCount >= 3 && !topicMastery.isMastered) {
@@ -328,6 +423,12 @@ export async function buildLensContext(opts: BuildLensOptions): Promise<LensCont
     staticContentAvailable: true, // always true — static bank always present
     contentStrategy,
     suggestedNextContent,
+    // Hyper-personalization fields (v2)
+    behavioralSignals,
+    srDueTopics,
+    srOverdueTopics,
+    contentFormat,
+    deliveryPersona,
     persona,
   };
 }
@@ -424,6 +525,57 @@ Push them further. Ask a harder variant. Offer a twist problem.
     ? 'LENGTH: Up to 300 words — this student wants depth.'
     : 'LENGTH: 100–200 words is ideal.';
   parts.push(`\n## FORMAT\n${lengthGuide}`);
+
+  // ── Content format instructions ──────────────────────────────────────────
+  const formatInstructions: Record<string, string> = {
+    text_explanation: 'Explain clearly in plain prose. Build logically. One idea per paragraph.',
+    worked_example:   'Show a COMPLETE worked solution. Label each step clearly (Step 1, Step 2...). Do NOT skip algebra or intermediate steps. End with: "Now you try: [variant question]".',
+    analogy_bridge:   'Open with a real-world analogy BEFORE any formula. Format: "Think of [X] like [Y]..." — then connect to the concept. Make the analogy feel natural, not forced.',
+    mcq_probe:        'Before explaining, ask ONE multiple choice question to gauge where they are. Format: "Quick check — which of these is correct?\nA) ...\nB) ...\nC) ...\nD) ..." — then teach based on their answer.',
+    visual_ascii:     'Use ASCII tables, arrows, or diagrams to represent the concept. EVERY key relationship needs a visual. Use → for flow, | for tables, ■ for nodes. Keep text labels short.',
+    formula_card:     'ONLY: the formula, variable definitions (one line each), and ONE numeric example. No prose. No backstory. Max 50 words total. Format:\nFormula: ...\nWhere: ...\nExample: ...',
+    pyq_anchor:       'Start with: "In [GATE/CAT year], this appeared as: [question]". Then teach FROM the question — explain why each step applies. This is not abstract; it\'s exam-real.',
+    compare_contrast: 'Show two versions side-by-side: ❌ COMMON MISTAKE vs ✅ CORRECT APPROACH. Make the contrast stark and clear. End with the rule that distinguishes them.',
+  };
+
+  const formatInstruction = formatInstructions[ctx.contentFormat] ?? formatInstructions.text_explanation;
+  parts.push(`\n## CONTENT FORMAT: ${ctx.contentFormat.toUpperCase()}\n${formatInstruction}`);
+
+  // ── Delivery persona instructions ────────────────────────────────────────
+  const personaInstructions: Record<string, string> = {
+    warm_coach:        'Be encouraging and personal. Use the student\'s name once. Acknowledge their effort. Tone: "You\'re getting there — here\'s the piece that unlocks it."',
+    sharp_peer:        'Direct, peer-to-peer, zero fluff. Skip pleasantries. Lead with the answer or insight. Treat them as an equal who can handle directness.',
+    calm_mentor:       'Measured, patient, step-by-step. Never rush. If the concept needs 3 steps, take all 3. Tone: steady, reassuring, methodical.',
+    energetic_pusher:  'Short punchy sentences. Energy in every line. Use 🔥 sparingly. Push them: "Got it? Good — now level up." Keep momentum high.',
+    gentle_rescuer:    'This student is struggling or distressed. Acknowledge FIRST: "This is genuinely hard — you\'re not alone." Then simplify everything. One small win at a time.',
+  };
+
+  const personaInstruction = personaInstructions[ctx.deliveryPersona] ?? personaInstructions.calm_mentor;
+  parts.push(`\n## DELIVERY PERSONA: ${ctx.deliveryPersona.toUpperCase()}\n${personaInstruction}`);
+
+  // ── Spaced repetition nudge ──────────────────────────────────────────────
+  if (ctx.srDueTopics.length > 0 || ctx.srOverdueTopics.length > 0) {
+    const srLines: string[] = ['\n## SPACED REPETITION'];
+    if (ctx.srOverdueTopics.length > 0) {
+      srLines.push(`⚠️ OVERDUE for review (>1 day): ${ctx.srOverdueTopics.join(', ')}`);
+    }
+    if (ctx.srDueTopics.length > 0) {
+      srLines.push(`📅 Due for review today: ${ctx.srDueTopics.join(', ')}`);
+    }
+    srLines.push(`→ If any of these topics are RELEVANT to the current question, naturally mention: "You're due to review [topic] — want a quick test before we move on?"`);
+    srLines.push(`→ Do NOT force this — only mention if it genuinely connects.`);
+    parts.push(srLines.join('\n'));
+  }
+
+  // ── Behavioral signals ───────────────────────────────────────────────────
+  if (ctx.behavioralSignals) {
+    const bs = ctx.behavioralSignals;
+    if (bs.cognitiveLoad === 'overloaded' || bs.cognitiveLoad === 'high') {
+      parts.push(`\n## BEHAVIORAL SIGNAL\n⚠️ Student shows HIGH cognitive load (hesitation bursts: ${bs.hesitationBursts}, latency: ${Math.round(bs.avgResponseLatencyMs / 1000)}s avg). Simplify. Use shorter sentences. Avoid multi-part questions.`);
+    } else if (bs.messageLengthTrend === 'decreasing' && bs.sessionScrollDepth < 0.2) {
+      parts.push(`\n## BEHAVIORAL SIGNAL\nStudent's messages are getting shorter — possible fatigue. Keep THIS response concise. Suggest a break if appropriate.`);
+    }
+  }
 
   return parts.join('\n');
 }

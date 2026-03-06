@@ -343,7 +343,35 @@ export function buildLensPrompt(
     }
   }
 
-  return `${basePersonaConfig.systemPrompt}\n\n${lensAddendum}${pyqSection}${topperSection}`;
+  // ── Content format + delivery persona (hyper-personalization v2) ──────────
+  // lensContextToPrompt() already embeds these via lensAddendum,
+  // but we add an explicit block here for emphasis and for the case where
+  // lensAddendum is truncated or skipped by downstream consumers.
+  let hyperPersonalizationSection = '';
+  if (lens.contentFormat && lens.deliveryPersona) {
+    const formatInstructions: Record<string, string> = {
+      text_explanation: 'Explain clearly in plain prose. Build logically.',
+      worked_example:   'Show a complete worked solution. Label each step. Do NOT skip algebra.',
+      analogy_bridge:   'Open with a real-world analogy before any formula. "Think of [X] like [Y]..."',
+      mcq_probe:        'Before explaining, ask ONE multiple choice question to gauge where they are.',
+      visual_ascii:     'Use ASCII tables, arrows, or diagrams. Every concept needs a visual representation.',
+      formula_card:     'Just the formula, variable definitions, one example. No prose. Max 50 words.',
+      pyq_anchor:       'Start with: "In GATE/CAT [year], this appeared as: [question]". Then teach from it.',
+      compare_contrast: 'Show two versions: ❌ WRONG approach vs ✅ RIGHT approach. Side-by-side.',
+    };
+    const personaInstructions: Record<string, string> = {
+      warm_coach:       'Be encouraging and personal. Acknowledge effort before content.',
+      sharp_peer:       'Direct, peer-to-peer, no fluff. Lead with the insight.',
+      calm_mentor:      'Measured, patient, step-by-step. Never rush. Steady and reassuring.',
+      energetic_pusher: 'Short punchy sentences. High energy. Push them forward.',
+      gentle_rescuer:   'Acknowledge difficulty first. Simplify everything. One small win at a time.',
+    };
+    const fi = formatInstructions[lens.contentFormat] ?? '';
+    const pi = personaInstructions[lens.deliveryPersona] ?? '';
+    hyperPersonalizationSection = `\n\n## HYPER-PERSONALIZATION\n### Format: ${lens.contentFormat.toUpperCase()}\n${fi}\n### Persona: ${lens.deliveryPersona.toUpperCase()}\n${pi}`;
+  }
+
+  return `${basePersonaConfig.systemPrompt}\n\n${lensAddendum}${pyqSection}${topperSection}${hyperPersonalizationSection}`;
 }
 
 // ── RAG-Enhanced Prompt Builder ────────────────────────────────────────────────

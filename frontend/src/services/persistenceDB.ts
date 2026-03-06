@@ -67,7 +67,8 @@ export interface ContentCacheEntry {
 export interface AgentSignal {
   id: string;
   type: 'CONTENT_GAP' | 'STRUGGLE_PATTERN' | 'MASTERY_ACHIEVED' | 'FRUSTRATION_ALERT'
-       | 'COHORT_ALERT' | 'CHURN_RISK' | 'BREAKTHROUGH';
+       | 'COHORT_ALERT' | 'CHURN_RISK' | 'BREAKTHROUGH'
+       | 'FORMAT_REQUEST' | 'SR_OVERDUE' | 'BEHAVIORAL_SNAPSHOT' | 'FORMAT_SUCCESS';
   sourceAgent: string;
   targetAgent: string;
   payload: Record<string, unknown>;
@@ -80,7 +81,7 @@ export interface AgentSignal {
 // ─── DB Init ──────────────────────────────────────────────────────────────────
 
 const DB_NAME = 'edugenius-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let _db: IDBPDatabase | null = null;
 
@@ -127,6 +128,16 @@ export async function getDB(): Promise<IDBPDatabase> {
         signalStore.createIndex('by_target', 'targetAgent');
         signalStore.createIndex('by_pending', 'deliveredAt');
         signalStore.createIndex('by_type', 'type');
+      }
+
+      // sr_records (version 2) — spaced repetition records per student+exam+topic
+      if (oldVersion < 2) {
+        if (!db.objectStoreNames.contains('sr_records')) {
+          const srStore = db.createObjectStore('sr_records', { keyPath: 'id' });
+          // id = `${studentId}::${examId}::${topicId}`
+          srStore.createIndex('by_student_exam', ['studentId', 'examId']);
+          srStore.createIndex('by_next_review', 'nextReviewAt');
+        }
       }
     },
   });
@@ -388,6 +399,27 @@ export async function getStorageSummary(): Promise<{
   const pendingSignals = allSignals.filter((s) => !s.deliveredAt).length;
 
   return { profiles, masteryRecords, interactions, cachedContent, pendingSignals };
+}
+
+// ─── SR Record Helpers (wrappers for spacedRepetition.ts) ────────────────────
+
+/**
+ * Retrieve a raw SR record from IndexedDB by composite key.
+ * Used by spacedRepetition.ts — exported here so it can share the getDB() instance.
+ */
+export async function getSRRecordRaw(id: string): Promise<Record<string, unknown> | null> {
+  const db = await getDB();
+  const raw = await db.get('sr_records', id);
+  return (raw as Record<string, unknown>) ?? null;
+}
+
+/**
+ * Save a raw SR record object to IndexedDB.
+ * Used by spacedRepetition.ts — exported here so it can share the getDB() instance.
+ */
+export async function saveSRRecordRaw(record: Record<string, unknown>): Promise<void> {
+  const db = await getDB();
+  await db.put('sr_records', record);
 }
 
 /** Prune expired content cache entries */

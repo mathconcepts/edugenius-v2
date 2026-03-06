@@ -16,6 +16,8 @@
 
 import { enqueueSignal, drainPendingSignals, type AgentSignal } from './persistenceDB';
 import { updateTopicMastery, logInteraction } from './persistenceDB';
+import type { BehavioralSignals } from './behavioralSignals';
+import type { ContentFormat, DeliveryPersona } from './lensEngine';
 
 // ─── Signal type catalogue ────────────────────────────────────────────────────
 
@@ -148,6 +150,93 @@ export async function emitBreakthrough(params: {
       topicId: params.topicId,
     }),
   ]);
+}
+
+// ─── Hyper-personalization signal emitters (v2) ───────────────────────────────
+
+/** Lens → Atlas: request specific content format for a topic */
+export async function emitFormatRequest(params: {
+  studentId: string;
+  topicId: string;
+  examId: string;
+  requestedFormat: ContentFormat;
+  reason: string;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'FORMAT_REQUEST',
+    sourceAgent: 'lens',
+    targetAgent: 'atlas',
+    payload: params,
+    studentId: params.studentId,
+    topicId: params.topicId,
+  });
+}
+
+/** Lens → Mentor: SR topic overdue — trigger review nudge */
+export async function emitSROverdue(params: {
+  studentId: string;
+  overdueTopics: string[];
+  examId: string;
+  daysOverdue: number;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'SR_OVERDUE',
+    sourceAgent: 'lens',
+    targetAgent: 'mentor',
+    payload: params,
+    studentId: params.studentId,
+  });
+}
+
+/** Lens → Oracle: behavioral signal snapshot for analytics */
+export async function emitBehavioralSnapshot(params: {
+  studentId: string;
+  examId: string;
+  signals: BehavioralSignals;
+  contentFormat: ContentFormat;
+  deliveryPersona: DeliveryPersona;
+  sessionMessageCount: number;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'BEHAVIORAL_SNAPSHOT',
+    sourceAgent: 'lens',
+    targetAgent: 'oracle',
+    payload: {
+      studentId: params.studentId,
+      examId: params.examId,
+      cognitiveLoad: params.signals.cognitiveLoad,
+      confidenceSignal: params.signals.confidenceSignal,
+      studyTimePattern: params.signals.studyTimePattern,
+      avgTypingSpeedWpm: params.signals.avgTypingSpeedWpm,
+      hesitationBursts: params.signals.hesitationBursts,
+      messageLengthTrend: params.signals.messageLengthTrend,
+      avgResponseLatencyMs: params.signals.avgResponseLatencyMs,
+      rereadCount: params.signals.rereadCount,
+      entryPoint: params.signals.entryPoint,
+      contentFormat: params.contentFormat,
+      deliveryPersona: params.deliveryPersona,
+      sessionMessageCount: params.sessionMessageCount,
+    },
+    studentId: params.studentId,
+  });
+}
+
+/** Sage → Atlas: a delivery format got positive engagement — learn from it */
+export async function emitFormatSuccess(params: {
+  studentId: string;
+  topicId: string;
+  examId: string;
+  format: ContentFormat;
+  engagementSignal: 'follow_up_question' | 'mastery_achieved' | 'explicit_thanks';
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'FORMAT_SUCCESS',
+    sourceAgent: 'sage',
+    targetAgent: 'atlas',
+    payload: params,
+    studentId: params.studentId,
+    topicId: params.topicId,
+  });
 }
 
 // ─── Interaction recorder (Sage → persistence → Oracle) ──────────────────────

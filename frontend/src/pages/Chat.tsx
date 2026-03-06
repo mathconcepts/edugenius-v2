@@ -30,6 +30,8 @@ import { shouldRenderWithManim, extractPrimaryLatex } from '@/services/manimServ
 import { buildLensContext, type LensContext } from '@/services/lensEngine';
 import { recordSageInteraction } from '@/services/signalBus';
 import { saveStudentProfile } from '@/services/persistenceDB';
+import { createBehavioralTracker, type BehavioralTracker } from '@/services/behavioralSignals';
+import { getDueTopics } from '@/services/spacedRepetition';
 import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
@@ -552,6 +554,12 @@ export function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Behavioral tracker — one instance per session ──
+  const behavioralTrackerRef = useRef<BehavioralTracker>(createBehavioralTracker());
+
+  // ── Spaced repetition: due topic count for indicator ──
+  const [srDueCount, setSrDueCount] = useState(0);
+
   const currentSession = getCurrentSession();
 
   // Auto-create session on mount; pre-fill ?q= / ?topic= and inject studentContext
@@ -609,6 +617,24 @@ export function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
+
+  // Load SR due count once on mount for the indicator
+  useEffect(() => {
+    const loadSRDue = async () => {
+      try {
+        const currentPersona = loadPersona();
+        const isGate = currentPersona.exam?.toUpperCase().includes('GATE');
+        const isCat = currentPersona.exam?.toUpperCase().includes('CAT') ||
+          currentPersona.exam?.toUpperCase().includes('MBA');
+        const examId = isGate ? 'gate-engineering-maths' : isCat ? 'cat' : 'jee-main';
+        const due = await getDueTopics(currentPersona.studentId, examId, 20);
+        setSrDueCount(due.length);
+      } catch {
+        // SR not available — graceful fallback, no indicator shown
+      }
+    };
+    loadSRDue();
+  }, []);
 
   // ── Attachment handlers ──
 
@@ -672,6 +698,12 @@ export function Chat() {
   const handleSend = async () => {
     const userText = input.trim();
     if (!userText && attachments.length === 0) return;
+
+    // Record message send for behavioral tracking
+    if (userText) {
+      behavioralTrackerRef.current.recordMessageSent(userText);
+      behavioralTrackerRef.current.recordStudentReply();
+    }
 
     let sessionId = currentSessionId;
     if (!sessionId) {
@@ -822,6 +854,7 @@ export function Chat() {
           sessionId: sessionId ?? 'session-0',
           sessionMessageCount: history.length,
           hasPYQContext,
+          behavioralSignals: behavioralTrackerRef.current.getSignals(),
         });
         setLensContext(activeLensCtx);
       } catch { /* non-blocking — fall back to legacy prompt */ }
@@ -964,6 +997,8 @@ export function Chat() {
 
       setIsTyping(false);
       setStreaming(false);
+      // Record Sage response received for latency tracking
+      behavioralTrackerRef.current.recordSageResponseReceived();
     };
 
     if (isLLMConfigured()) {
@@ -996,6 +1031,9 @@ export function Chat() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Record keystroke for behavioral tracking
+    behavioralTrackerRef.current.recordKeystroke(e.key, e.key === 'Backspace');
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -1275,7 +1313,14 @@ export function Chat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-8" onPaste={handlePaste}>
+        <div
+          className="flex-1 overflow-y-auto p-5 space-y-8"
+          onPaste={handlePaste}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            behavioralTrackerRef.current.recordScroll(el.scrollTop, el.scrollHeight, el.clientHeight);
+          }}
+        >
           {!currentSession || currentSession.messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               <div className={clsx('w-20 h-20 rounded-2xl bg-gradient-to-br flex items-center justify-center text-4xl mb-4', displayAgent?.color || 'from-primary-500 to-accent-500')}>
@@ -1470,6 +1515,7 @@ export function Chat() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => behavioralTrackerRef.current.recordStudentReply()}
                 onPaste={handlePaste}
                 placeholder={attachments.length > 0
                   ? `Ask about your attachment... (or press Enter to send)`
@@ -1498,6 +1544,12 @@ export function Chat() {
             </button>
           </div>
 
+          {/* SR due indicator */}
+          {srDueCount > 0 && (
+            <div className="text-xs text-center mt-1 text-amber-400/80">
+              📚 {srDueCount} topic{srDueCount !== 1 ? 's' : ''} due for review — ask Sage to quiz you!
+            </div>
+          )}
           <p className="text-xs text-surface-600 text-center mt-2">
             {isSimpleMode
               ? 'AI can make mistakes — always verify important answers with your textbook.'
