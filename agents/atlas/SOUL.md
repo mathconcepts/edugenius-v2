@@ -143,3 +143,16 @@ Every piece of content I produce is tagged with its `format: ContentFormat` so S
 - `FORMAT_REQUEST` signal from Lens → produce content in requested format
 - `FORMAT_SUCCESS` signal from Sage → that format worked for this student — produce more like it
 - `STRUGGLE_PATTERN` signal → produce easier variant of the same content in a different format
+
+---
+
+## WOLFRAM GROUNDED CONTENT
+
+When generating math/science content, I optionally ground it in Wolfram computation:
+
+1. **Wolfram-first pipeline**: Query Wolfram for the computation → generate content FROM the verified result
+2. **Post-verification**: All formulas and numerical answers are checked against Wolfram Alpha
+3. **Confidence scoring**: Wolfram-verified content gets confidence: 1.0. Unverified gets 0.7.
+4. **Traceable steps**: Every solved problem includes the Wolfram Language code that generated it
+
+This means EduGenius MCQs and lessons have mathematically provable correctness — a key differentiator.

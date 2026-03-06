@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-03-06T09:00:00Z",
+  "integrations": {
+    "gemini": {
+      "status": "active",
+      "displayName": "Google Gemini",
+      "description": "Primary LLM provider for content generation and tutoring",
+      "scopes": ["generate", "chat", "embed"],
+      "apiKeyEnvVar": "VITE_GEMINI_API_KEY",
+      "docs": "https://ai.google.dev/gemini-api/docs"
+    },
+    "anthropic": {
+      "status": "configured",
+      "displayName": "Anthropic Claude",
+      "description": "Fallback LLM provider via backend proxy",
+      "scopes": ["generate", "chat"],
+      "apiKeyEnvVar": "VITE_ANTHROPIC_API_KEY",
+      "docs": "https://docs.anthropic.com"
+    },
+    "openai": {
+      "status": "configured",
+      "displayName": "OpenAI GPT",
+      "description": "Optional LLM provider",
+      "scopes": ["generate", "chat"],
+      "apiKeyEnvVar": "VITE_OPENAI_API_KEY",
+      "docs": "https://platform.openai.com/docs"
+    },
+    "wolfram": {
+      "status": "pending",
+      "displayName": "Wolfram Foundation Tool",
+      "description": "Deterministic math computation, fact verification, and grounded content generation via Wolfram|Alpha LLM API + MCP",
+      "scopes": ["verify", "compute", "ground", "mcp"],
+      "apiKeyEnvVar": "VITE_WOLFRAM_APP_ID",
+      "mcpEndpointEnvVar": "VITE_WOLFRAM_MCP_ENDPOINT",
+      "integrationPaths": ["llm_api", "full_results", "short_answer", "mcp"],
+      "addedAt": "2026-03-06T09:00:00Z",
+      "addedBy": "Jarvis",
+      "docs": "https://www.wolfram.com/artificial-intelligence/foundation-tool/",
+      "getApiKey": "https://developer.wolframalpha.com/"
+    },
+    "supabase": {
+      "status": "active",
+      "displayName": "Supabase",
+      "description": "Database, auth, and realtime for EduGenius",
+      "scopes": ["database", "auth", "storage", "realtime"],
+      "apiKeyEnvVar": "VITE_SUPABASE_ANON_KEY",
+      "docs": "https://supabase.com/docs"
+    }
+  }
+}

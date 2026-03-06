@@ -38,10 +38,12 @@ export interface LLMMessage {
 
 export interface LLMResponse {
   text: string;
-  provider: 'gemini' | 'anthropic' | 'openai' | 'backend' | 'mock';
+  provider: 'gemini' | 'anthropic' | 'openai' | 'backend' | 'mock' | 'wolfram';
   model: string;
   tokensUsed?: number;
   latencyMs?: number;
+  /** True when the response was grounded in a Wolfram computation result */
+  isWolframGrounded?: boolean;
 }
 
 // ─── Environment ──────────────────────────────────────────────────────────────
@@ -52,6 +54,9 @@ const GEMINI_API_KEY = env.VITE_GEMINI_API_KEY as string | undefined;
 const ANTHROPIC_API_KEY = env.VITE_ANTHROPIC_API_KEY as string | undefined;
 const OPENAI_API_KEY = env.VITE_OPENAI_API_KEY as string | undefined;
 const API_BASE_URL = env.VITE_API_BASE_URL as string | undefined;
+
+/** Wolfram App ID — used by wolframService. Exported for UI visibility checks. */
+export const WOLFRAM_APP_ID = env.VITE_WOLFRAM_APP_ID as string | undefined;
 
 export function isLLMConfigured(): boolean {
   return !!(GEMINI_API_KEY || ANTHROPIC_API_KEY || OPENAI_API_KEY || API_BASE_URL);
