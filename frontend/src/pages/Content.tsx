@@ -1,6 +1,6 @@
 /**
  * Content Management — CEO/Admin view
- * Generation sources: Prompt | Document Upload | API / MCP | AI Agent | Wolfram ∑
+ * Generation sources: Prompt | Document Upload | API / MCP | AI Agent | Wolfram ∑ | Batch ⚡
  */
 import { useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, Globe, Bot, Sparkles,
   X, Check, Loader2, Eye, Edit3, BarChart3, Plus, Brain,
-  Calculator, Download, RefreshCw, ExternalLink,
+  Calculator, Download, RefreshCw, ExternalLink, Zap,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
@@ -22,6 +22,17 @@ import {
   type ContentSource,
 } from '@/services/contentGenerationService';
 import { queryWolfram, isWolframAvailable } from '@/services/wolframService';
+import {
+  createBatchJob,
+  runBatchJob,
+  exportBatchResult,
+  createBatchItemsFromTopics,
+  type BatchJob,
+  type BatchItem,
+  type BatchProgress,
+  type BatchResult,
+} from '@/services/batchContentService';
+import { getSourceBadge } from '@/services/contentArbitrationService';
 
 // ── Types & data ─────────────────────────────────────────────────────────────
 
@@ -64,6 +75,7 @@ const SOURCE_TABS = [
   { id: 'api', icon: Globe, label: 'API / MCP' },
   { id: 'agent', icon: Bot, label: 'AI Agent' },
   { id: 'wolfram', icon: Calculator, label: 'Wolfram ∑' },
+  { id: 'batch', icon: Zap, label: 'Batch ⚡' },
 ] as const;
 
 type SourceTab = typeof SOURCE_TABS[number]['id'];
@@ -928,6 +940,414 @@ function WolframPanel({ onGenerated }: PanelWithOutputProps) {
   );
 }
 
+// ── Batch Panel ───────────────────────────────────────────────────────────────
+
+type BatchSourceMode = 'auto' | 'wolfram' | 'document' | 'llm';
+
+interface BatchItemRowProps {
+  item: BatchItem;
+  onView: (item: BatchItem) => void;
+}
+
+function BatchItemRow({ item, onView }: BatchItemRowProps) {
+  const statusIcon = () => {
+    switch (item.status) {
+      case 'done': return '✅';
+      case 'failed': return '❌';
+      case 'running': return '⏳';
+      case 'retrying': return '🔄';
+      default: return '⬜';
+    }
+  };
+
+  const badge = item.arbitration ? getSourceBadge(item.arbitration.path) : null;
+  const topic =
+    item.request.sourceData.prompt ??
+    item.request.sourceData.wolframQuery ??
+    item.request.topicId ??
+    item.id;
+
+  const badgeColorClass = () => {
+    if (!badge) return 'bg-surface-700 text-surface-300';
+    switch (badge.color) {
+      case 'green': return 'bg-green-500/15 text-green-300 border border-green-500/25';
+      case 'blue': return 'bg-blue-500/15 text-blue-300 border border-blue-500/25';
+      default: return 'bg-surface-700/60 text-surface-300 border border-surface-600/30';
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 py-2 text-sm border-b border-surface-800/50 last:border-0">
+      <span className="text-base w-5 flex-shrink-0">{statusIcon()}</span>
+      <span className="flex-1 min-w-0 truncate text-xs text-surface-200" title={topic}>{topic}</span>
+
+      {badge && (
+        <span className={clsx('text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0', badgeColorClass())}>
+          {badge.icon} {badge.label.replace(/^[^ ]+ /, '')}
+        </span>
+      )}
+
+      {item.result?.wolframVerified && (
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/20 flex-shrink-0 flex items-center gap-0.5">
+          <Check className="w-2.5 h-2.5" /> Verified
+        </span>
+      )}
+
+      {item.status === 'running' && (
+        <span className="text-[10px] text-surface-500 flex-shrink-0 flex items-center gap-1">
+          <Loader2 className="w-3 h-3 animate-spin" /> running…
+        </span>
+      )}
+
+      {item.status === 'retrying' && (
+        <span className="text-[10px] text-yellow-400 flex-shrink-0">
+          retry {item.retryCount}/2
+        </span>
+      )}
+
+      {item.status === 'failed' && item.error && (
+        <span className="text-[10px] text-red-400 flex-shrink-0 max-w-[120px] truncate" title={item.error}>
+          {item.error.slice(0, 30)}
+        </span>
+      )}
+
+      {item.status === 'done' && item.result && (
+        <button
+          onClick={() => onView(item)}
+          className="text-[10px] px-2 py-0.5 rounded border border-surface-600 text-surface-400 hover:text-white hover:border-surface-400 transition-all flex-shrink-0"
+        >
+          View
+        </button>
+      )}
+    </div>
+  );
+}
+
+function BatchPanel({ onGenerated }: PanelWithOutputProps) {
+  const [batchName, setBatchName] = useState('');
+  const [exam, setExam] = useState(EXAM_OPTIONS[0]);
+  const [format, setFormat] = useState<ContentOutputFormat>('mcq_set');
+  const [count, setCount] = useState(10);
+  const [topicsText, setTopicsText] = useState('');
+  const [sourceMode, setSourceMode] = useState<BatchSourceMode>('auto');
+
+  const [job, setJob] = useState<BatchJob | null>(null);
+  const [progress, setProgress] = useState<BatchProgress | null>(null);
+  const [result, setResult] = useState<BatchResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState('');
+
+  // For inline "View" modal
+  const [viewItem, setViewItem] = useState<BatchItem | null>(null);
+
+  const topics = topicsText
+    .split('\n')
+    .map(t => t.trim())
+    .filter(t => t.length > 0);
+
+  const handleGenerate = async () => {
+    if (topics.length === 0) return;
+    setError('');
+    setResult(null);
+
+    const requests = createBatchItemsFromTopics(topics, exam, format, count);
+
+    // Apply source mode override
+    const overriddenRequests = requests.map(r => {
+      if (sourceMode === 'wolfram') {
+        return { ...r, source: 'wolfram_grounded' as const, useWolframGrounding: true };
+      }
+      if (sourceMode === 'document') {
+        return { ...r, source: 'direct_prompt' as const, useWolframGrounding: false };
+      }
+      if (sourceMode === 'llm') {
+        return {
+          ...r,
+          source: 'direct_prompt' as const,
+          useWolframGrounding: false,
+          useWolframVerification: false,
+        };
+      }
+      return r; // auto — arbitration will decide
+    });
+
+    const newJob = createBatchJob(
+      batchName.trim() || `${exam} ${format.replace(/_/g, ' ')} Batch`,
+      overriddenRequests,
+    );
+    setJob(newJob);
+    setRunning(true);
+
+    try {
+      const batchResult = await runBatchJob(
+        newJob,
+        (p) => setProgress({ ...p }),
+        () => setJob({ ...newJob }), // trigger re-render on item complete
+      );
+      setResult(batchResult);
+      // Surface first successful item to the parent output panel
+      const firstDone = batchResult.items.find(i => i.status === 'done' && i.result);
+      if (firstDone?.result) {
+        onGenerated(firstDone.result);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Batch failed');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleExport = () => {
+    if (!result) return;
+    const json = exportBatchResult(result);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `batch_${result.jobId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleReset = () => {
+    setJob(null);
+    setProgress(null);
+    setResult(null);
+    setRunning(false);
+    setError('');
+    setViewItem(null);
+  };
+
+  const sourceModeOptions: Array<{ id: BatchSourceMode; label: string; desc: string }> = [
+    { id: 'auto', label: '🔀 Auto', desc: 'Arbitration decides' },
+    { id: 'wolfram', label: '🔢 Wolfram', desc: 'Always Wolfram CAG' },
+    { id: 'document', label: '📄 Document', desc: 'Document/API source' },
+    { id: 'llm', label: '🧠 LLM', desc: 'Direct LLM only' },
+  ];
+
+  const currentItems = job?.items ?? [];
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-start gap-3 p-3 rounded-xl bg-primary-500/5 border border-primary-500/20">
+        <Zap className="w-4 h-4 text-primary-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-primary-300">Batch Generator</p>
+          <p className="text-xs text-surface-400">Generate multiple content items at once with automatic source arbitration</p>
+        </div>
+      </div>
+
+      {/* Config form */}
+      {!running && !result && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="text-xs text-surface-400 mb-1.5 block">Batch Name (optional)</label>
+              <input
+                className="input w-full text-sm"
+                placeholder="e.g. GATE EM MCQs — Week 12"
+                value={batchName}
+                onChange={e => setBatchName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-surface-400 mb-1.5 block">Exam</label>
+              <select className="input w-full text-sm" value={exam} onChange={e => setExam(e.target.value)}>
+                {EXAM_OPTIONS.map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-surface-400 mb-1.5 block">Format</label>
+              <select className="input w-full text-sm" value={format} onChange={e => setFormat(e.target.value as ContentOutputFormat)}>
+                {CONTENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-surface-400 mb-1.5 block">Count per item</label>
+              <input
+                type="number" min={1} max={30} className="input w-full text-sm"
+                value={count} onChange={e => setCount(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          {/* Topics textarea */}
+          <div>
+            <label className="text-xs text-surface-400 mb-1.5 block">
+              Topics — one per line ({topics.length} topic{topics.length !== 1 ? 's' : ''})
+            </label>
+            <textarea
+              className="input w-full resize-none text-sm font-mono"
+              rows={5}
+              placeholder={'Laplace Transform\nNernst Equation\nMaxwell\'s Equations\nKirchhoff\'s Laws\nFourier Series'}
+              value={topicsText}
+              onChange={e => setTopicsText(e.target.value)}
+            />
+          </div>
+
+          {/* Source mode selector */}
+          <div>
+            <label className="text-xs text-surface-400 mb-2 block">Source Mode</label>
+            <div className="flex gap-2 flex-wrap">
+              {sourceModeOptions.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setSourceMode(opt.id)}
+                  className={clsx(
+                    'flex flex-col items-start px-3 py-2 rounded-xl text-xs border transition-all',
+                    sourceMode === opt.id
+                      ? 'border-primary-500 bg-primary-500/15 text-primary-300'
+                      : 'border-surface-700 bg-surface-800/40 text-surface-300 hover:border-surface-500',
+                  )}
+                >
+                  <span className="font-semibold">{opt.label}</span>
+                  <span className="text-[10px] text-surface-500 mt-0.5">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+            {sourceMode === 'auto' && (
+              <p className="text-[10px] text-surface-500 mt-1.5">
+                Auto mode: mathematical topics → Wolfram CAG; others → LLM
+              </p>
+            )}
+          </div>
+
+          {error && <p className="text-xs text-red-400">{error}</p>}
+
+          <button
+            onClick={handleGenerate}
+            disabled={topics.length === 0}
+            className={clsx(
+              'flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all',
+              topics.length > 0
+                ? 'bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-400 hover:to-accent-400 text-white shadow-lg'
+                : 'bg-surface-700 text-surface-500 cursor-not-allowed',
+            )}
+          >
+            <Zap className="w-4 h-4" />
+            Generate Batch ({topics.length} item{topics.length !== 1 ? 's' : ''}) ▶
+          </button>
+        </>
+      )}
+
+      {/* Progress panel */}
+      {(running || result) && job && (
+        <div className="space-y-3">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">{job.name}</p>
+              <p className="text-xs text-surface-400">
+                {progress
+                  ? `${progress.done + progress.failed}/${progress.totalItems} done`
+                  : `${job.items.length} items`}
+                {result && ` · ✅ ${result.successCount} success · ❌ ${result.failCount} failed · 🔢 ${result.verifiedCount} verified`}
+              </p>
+            </div>
+            {!running && result && (
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-surface-700 text-surface-400 hover:bg-surface-800 transition-all"
+              >
+                <RefreshCw className="w-3 h-3" /> New Batch
+              </button>
+            )}
+          </div>
+
+          {/* Progress bar */}
+          {progress && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-surface-400">
+                  {running
+                    ? progress.currentItem
+                      ? `⏳ ${progress.currentItem.slice(0, 35)}…`
+                      : 'Processing…'
+                    : 'Complete'}
+                </span>
+                <span className="text-primary-300 font-medium">{progress.overallPercent}%</span>
+              </div>
+              <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress.overallPercent}%` }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Item list */}
+          <div className="bg-surface-900/60 rounded-xl border border-surface-700/50 px-3 py-1 max-h-64 overflow-y-auto">
+            {currentItems.map(item => (
+              <BatchItemRow
+                key={item.id}
+                item={item}
+                onView={setViewItem}
+              />
+            ))}
+          </div>
+
+          {/* Export button */}
+          {result && (
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-surface-600 text-surface-300 hover:bg-surface-800 text-sm transition-all"
+            >
+              <Download className="w-4 h-4" /> Export All JSON ⬇
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Inline view modal */}
+      <AnimatePresence>
+        {viewItem?.result && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="border-t border-surface-700/50 pt-4 space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-surface-300">
+                {viewItem.result.title}
+              </p>
+              <button
+                onClick={() => setViewItem(null)}
+                className="p-1 hover:bg-surface-700 rounded-lg transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-surface-400" />
+              </button>
+            </div>
+            <div className="p-3 rounded-xl bg-surface-900/80 border border-surface-700/50 max-h-48 overflow-y-auto">
+              <p className="text-xs text-surface-300 whitespace-pre-line leading-relaxed">
+                {viewItem.result.content.slice(0, 800)}
+                {viewItem.result.content.length > 800 ? '…' : ''}
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {viewItem.result.wolframVerified && (
+                <span className="text-[10px] px-2 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/20 flex items-center gap-1">
+                  <Check className="w-2.5 h-2.5" /> Wolfram Verified
+                </span>
+              )}
+              <span className="text-[10px] px-2 py-0.5 rounded bg-surface-700 text-surface-300">
+                {viewItem.result.wordCount} words
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-surface-700 text-surface-300">
+                {Math.round(viewItem.result.confidence * 100)}% confidence
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Content() {
@@ -1027,6 +1447,7 @@ export default function Content() {
             {activeSource === 'api' && <ApiPanel onGenerated={handleGenerated} />}
             {activeSource === 'agent' && <AgentPanel onGenerated={handleGenerated} />}
             {activeSource === 'wolfram' && <WolframPanel onGenerated={handleGenerated} />}
+            {activeSource === 'batch' && <BatchPanel onGenerated={handleGenerated} />}
           </motion.div>
         </AnimatePresence>
 
