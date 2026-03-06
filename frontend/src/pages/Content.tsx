@@ -2,13 +2,14 @@
  * Content Management — CEO/Admin view
  * Generation sources: Prompt | Document Upload | API / MCP | AI Agent | Wolfram ∑ | Batch ⚡
  */
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, Globe, Bot, Sparkles,
   X, Check, Loader2, Eye, Edit3, BarChart3, Plus, Brain,
-  Calculator, Download, RefreshCw, ExternalLink, Zap,
+  Calculator, Download, RefreshCw, ExternalLink, Zap, ChevronDown, ChevronUp, Settings,
+  Clock, Gauge,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AgentWorkflowPanel } from '@/components/AgentWorkflowPanel';
@@ -24,7 +25,7 @@ import {
 import { queryWolfram, isWolframAvailable } from '@/services/wolframService';
 import {
   createBatchJob,
-  runBatchJob,
+  runBatchJobWithPrefetch,
   exportBatchResult,
   createBatchItemsFromTopics,
   type BatchJob,
@@ -32,6 +33,12 @@ import {
   type BatchProgress,
   type BatchResult,
 } from '@/services/batchContentService';
+import {
+  updateConfig,
+  getRateLimitConfig,
+  getState as getRateLimitState,
+  formatBackoffRemaining,
+} from '@/services/rateLimitService';
 import { getSourceBadge } from '@/services/contentArbitrationService';
 
 // ── Types & data ─────────────────────────────────────────────────────────────
@@ -956,6 +963,7 @@ function BatchItemRow({ item, onView }: BatchItemRowProps) {
       case 'failed': return '❌';
       case 'running': return '⏳';
       case 'retrying': return '🔄';
+      case 'rate_limited': return '⏱';
       default: return '⬜';
     }
   };
@@ -999,9 +1007,17 @@ function BatchItemRow({ item, onView }: BatchItemRowProps) {
         </span>
       )}
 
+      {item.status === 'rate_limited' && (
+        <span className="text-[10px] text-orange-400 flex-shrink-0 flex items-center gap-1">
+          <Clock className="w-3 h-3" /> Rate limited — waiting…
+        </span>
+      )}
+
       {item.status === 'retrying' && (
-        <span className="text-[10px] text-yellow-400 flex-shrink-0">
-          retry {item.retryCount}/2
+        <span className={clsx('text-[10px] flex-shrink-0', item.retryReason === 'rate_limit' ? 'text-orange-400' : 'text-yellow-400')}>
+          {item.retryReason === 'rate_limit'
+            ? '🔄 Rate limited — waiting…'
+            : `❌ Failed (${item.retryCount}/2 retries)`}
         </span>
       )}
 
@@ -1036,6 +1052,21 @@ function BatchPanel({ onGenerated }: PanelWithOutputProps) {
   const [result, setResult] = useState<BatchResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
+
+  // Rate limit config panel
+  const [showRateLimitPanel, setShowRateLimitPanel] = useState(false);
+  const [llmRpm, setLlmRpm] = useState(() => getRateLimitConfig('llm').requestsPerMinute);
+  const [llmMinDelay, setLlmMinDelay] = useState(() => getRateLimitConfig('llm').minDelayMs);
+
+  // Live backoff ticker for UI
+  const [backoffDisplay, setBackoffDisplay] = useState('');
+  useEffect(() => {
+    if (!running) { setBackoffDisplay(''); return; }
+    const id = setInterval(() => {
+      setBackoffDisplay(formatBackoffRemaining('llm'));
+    }, 500);
+    return () => clearInterval(id);
+  }, [running]);
 
   // For inline "View" modal
   const [viewItem, setViewItem] = useState<BatchItem | null>(null);
@@ -1079,7 +1110,7 @@ function BatchPanel({ onGenerated }: PanelWithOutputProps) {
     setRunning(true);
 
     try {
-      const batchResult = await runBatchJob(
+      const batchResult = await runBatchJobWithPrefetch(
         newJob,
         (p) => setProgress({ ...p }),
         () => setJob({ ...newJob }), // trigger re-render on item complete
@@ -1116,6 +1147,29 @@ function BatchPanel({ onGenerated }: PanelWithOutputProps) {
     setRunning(false);
     setError('');
     setViewItem(null);
+    setBackoffDisplay('');
+  };
+
+  const applyRateLimitPreset = (preset: 'conservative' | 'balanced' | 'aggressive') => {
+    const presets = {
+      conservative: { requestsPerMinute: 10, minDelayMs: 4000 },
+      balanced:     { requestsPerMinute: 15, minDelayMs: 2500 },
+      aggressive:   { requestsPerMinute: 20, minDelayMs: 1500 },
+    };
+    const cfg = presets[preset];
+    updateConfig('llm', cfg);
+    setLlmRpm(cfg.requestsPerMinute);
+    setLlmMinDelay(cfg.minDelayMs);
+  };
+
+  const handleLlmRpmChange = (val: number) => {
+    setLlmRpm(val);
+    updateConfig('llm', { requestsPerMinute: val });
+  };
+
+  const handleLlmMinDelayChange = (val: number) => {
+    setLlmMinDelay(val);
+    updateConfig('llm', { minDelayMs: val });
   };
 
   const sourceModeOptions: Array<{ id: BatchSourceMode; label: string; desc: string }> = [
@@ -1213,6 +1267,79 @@ function BatchPanel({ onGenerated }: PanelWithOutputProps) {
             )}
           </div>
 
+          {/* ⚙️ Rate Limits config panel */}
+          <div className="border border-surface-700/60 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowRateLimitPanel(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs text-surface-400 hover:bg-surface-800/40 transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                <Settings className="w-3.5 h-3.5" /> ⚙️ Rate Limits (LLM)
+              </span>
+              {showRateLimitPanel ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            {showRateLimitPanel && (
+              <div className="px-3 pb-3 pt-1 space-y-3 border-t border-surface-700/50 bg-surface-900/40">
+                {/* Preset buttons */}
+                <div>
+                  <p className="text-[10px] text-surface-500 mb-1.5">Preset</p>
+                  <div className="flex gap-2">
+                    {([
+                      { key: 'conservative', label: 'Conservative (10 RPM)', rpm: 10 },
+                      { key: 'balanced',     label: 'Balanced (15 RPM)',     rpm: 15 },
+                      { key: 'aggressive',   label: 'Aggressive (20 RPM)',   rpm: 20 },
+                    ] as const).map(p => (
+                      <button
+                        key={p.key}
+                        onClick={() => applyRateLimitPreset(p.key)}
+                        className={clsx(
+                          'text-[10px] px-2 py-1 rounded-lg border transition-all',
+                          llmRpm === p.rpm
+                            ? 'border-primary-500 bg-primary-500/15 text-primary-300'
+                            : 'border-surface-700 text-surface-400 hover:border-surface-500',
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* RPM slider */}
+                <div>
+                  <label className="text-[10px] text-surface-400 flex items-center justify-between mb-1">
+                    <span>LLM Requests/min</span>
+                    <span className="text-primary-300 font-medium">{llmRpm} RPM</span>
+                  </label>
+                  <input
+                    type="range" min={5} max={30} step={1}
+                    value={llmRpm}
+                    onChange={e => handleLlmRpmChange(Number(e.target.value))}
+                    className="w-full accent-primary-500"
+                  />
+                  <div className="flex justify-between text-[9px] text-surface-600 mt-0.5">
+                    <span>5 (Free tier)</span><span>30 (Paid tier)</span>
+                  </div>
+                </div>
+                {/* Min delay */}
+                <div>
+                  <label className="text-[10px] text-surface-400 flex items-center justify-between mb-1">
+                    <span>Min delay between calls</span>
+                    <span className="text-primary-300 font-medium">{(llmMinDelay / 1000).toFixed(1)}s</span>
+                  </label>
+                  <input
+                    type="range" min={500} max={10000} step={500}
+                    value={llmMinDelay}
+                    onChange={e => handleLlmMinDelayChange(Number(e.target.value))}
+                    className="w-full accent-primary-500"
+                  />
+                  <div className="flex justify-between text-[9px] text-surface-600 mt-0.5">
+                    <span>0.5s</span><span>10s</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {error && <p className="text-xs text-red-400">{error}</p>}
 
           <button
@@ -1255,22 +1382,79 @@ function BatchPanel({ onGenerated }: PanelWithOutputProps) {
             )}
           </div>
 
+          {/* Rate limit status bar */}
+          {progress && running && (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Rate limit indicator */}
+              {backoffDisplay && (
+                <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-orange-500/15 text-orange-400 border border-orange-500/20">
+                  <Clock className="w-3 h-3" /> Rate limited: waiting {backoffDisplay}
+                </span>
+              )}
+
+              {/* Wolfram pre-fetch phase indicator */}
+              {progress.prefetchPhase && (
+                <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/20">
+                  <Calculator className="w-3 h-3" />
+                  Pre-fetching Wolfram {progress.prefetchDone}/{progress.prefetchTotal}
+                </span>
+              )}
+
+              {/* Effective concurrency badge */}
+              <span
+                className={clsx(
+                  'flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg border',
+                  progress.effectiveConcurrency < job.concurrency
+                    ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                    : 'bg-surface-700/60 text-surface-400 border-surface-600/30',
+                )}
+                title={progress.effectiveConcurrency < job.concurrency ? 'Reduced due to rate limiting' : 'Full concurrency'}
+              >
+                <Gauge className="w-3 h-3" />
+                ⚡ {progress.effectiveConcurrency}/{job.concurrency} parallel
+              </span>
+
+              {/* ETA */}
+              {progress.estimatedRemainingMs !== undefined && progress.estimatedRemainingMs > 0 && (
+                <span className="flex items-center gap-1 text-[10px] text-surface-400">
+                  ~{progress.estimatedRemainingMs >= 60000
+                    ? `${Math.floor(progress.estimatedRemainingMs / 60000)}m ${Math.ceil((progress.estimatedRemainingMs % 60000) / 1000)}s`
+                    : `${Math.ceil(progress.estimatedRemainingMs / 1000)}s`} remaining
+                </span>
+              )}
+
+              {/* Rate limit hit counter */}
+              {progress.rateLimitHits > 0 && (
+                <span className="text-[10px] text-orange-400/70">
+                  {progress.rateLimitHits} rate limit{progress.rateLimitHits !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Progress bar */}
           {progress && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-surface-400">
                   {running
-                    ? progress.currentItem
-                      ? `⏳ ${progress.currentItem.slice(0, 35)}…`
-                      : 'Processing…'
+                    ? progress.prefetchPhase
+                      ? `🔢 ${progress.currentItem ?? 'Pre-fetching Wolfram…'}`
+                      : progress.currentItem
+                        ? `⏳ ${progress.currentItem.slice(0, 35)}…`
+                        : 'Processing…'
                     : 'Complete'}
                 </span>
                 <span className="text-primary-300 font-medium">{progress.overallPercent}%</span>
               </div>
               <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+                  className={clsx(
+                    'h-full rounded-full',
+                    progress.waitingForRateLimit
+                      ? 'bg-gradient-to-r from-orange-500 to-yellow-500'
+                      : 'bg-gradient-to-r from-primary-500 to-accent-500',
+                  )}
                   initial={{ width: 0 }}
                   animate={{ width: `${progress.overallPercent}%` }}
                   transition={{ duration: 0.4 }}
