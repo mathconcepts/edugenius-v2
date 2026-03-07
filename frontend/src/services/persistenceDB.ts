@@ -89,7 +89,7 @@ export async function getDB(): Promise<IDBPDatabase> {
   if (_db) return _db;
 
   _db = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion) {
       // student_profiles
       if (!db.objectStoreNames.contains('student_profiles')) {
         const profileStore = db.createObjectStore('student_profiles', { keyPath: 'studentId' });

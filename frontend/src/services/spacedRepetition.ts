@@ -187,7 +187,7 @@ function serializeRecord(record: SRRecord): Record<string, unknown> {
 
 function deserializeRecord(raw: Record<string, unknown>): SRRecord {
   return {
-    ...(raw as SRRecord),
+    ...(raw as unknown as SRRecord),
     lastReviewedAt: new Date(raw.lastReviewedAt as string),
     nextReviewAt: new Date(raw.nextReviewAt as string),
   };
