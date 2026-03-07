@@ -467,3 +467,22 @@ export function shouldUseCatRag(query: string): boolean {
 
   return !skipPatterns.some(p => p.test(trimmed));
 }
+
+// ── buildPersonaSystemPrompt — P0 Wire 2 alias ───────────────────────────────
+
+/**
+ * Build a complete Sage system prompt from a StudentPersona.
+ * This is the canonical entry point for persona injection into every Sage call.
+ * Alias for buildSageSystemPrompt that includes network context when topicId is known.
+ *
+ * Usage:
+ *   const persona = loadPersona();
+ *   const prompt = buildPersonaSystemPrompt(persona, topicId);
+ *   callLLM({ agent: 'sage', customSystemPrompt: prompt, ... });
+ */
+export function buildPersonaSystemPrompt(
+  persona: StudentPersona,
+  topicId?: string,
+): string {
+  return buildSageSystemPrompt(persona, topicId);
+}

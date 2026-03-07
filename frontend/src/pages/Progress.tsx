@@ -1,9 +1,13 @@
 /**
  * Progress Page - Student progress tracking and analytics
  * AI-powered insights and recommendations
+ * Wire 6 — P1: Real data from persona + notebook engine replaces mockData
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+// Wire 6 imports
+import { loadPersona } from '@/services/studentPersonaEngine';
+import { loadNotebookState, getCoverageSummary, type ExamScope } from '@/services/notebookEngine';
 
 interface ProgressData {
   overall: number;
@@ -64,9 +68,75 @@ const mockData: ProgressData = {
   ],
 };
 
+// ─── Build ProgressData from persona + notebook engine ────────────────────────
+
+function buildProgressData(): ProgressData {
+  const persona = loadPersona();
+  const examMap: Record<string, ExamScope> = {
+    JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Adv', NEET: 'NEET',
+    CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
+  };
+  const examScope: ExamScope = examMap[persona.exam] ?? 'JEE Main';
+  const notebookState = loadNotebookState(examScope);
+  const coverage = getCoverageSummary(examScope, notebookState.coverage);
+
+  // Build subjects from coverage data (group by subject via syllabus)
+  const subjectMap: Record<string, { completed: number; total: number; mastery: number }> = {};
+  for (const [topicId, status] of Object.entries(notebookState.coverage)) {
+    // Extract subject from topic id prefix (e.g. jee-km-01 → Physics)
+    const subjectGuess = topicId.includes('-phy-') || topicId.includes('-km-') || topicId.includes('-lm-') ? 'Physics'
+      : topicId.includes('-c') ? 'Chemistry'
+      : topicId.includes('-m') || topicId.includes('-c3') ? 'Mathematics'
+      : topicId.includes('-bio-') ? 'Biology'
+      : 'Other';
+    if (!subjectMap[subjectGuess]) subjectMap[subjectGuess] = { completed: 0, total: 0, mastery: 0 };
+    subjectMap[subjectGuess].total++;
+    if (status === 'covered') subjectMap[subjectGuess].completed++;
+    const m = notebookState.masteryScores[topicId] ?? 0;
+    subjectMap[subjectGuess].mastery = Math.round((subjectMap[subjectGuess].mastery * (subjectMap[subjectGuess].total - 1) + m) / subjectMap[subjectGuess].total);
+  }
+
+  // Map to ProgressData.subjects shape; fall back to mockData subjects if no real coverage
+  const hasCoverage = Object.keys(subjectMap).length > 0;
+  const subjects: ProgressData['subjects'] = hasCoverage
+    ? Object.entries(subjectMap).map(([name, d]) => ({
+        name,
+        progress: d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0,
+        mastery: d.mastery,
+        topicsCompleted: d.completed,
+        totalTopics: d.total,
+        trend: d.mastery > 60 ? 'up' : d.mastery < 40 ? 'down' : 'stable' as 'up' | 'down' | 'stable',
+      }))
+    : mockData.subjects;
+
+  // Weakest subject trend based on persona weak subjects
+  const weakSet = new Set(persona.weakSubjects.map(s => s.toLowerCase()));
+  subjects.forEach(s => {
+    if (weakSet.has(s.name.toLowerCase())) s.trend = 'down';
+  });
+
+  return {
+    overall: coverage.coveragePercent || persona.syllabusCompletion,
+    subjects,
+    streaks: {
+      current: persona.streakDays,
+      longest: Math.max(persona.streakDays, mockData.streaks.longest),
+      thisWeek: mockData.streaks.thisWeek,
+    },
+    achievements: mockData.achievements,
+    weeklyActivity: mockData.weeklyActivity,
+    testScores: mockData.testScores,
+  };
+}
+
 export default function Progress() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'all'>('week');
-  const data = mockData;
+  const [data, setData] = useState<ProgressData>(mockData);
+
+  // Wire 6 — P1: Load real data from persona + notebook engine
+  useEffect(() => {
+    setData(buildProgressData());
+  }, []);
 
   const trendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {

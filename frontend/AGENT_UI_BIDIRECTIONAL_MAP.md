@@ -1227,3 +1227,44 @@ const forecast = await callLLM({
 ---
 
 *Document generated: Feb 2026. All file paths relative to `/home/sprite/clawd/edugenius/frontend/src/`.*
+
+---
+
+## 7. IMPLEMENTATION STATUS — MARCH 2026 UPDATE
+
+> **Updated by bidirectional wiring session (subagent), March 2026**
+
+### P0 Items — ALL COMPLETE ✅
+
+| Item | Status | Implementation |
+|------|--------|----------------|
+| P0-1: Trace wiring in Chat | ✅ DONE | `Chat.tsx` already had full `createRootTrace` + `addNode` per message. Session trace maintained in component state, stored on each response. |
+| P0-2: Persona injection into Sage | ✅ DONE | `Chat.tsx` calls `loadPersona()` → `buildSageSystemPrompt(updatedPersona, detectedTopicId)` before every `callLLM()`. `buildPersonaSystemPrompt()` alias exported from `sagePersonaPrompts.ts`. |
+| P0-3: Analytics.tsx ← Prism data | ✅ DONE | `Analytics.tsx` imports `getFunnelMetrics`, `getABSplits`, `getRevenueInsights`, `loadPrismState` from `prismBridge`. Live funnel replaces `FALLBACK_FUNNEL`. A/B splits replace hardcoded test list. |
+| P0-4: PrismDashboard Action button | ✅ DONE | `PrismDashboard.tsx` `IntelCard.handleExecute()` calls `callLLM({ agent: packet.targetAgent, message: prompt })`. Shows execution result in UI. |
+
+### P1 Items — ALL COMPLETE ✅
+
+| Item | Status | Implementation |
+|------|--------|----------------|
+| P1-5: StudentDashboard todayPlan | ✅ DONE | `StudentDashboard.tsx` imports `loadPersona`, `loadNotebookState`, `getDueRevisions`. `buildTodayPlan()` derives tasks from revision queue + weak subjects. `buildExamCountdown()` uses `persona.daysToExam`. |
+| P1-6: Progress page | ✅ DONE | `Progress.tsx` imports `loadPersona`, `loadNotebookState`, `getCoverageSummary`. `buildProgressData()` maps coverage to ProgressData shape. `useEffect` loads real data on mount. |
+| P1-7: Learn page aiRecommended | ✅ DONE | `Learn.tsx` imports `loadPersona`. `useEffect` computes `aiRecommended` flags dynamically from `persona.weakSubjects` × topic name/subject/chapter. Suggestions are persona-driven. |
+| P1-8: Notebook ← Sage | ✅ DONE | `Chat.tsx` calls `addProblem()` from `notebookEngine` after Sage responses where `intent.intent` is `explain_concept`, `solve_math`, `solve_physics`, `solve_chemistry`, `solve_biology`, or `doubt_clearing`. Saves notebook state. |
+| P1-9: buildSageNetworkContext injection | ✅ DONE | Already in `buildSageSystemPrompt()` via `networkCtx` parameter. Network context injected when `topicId` is known. |
+| P1-10: CEOBriefing ← Prism funnel | ✅ DONE | `liveBriefing.ts` imports `getFunnelMetrics` from `prismBridge`. `LiveMetrics` type extended with `blogCtaRate`, `chatSessions`, `blogViews`, `practiceAttempts`. `generateLiveBrief()` includes real Prism funnel data. |
+
+### Updated Master Gap Table (March 2026)
+
+| Page / Service | Was Mock % | Now | Notes |
+|---|---|---|---|
+| Analytics | 100% mock | ✅ Live Prism | getFunnelMetrics + getABSplits wired |
+| PrismDashboard (action) | 0% (action unwired) | ✅ Wired | callLLM on packet action |
+| StudentDashboard todayPlan | 100% mock | ✅ Real | notebook + persona derived |
+| Progress page | 100% mock | ✅ Real | loadPersona + getCoverageSummary |
+| Learn aiRecommended | Static bool | ✅ Dynamic | persona.weakSubjects intersection |
+| Chat → Notebook | Not wired | ✅ Wired | addProblem on explain/solve intents |
+| CEOBriefing funnel | Missing | ✅ Included | getFunnelMetrics in LiveMetrics |
+| buildPersonaSystemPrompt | Missing | ✅ Exported | Alias in sagePersonaPrompts.ts |
+
+*Updated: March 2026*

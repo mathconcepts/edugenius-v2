@@ -12,6 +12,8 @@ import {
   storeTrace,
 } from '@/services/traceabilityEngine';
 import type { TraceTree } from '@/services/traceabilityEngine';
+// Wire 7 — P1: Persona-driven aiRecommended
+import { loadPersona } from '@/services/studentPersonaEngine';
 
 interface Topic {
   id: string;
@@ -108,16 +110,46 @@ export default function Learn() {
   }, [subjectId]);
 
   useEffect(() => {
-    // Simulate AI generating suggestions
+    // Wire 7 — P1: Compute aiRecommended from persona.weakSubjects × topic names/tags
     setLoading(true);
-    setTimeout(() => {
-      setAiSuggestions([
-        "Based on your recent struggles with Electromagnetic Induction, I recommend reviewing Magnetic Fields first.",
-        "You're making great progress in Mathematics! Ready to tackle Integration by Parts?",
-        "Your Chemistry mastery is improving. Let's solidify Organic Reactions today.",
-      ]);
-      setLoading(false);
-    }, 1000);
+    const persona = loadPersona();
+    const weakSet = persona.weakSubjects.map(s => s.toLowerCase());
+
+    // Update aiRecommended flags dynamically based on persona
+    const personaEnrichedTopics = mockTopics.map(topic => ({
+      ...topic,
+      aiRecommended: weakSet.some(ws =>
+        topic.name.toLowerCase().includes(ws) ||
+        topic.subject.toLowerCase().includes(ws) ||
+        topic.chapter.toLowerCase().includes(ws)
+      ),
+    }));
+
+    // Build persona-driven suggestions
+    const suggestions: string[] = [];
+    if (persona.weakSubjects.length > 0) {
+      suggestions.push(`Based on your profile, focus on ${persona.weakSubjects[0]} — it needs the most attention.`);
+    }
+    if (persona.weakSubjects.length > 1) {
+      suggestions.push(`${persona.weakSubjects[1]} is another area to strengthen before your exam.`);
+    }
+    if (persona.daysToExam < 30) {
+      suggestions.push(`Only ${persona.daysToExam} days to exam — prioritise high-yield topics from each subject.`);
+    } else {
+      suggestions.push(`You have ${persona.daysToExam} days — a good time to build solid foundations.`);
+    }
+
+    // Replace mockTopics aiRecommended flags with persona-driven flags
+    mockTopics.forEach((t, i) => {
+      mockTopics[i] = personaEnrichedTopics[i];
+    });
+
+    setAiSuggestions(suggestions.length > 0 ? suggestions : [
+      "Based on your recent struggles with Electromagnetic Induction, I recommend reviewing Magnetic Fields first.",
+      "You're making great progress in Mathematics! Ready to tackle Integration by Parts?",
+      "Your Chemistry mastery is improving. Let's solidify Organic Reactions today.",
+    ]);
+    setLoading(false);
   }, []);
 
   const filteredTopics = selectedSubject 

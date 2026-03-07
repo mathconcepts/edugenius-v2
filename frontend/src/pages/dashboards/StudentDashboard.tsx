@@ -16,17 +16,78 @@ import { clsx } from 'clsx';
 import { AIStudyCoach, ExamReadinessScore, PeerActivity } from '@/components/ux/UXEnhancements';
 import { WhatsAppOptInModal } from '@/components/WhatsAppOptInModal';
 import { hasWhatsAppOptIn, shouldShowWhatsAppPrompt } from '@/services/whatsappOptIn';
+// Wire 5 — P1: Notebook Engine + Persona Engine for dynamic todayPlan
+import { loadPersona } from '@/services/studentPersonaEngine';
+import { loadNotebookState, getDueRevisions, type ExamScope } from '@/services/notebookEngine';
 
-// ── Mock data (real data from backend) ─────────────────────────────────────
+// ── Dynamic today plan from persona + notebook (P1 Wire 5) ─────────────────
 
-const todayPlan = [
-  { id: '1', title: 'Quadratic Equations', subject: 'Mathematics', duration: '20 min', done: true },
-  { id: '2', title: "Newton's Second Law", subject: 'Physics', duration: '25 min', done: false },
-  { id: '3', title: 'Organic Chemistry Basics', subject: 'Chemistry', duration: '20 min', done: false },
-];
+function buildTodayPlan(
+  persona: ReturnType<typeof loadPersona>,
+  notebookState: ReturnType<typeof loadNotebookState>,
+) {
+  // Map persona exam type to notebook ExamScope
+  const examMap: Record<string, ExamScope> = {
+    JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Adv', NEET: 'NEET',
+    CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
+  };
+  const examScope: ExamScope = examMap[persona.exam] ?? 'JEE Main';
+  const dueRevisions = getDueRevisions(notebookState);
 
-const examCountdown = { exam: 'JEE Main', daysLeft: 47 };
-const weekProgress = [40, 65, 50, 80, 70, 30, 60]; // Mon-Sun percentage
+  // Build plan items from due revisions (up to 2) + weak subjects
+  const plan: { id: string; title: string; subject: string; duration: string; done: boolean }[] = [];
+
+  // Add due revisions first
+  dueRevisions.slice(0, 2).forEach((rev, i) => {
+    plan.push({
+      id: `rev-${rev.topicId}-${i}`,
+      title: `Revise: ${rev.topicId.replace(/-/g, ' ').replace(/^\w+-\w+-/, '')}`,
+      subject: 'Revision',
+      duration: '20 min',
+      done: false,
+    });
+  });
+
+  // Add weak subjects as topics if plan has room
+  if (plan.length < 2 && persona.weakSubjects.length > 0) {
+    persona.weakSubjects.slice(0, 2 - plan.length).forEach((subj, i) => {
+      plan.push({
+        id: `weak-${i}`,
+        title: `Strengthen: ${subj}`,
+        subject: subj.split(' ')[0],
+        duration: '25 min',
+        done: false,
+      });
+    });
+  }
+
+  // Always add a daily practice task
+  plan.push({ id: 'practice', title: 'Daily Practice (10 MCQs)', subject: 'Mixed', duration: '15 min', done: false });
+
+  // Fallback if nothing from revisions/weak subjects
+  if (plan.length === 1) {
+    const fallbacks = [
+      { id: 'f1', title: `${examScope} Core Revision`, subject: 'Mixed', duration: '20 min', done: false },
+      { id: 'f2', title: 'Formula Quick Review', subject: 'Mixed', duration: '10 min', done: false },
+    ];
+    plan.unshift(...fallbacks);
+  }
+
+  return plan.slice(0, 3);
+}
+
+// ── Dynamic exam countdown from persona ──────────────────────────────────────
+
+function buildExamCountdown(persona: ReturnType<typeof loadPersona>) {
+  const examLabels: Record<string, string> = {
+    JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Advanced', NEET: 'NEET',
+    CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
+  };
+  return {
+    exam: examLabels[persona.exam] ?? 'Exam',
+    daysLeft: persona.daysToExam ?? 47,
+  };
+}
 
 // ── Confetti Burst ──────────────────────────────────────────────────────────
 
@@ -161,8 +222,29 @@ export function StudentDashboard() {
     import('@/services/whatsappOptIn').then(m => m.saveWhatsAppSkip());
   };
 
+  // Wire 5 — P1: Dynamic today plan from persona + notebook engine
+  const [todayPlan, setTodayPlan] = useState<ReturnType<typeof buildTodayPlan>>([]);
+  const [examCountdown, setExamCountdown] = useState<ReturnType<typeof buildExamCountdown>>({ exam: 'JEE Main', daysLeft: 47 });
+  const [weekProgress] = useState<number[]>([40, 65, 50, 80, 70, 30, 60]);
+
+  useEffect(() => {
+    const persona = loadPersona();
+    const examMap: Record<string, ExamScope> = {
+      JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Adv', NEET: 'NEET',
+      CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
+    };
+    const examScope: ExamScope = examMap[persona.exam] ?? 'JEE Main';
+    const notebookState = loadNotebookState(examScope);
+    setTodayPlan(buildTodayPlan(persona, notebookState));
+    setExamCountdown(buildExamCountdown(persona));
+    // Sync streak from persona if persona has more accurate count
+    if (persona.streakDays > 0) {
+      setStreak(persona.streakDays);
+    }
+  }, []);
+
   const doneTasks = todayPlan.filter(t => t.done).length;
-  const totalTasks = todayPlan.length;
+  const totalTasks = Math.max(todayPlan.length, 1);
   const todayPct = Math.round((doneTasks / totalTasks) * 100);
   const firstIncompleteTask = todayPlan.find(t => !t.done);
 

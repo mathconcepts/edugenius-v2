@@ -39,6 +39,8 @@ import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmServi
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
 import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag } from '@/services/sagePersonaPrompts';
 import { getCohortSignals } from '@/services/networkEffectsEngine';
+// Wire 8 — P1: Notebook ← Sage: log explained/solved topics to notebookEngine
+import { loadNotebookState, saveNotebookState, addProblem, type ExamScope } from '@/services/notebookEngine';
 import {
   createRootTrace,
   addNode,
@@ -993,6 +995,49 @@ export function Chat() {
             setNewlyMastered({ topicId: lensContext.topicId, score: mastery.masteryScore });
           }
         }).catch(() => {}); // non-blocking
+      }
+
+      // ── Wire 8 — P1: Notebook ← Sage: log explained/solved topics ──────────
+      // After a successful Sage response for explain_concept or solve_math,
+      // log the practiced topic to notebookEngine so Notebook page stays live.
+      if (
+        isStudent &&
+        activeAgent === 'sage' &&
+        (intent.intent === 'explain_concept' || intent.intent === 'solve_math' ||
+         intent.intent === 'solve_physics' || intent.intent === 'solve_chemistry' ||
+         intent.intent === 'solve_biology' || intent.intent === 'doubt_clearing')
+      ) {
+        try {
+          const personaForNotebook = loadPersona();
+          const examMapNb: Record<string, ExamScope> = {
+            JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Adv', NEET: 'NEET',
+            CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
+          };
+          const examScopeNb: ExamScope = examMapNb[personaForNotebook.exam] ?? 'JEE Main';
+          const notebookStateNb = loadNotebookState(examScopeNb);
+          const topicNameNb = detectedTopicId
+            ? detectedTopicId.replace(/-/g, ' ')
+            : (urlTopic ? decodeURIComponent(urlTopic) : personaForNotebook.currentTopic || 'General');
+          const updatedNotebook = addProblem(notebookStateNb, {
+            topicId: detectedTopicId ?? 'general',
+            topicName: topicNameNb,
+            chapter: 'Chat Session',
+            subject: intent.intent.includes('math') || intent.intent.includes('solve_math') ? 'Mathematics'
+              : intent.intent.includes('physics') ? 'Physics'
+              : intent.intent.includes('chemistry') ? 'Chemistry'
+              : intent.intent.includes('biology') ? 'Biology'
+              : 'General',
+            exam: [examScopeNb],
+            question: userText.slice(0, 200),
+            aiSolution: responseText.slice(0, 500),
+            difficulty: 'medium',
+            source: 'chat',
+            tags: [intent.intent],
+            isBookmarked: false,
+            isFlagged: false,
+          });
+          saveNotebookState(updatedNotebook);
+        } catch { /* non-blocking — notebook logging never breaks chat */ }
       }
 
       setIsTyping(false);

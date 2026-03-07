@@ -15,6 +15,8 @@
 import { getCohortInsights, CohortInsight } from './personaContentBridge';
 import { getHeuristicsSummary } from './llmHeuristics';
 import { loadConnectionManifest } from './opportunityConnections';
+// Wire 10 — P1: CEOBriefing ← Prism funnel metrics
+import { getFunnelMetrics } from './prismBridge';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -42,6 +44,15 @@ export interface LiveMetrics {
   aiLive: boolean;
   /** Opportunity manifest exam if set */
   opportunityExam: string | null;
+  // Wire 10 — P1: Prism funnel metrics added to CEO brief
+  /** Blog-to-chat CTA click rate from Prism (null if Prism hasn't run yet) */
+  blogCtaRate: number | null;
+  /** Chat sessions from Prism funnel (null if Prism hasn't run yet) */
+  chatSessions: number | null;
+  /** Blog views from Prism funnel */
+  blogViews: number | null;
+  /** Practice attempt count from Prism funnel */
+  practiceAttempts: number | null;
 }
 
 export interface LiveDecision {
@@ -378,6 +389,12 @@ export function generateLiveBrief(): LiveBrief {
 
   // 5. Opportunity manifest
   const manifest = loadConnectionManifest();
+
+  // Wire 10 — P1: Prism funnel metrics
+  const prismFunnel = getFunnelMetrics();
+  if (prismFunnel) {
+    dataSourceLabels.push(`Prism Funnel (${prismFunnel.chatSessions} chat sessions, ${(prismFunnel.ctaClickRate * 100).toFixed(1)}% CTA rate)`);
+  }
   if (manifest) {
     dataSourceLabels.push(`Opportunity Manifest: ${manifest.exam}`);
   }
@@ -404,6 +421,11 @@ export function generateLiveBrief(): LiveBrief {
     estimatedAiCostUsd: heuristics.estimatedDailyCostUSD,
     aiLive,
     opportunityExam: manifest?.exam ?? null,
+    // Wire 10 — P1: Prism funnel metrics
+    blogCtaRate: prismFunnel?.ctaClickRate ?? null,
+    chatSessions: prismFunnel?.chatSessions ?? null,
+    blogViews: prismFunnel?.blogViews ?? null,
+    practiceAttempts: prismFunnel?.practiceAttempts ?? null,
   };
 
   return {
