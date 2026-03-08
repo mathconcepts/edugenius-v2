@@ -164,11 +164,28 @@ export interface KnowledgeContext {
   wolframCode?: string;
 }
 
+// ── User Context (for channel-aware, plan-aware prompting) ────────────────────
+
+export interface UserContext {
+  uid: string;
+  name: string;
+  activeExam: string;
+  plan: 'free' | 'starter' | 'pro' | 'enterprise';
+  channel: 'web' | 'whatsapp' | 'telegram' | 'widget';
+  mcpPrivileges: {
+    wolframEnabled: boolean;
+    ragEnabled: boolean;
+  };
+  daysToExam?: number;
+  studyStreakDays?: number;
+}
+
 export function buildSageSystemPrompt(
   persona: StudentPersona,
   topicId?: string,
   networkCtxOrKnowledge?: SageNetworkContext | KnowledgeContext,
-  knowledgeContext?: KnowledgeContext
+  knowledgeContext?: KnowledgeContext,
+  userContext?: UserContext
 ): string {
   // Distinguish overloads: networkCtx has cohortNote; KnowledgeContext has context
   let networkCtx: SageNetworkContext | null = null;
@@ -252,6 +269,20 @@ ${kCtx.context}`;
     if (kCtx.wolframCode) {
       systemPrompt += `\n\nWolfram Language derivation:\n\`\`\`wolfram\n${kCtx.wolframCode}\n\`\`\``;
     }
+  }
+
+  // ── Inject user context if provided ────────────────────────────────────────
+  if (userContext) {
+    systemPrompt += `\n\n## USER CONTEXT
+Student: ${userContext.name} (${userContext.uid})
+Active Exam: ${userContext.activeExam}
+Plan: ${userContext.plan}
+Channel: ${userContext.channel}
+Wolfram verification: ${userContext.mcpPrivileges.wolframEnabled ? 'ENABLED' : 'DISABLED for this plan'}
+RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for this plan'}${userContext.daysToExam !== undefined ? `\nDays to exam: ${userContext.daysToExam}` : ''}${userContext.studyStreakDays !== undefined ? `\nStudy streak: ${userContext.studyStreakDays} days 🔥` : ''}
+
+If the student asks about topics outside their subscribed exam (${userContext.activeExam}), gently redirect them and mention their current exam focus.
+${userContext.plan === 'free' ? 'This student is on the FREE plan. Keep responses helpful but occasionally mention that Pro/Starter plans unlock more features (Wolfram verification, practice tests).' : ''}`;
   }
 
   return systemPrompt;

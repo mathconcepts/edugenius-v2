@@ -40,6 +40,8 @@ const AdminFeedback = lazy(() => import('@/pages/dashboards/AdminFeedback'));
 
 // Lazy load user admin
 const UserAdmin = lazy(() => import('@/pages/UserAdmin'));
+const UserManagementPortal = lazy(() => import('@/pages/UserManagementPortal'));
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
 
 // Lazy load connection registry
 const ConnectionRegistry = lazy(() => import('@/pages/ConnectionRegistry').then(m => ({ default: m.ConnectionRegistry })));
@@ -105,6 +107,9 @@ export default function App() {
         <Route path="/website/signup" element={<WebsiteHome />} />
         <Route path="/website/contact" element={<WebsiteHome />} />
         
+        {/* ==================== AUTH ==================== */}
+        <Route path="/login" element={<LoginPage />} />
+
         {/* ==================== ONBOARDING ==================== */}
         <Route path="/onboarding" element={<Onboarding />} />
         
@@ -121,6 +126,7 @@ export default function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="content" element={<Content />} />
           <Route path="users" element={<UserAdmin />} />
+          <Route path="user-portal" element={<UserManagementPortal />} />
           <Route path="events" element={<Events />} />
           <Route path="settings" element={<Settings />} />
           <Route path="integrations" element={<CEOIntegrations />} />

@@ -37,8 +37,9 @@ import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
-import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext } from '@/services/sagePersonaPrompts';
-import { resolveKnowledge } from '@/services/knowledgeRouter';
+import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext, type UserContext } from '@/services/sagePersonaPrompts';
+import { resolveKnowledgeForUser } from '@/services/knowledgeRouter';
+import { loadCurrentUser, getFilteredSources, computeMCPPrivileges } from '@/services/userService';
 import { getCohortSignals } from '@/services/networkEffectsEngine';
 // Wire 8 — P1: Notebook ← Sage: log explained/solved topics to notebookEngine
 import { loadNotebookState, saveNotebookState, addProblem, type ExamScope } from '@/services/notebookEngine';
@@ -889,12 +890,19 @@ export function Chat() {
 
       // ── Knowledge Router: ground Sage in verified sources ─────────────────
       try {
-        const kResult = await resolveKnowledge({
-          text: userText,
-          examId: updatedPersona.exam ?? 'gate-em',
-          topicId: detectedTopicId,
-          sessionId,
-        });
+        // Load current EGUser for plan-based source filtering
+        const egUser = loadCurrentUser();
+        const filteredSources = getFilteredSources(egUser);
+
+        const kResult = await resolveKnowledgeForUser(
+          {
+            text: userText,
+            examId: updatedPersona.exam ?? 'gate-em',
+            topicId: detectedTopicId,
+            sessionId,
+          },
+          filteredSources
+        );
         if (kResult.answer) {
           const kCtx: KnowledgeContext = {
             source: kResult.citations?.[0] ?? kResult.source,
@@ -903,7 +911,26 @@ export function Chat() {
             steps: kResult.steps,
             wolframCode: kResult.wolframCode,
           };
-          sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, kCtx);
+          // Build user context for persona-aware prompting
+          const ucPriv = egUser ? computeMCPPrivileges(egUser.examSubscriptions) : null;
+          const userCtx: UserContext | undefined = egUser
+            ? {
+                uid: egUser.uid,
+                name: egUser.name,
+                activeExam: updatedPersona.exam ?? egUser.preferences.preferredExamId ?? 'gate-em',
+                plan: egUser.examSubscriptions.find(
+                  (s) => s.examId === (updatedPersona.exam ?? egUser.preferences.preferredExamId)
+                )?.plan ?? 'free',
+                channel: 'web',
+                mcpPrivileges: {
+                  wolframEnabled: ucPriv?.wolframEnabled ?? false,
+                  ragEnabled: ucPriv?.ragEnabled ?? false,
+                },
+                daysToExam: updatedPersona.daysToExam,
+                studyStreakDays: updatedPersona.streakDays,
+              }
+            : undefined;
+          sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, kCtx, undefined, userCtx);
         }
       } catch { /* non-blocking — Sage works without knowledge grounding */ }
     }

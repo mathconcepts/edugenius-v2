@@ -468,3 +468,90 @@ export async function resolveKnowledge(query: RouterQuery): Promise<KnowledgeRes
 
   return result;
 }
+
+// ─── User-Scoped Resolution ───────────────────────────────────────────────────
+
+/**
+ * Resolve knowledge for a specific user, filtering to their allowed sources.
+ * Called from Chat.tsx and channelBotHandler.ts with the user's MCPPrivileges.
+ */
+export async function resolveKnowledgeForUser(
+  query: RouterQuery,
+  userAllowedSources?: string[]
+): Promise<KnowledgeResult> {
+  // No filter = all sources (enterprise or unauthenticated)
+  if (!userAllowedSources || userAllowedSources.length === 0) {
+    return resolveKnowledge(query);
+  }
+  const allSources = loadSources();
+  const filteredSources = allSources.filter(
+    (s) => userAllowedSources.includes(s.id) || s.type === 'llm_fallback'
+  );
+  return resolveKnowledgeWithSources(query, filteredSources);
+}
+
+/**
+ * Internal: resolve knowledge using an explicit source list (not loadSources()).
+ */
+async function resolveKnowledgeWithSources(
+  query: RouterQuery,
+  sources: KnowledgeSourceConfig[]
+): Promise<KnowledgeResult> {
+  const enabledSources = sources
+    .filter((s) => s.enabled && s.type !== 'llm_fallback')
+    .sort((a, b) => a.priority - b.priority);
+
+  let result: KnowledgeResult | null = null;
+
+  for (const source of enabledSources) {
+    try {
+      switch (source.type) {
+        case 'wolfram_api':
+        case 'wolfram_mcp':
+          result = await resolveWolframApi(query, source);
+          break;
+        case 'custom_mcp':
+          result = await resolveCustomMcp(query, source);
+          break;
+        case 'external_api':
+          result = await resolveExternalApi(query, source);
+          break;
+        case 'static_pyq':
+          result = await resolveStaticPYQ(query, source);
+          break;
+        case 'rag_supabase':
+          result = await resolveRAG(query, source);
+          break;
+      }
+    } catch {
+      result = null;
+    }
+
+    if (result && result.confidence >= (source.minConfidence ?? 0.5)) {
+      break;
+    }
+    result = null;
+  }
+
+  if (!result) {
+    result = await resolveLLMFallback(query);
+  }
+
+  logQuery({
+    query: query.text,
+    examId: query.examId,
+    topicId: query.topicId,
+    timestamp: new Date().toISOString(),
+    resolvedSource: result.source,
+    sourceId: result.sourceId,
+    answerPreview: result.answer.slice(0, 200),
+    confidence: result.confidence,
+    sessionId: query.sessionId,
+  });
+
+  if (result.confidence >= 0.7 && result.source !== 'llm_fallback') {
+    queueForRagIndexing(query, result).catch(() => {});
+  }
+
+  return result;
+}
