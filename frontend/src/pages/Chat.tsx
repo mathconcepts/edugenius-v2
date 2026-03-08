@@ -37,7 +37,8 @@ import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
-import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag } from '@/services/sagePersonaPrompts';
+import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext } from '@/services/sagePersonaPrompts';
+import { resolveKnowledge } from '@/services/knowledgeRouter';
 import { getCohortSignals } from '@/services/networkEffectsEngine';
 // Wire 8 — P1: Notebook ← Sage: log explained/solved topics to notebookEngine
 import { loadNotebookState, saveNotebookState, addProblem, type ExamScope } from '@/services/notebookEngine';
@@ -885,6 +886,26 @@ export function Chat() {
       if (opener) {
         sageSystemPrompt = `${sageSystemPrompt}\n\nOPENER (use this as your first sentence): "${opener}"`;
       }
+
+      // ── Knowledge Router: ground Sage in verified sources ─────────────────
+      try {
+        const kResult = await resolveKnowledge({
+          text: userText,
+          examId: updatedPersona.exam ?? 'gate-em',
+          topicId: detectedTopicId,
+          sessionId,
+        });
+        if (kResult.answer) {
+          const kCtx: KnowledgeContext = {
+            source: kResult.citations?.[0] ?? kResult.source,
+            context: kResult.answer,
+            verified: kResult.verified,
+            steps: kResult.steps,
+            wolframCode: kResult.wolframCode,
+          };
+          sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, kCtx);
+        }
+      } catch { /* non-blocking — Sage works without knowledge grounding */ }
     }
 
     // Try real LLM first, fall back to mock

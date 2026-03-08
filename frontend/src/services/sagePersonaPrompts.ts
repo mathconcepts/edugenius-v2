@@ -156,15 +156,39 @@ function getLearningStyleAdaptation(style: string, respondsBestTo: string): stri
 
 // ── Master prompt builder ─────────────────────────────────────────────────────
 
+export interface KnowledgeContext {
+  source: string;       // e.g. 'Wolfram Alpha', 'PYQ Bundle', 'Vector RAG'
+  context: string;      // the grounded knowledge text
+  verified: boolean;    // if true = authoritative source
+  steps?: string[];
+  wolframCode?: string;
+}
+
 export function buildSageSystemPrompt(
   persona: StudentPersona,
   topicId?: string,
-  networkCtx?: SageNetworkContext
+  networkCtxOrKnowledge?: SageNetworkContext | KnowledgeContext,
+  knowledgeContext?: KnowledgeContext
 ): string {
+  // Distinguish overloads: networkCtx has cohortNote; KnowledgeContext has context
+  let networkCtx: SageNetworkContext | null = null;
+  let kCtx: KnowledgeContext | undefined;
+
+  if (networkCtxOrKnowledge) {
+    if ('cohortNote' in networkCtxOrKnowledge) {
+      networkCtx = networkCtxOrKnowledge as SageNetworkContext;
+      kCtx = knowledgeContext;
+    } else {
+      kCtx = networkCtxOrKnowledge as KnowledgeContext;
+    }
+  } else {
+    kCtx = knowledgeContext;
+  }
+
   // Build network context if topicId is known and not pre-supplied
   const netCtx = networkCtx ?? (topicId ? buildSageNetworkContext(topicId, persona.exam) : null);
 
-  return `${BASE_MENTOR_IDENTITY}
+  let systemPrompt = `${BASE_MENTOR_IDENTITY}
 
 ═══ STUDENT PROFILE ═══
 Name: ${persona.name}
@@ -207,6 +231,30 @@ ${netCtx.groupContext}
 PEER SOLIDARITY: When appropriate, mention: "${netCtx.strugglingPeersNote}" — this normalises the struggle and reduces shame.
 Use community signals to make responses feel contextualised, not just abstract AI answers.
 NEVER expose individual student data. Only aggregate patterns.` : ''}`;
+
+  // ── Inject grounded knowledge context if provided ─────────────────────────
+  if (kCtx?.context) {
+    const sourceLabel = kCtx.verified
+      ? `✓ Verified Source: ${kCtx.source}`
+      : `Reference Source: ${kCtx.source}`;
+
+    systemPrompt += `\n\n## GROUNDED KNOWLEDGE [${sourceLabel}]
+${kCtx.verified
+  ? 'This information is from a verified authoritative source. Present it with confidence but still teach the WHY.'
+  : 'Use this as supporting context. Synthesise with your reasoning.'}
+
+${kCtx.context}`;
+
+    if (kCtx.steps?.length) {
+      systemPrompt += `\n\nVERIFIED SOLUTION STEPS:\n${kCtx.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
+    }
+
+    if (kCtx.wolframCode) {
+      systemPrompt += `\n\nWolfram Language derivation:\n\`\`\`wolfram\n${kCtx.wolframCode}\n\`\`\``;
+    }
+  }
+
+  return systemPrompt;
 }
 
 // ── Response style config ──────────────────────────────────────────────────────
@@ -483,6 +531,7 @@ export function shouldUseCatRag(query: string): boolean {
 export function buildPersonaSystemPrompt(
   persona: StudentPersona,
   topicId?: string,
+  knowledgeContext?: KnowledgeContext,
 ): string {
-  return buildSageSystemPrompt(persona, topicId);
+  return buildSageSystemPrompt(persona, topicId, knowledgeContext);
 }
