@@ -720,3 +720,104 @@
     line-height: 1.5;
   }
 }
+
+  /* ── Prism rate-sensitivity design ──────────────────────────────────── */
+
+  /* Rate status bar — amber tinted, always visible */
+  .rate-status-bar {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(251,191,36,0.06));
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 14px;
+    padding: 12px 20px;
+    overflow: hidden;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .rate-status-bar .stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 16px;
+    min-width: 100px;
+  }
+  .rate-status-bar .stat:first-child { padding-left: 0; }
+  .rate-status-bar .stat:last-child  { padding-right: 0; }
+  .rate-status-bar .divider {
+    width: 1px;
+    height: 36px;
+    background: rgba(245,158,11,0.25);
+    flex-shrink: 0;
+  }
+  .rate-status-bar .label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(245,158,11,0.7);
+  }
+  .rate-status-bar .value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f59e0b;
+  }
+  .rate-status-bar .sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+  }
+  .rate-status-bar .stat.highlight .value { color: #fbbf24; }
+  html:not(.dark) .rate-status-bar {
+    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(251,191,36,0.04));
+    border-color: rgba(245,158,11,0.2);
+  }
+  html:not(.dark) .rate-status-bar .value  { color: #d97706; }
+  html:not(.dark) .rate-status-bar .label  { color: rgba(217,119,6,0.7); }
+  html:not(.dark) .rate-status-bar .sub    { color: rgba(0,0,0,0.35); }
+  @media (max-width: 640px) {
+    .rate-status-bar { gap: 12px; }
+    .rate-status-bar .stat { padding: 0; min-width: 80px; }
+    .rate-status-bar .divider { display: none; }
+  }
+
+  /* Run control zone */
+  .prism-run-control {
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .prism-run-control.locked {
+    background: rgba(255,255,255,0.02);
+    border-color: rgba(255,255,255,0.06);
+  }
+  .prism-run-control.ready {
+    background: rgba(16,185,129,0.06);
+    border-color: rgba(16,185,129,0.2);
+  }
+  html:not(.dark) .prism-run-control {
+    background: #fff;
+    border-color: rgba(0,0,0,0.08);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  /* Force run button — amber, secondary */
+  .btn-force-run {
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    color: #f59e0b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn-force-run:hover { background: rgba(245,158,11,0.25); }
+  .btn-force-run:active { transform: scale(0.97); }

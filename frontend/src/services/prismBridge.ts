@@ -9,6 +9,111 @@
 import { listRecentTraces, TraceTree } from './traceabilityEngine';
 import { getCohortInsights, CohortInsight } from './personaContentBridge';
 
+// ─── Prism Scheduler & Rate Guard ────────────────────────────────────────────
+
+export interface PrismScheduleConfig {
+  frequencyHours: number;        // default: 24 (once per day)
+  maxRunsPerDay: number;         // hard ceiling: default 1
+  estimatedTokensPerRun: number; // for cost display: default 8500
+  tokenCostPer1k: number;        // USD per 1K tokens: default 0.003 (Sonnet rate)
+  lastRunAt: string | null;      // ISO timestamp
+  lastRunCostUsd: number;        // actual cost of last run
+  totalRunsAllTime: number;
+  totalCostAllTimeUsd: number;
+  nextScheduledAt: string | null; // ISO timestamp when next auto-run is allowed
+  manualOverrideCount: number;   // CEO bypassed the schedule N times
+}
+
+const SCHEDULE_KEY = 'edugenius_prism_schedule';
+
+export function loadScheduleConfig(): PrismScheduleConfig {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_KEY);
+    if (raw) return JSON.parse(raw) as PrismScheduleConfig;
+  } catch {}
+  return {
+    frequencyHours: 24,
+    maxRunsPerDay: 1,
+    estimatedTokensPerRun: 8500,
+    tokenCostPer1k: 0.003,
+    lastRunAt: null,
+    lastRunCostUsd: 0,
+    totalRunsAllTime: 0,
+    totalCostAllTimeUsd: 0,
+    nextScheduledAt: null,
+    manualOverrideCount: 0,
+  };
+}
+
+export function saveScheduleConfig(config: PrismScheduleConfig): void {
+  try {
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(config));
+  } catch {}
+}
+
+export function updateScheduleConfig(patch: Partial<PrismScheduleConfig>): PrismScheduleConfig {
+  const current = loadScheduleConfig();
+  const updated = { ...current, ...patch };
+  saveScheduleConfig(updated);
+  return updated;
+}
+
+/** Returns true if Prism is allowed to run right now */
+export function canRunPrism(): { allowed: boolean; reason: string; nextAllowedAt: string | null } {
+  const config = loadScheduleConfig();
+  if (!config.lastRunAt) {
+    return { allowed: true, reason: 'Never run before', nextAllowedAt: null };
+  }
+  const lastRun = new Date(config.lastRunAt).getTime();
+  const now = Date.now();
+  const hoursSince = (now - lastRun) / (1000 * 60 * 60);
+  const nextAllowedAt = new Date(lastRun + config.frequencyHours * 60 * 60 * 1000).toISOString();
+
+  if (hoursSince < config.frequencyHours) {
+    const hoursRemaining = (config.frequencyHours - hoursSince).toFixed(1);
+    return {
+      allowed: false,
+      reason: `Rate limit: ${hoursRemaining}h until next scheduled run`,
+      nextAllowedAt,
+    };
+  }
+  return { allowed: true, reason: 'Schedule window open', nextAllowedAt: null };
+}
+
+/** Returns estimated cost of next run in USD */
+export function estimateRunCost(): { tokens: number; costUsd: number; formatted: string } {
+  const config = loadScheduleConfig();
+  const tokens = config.estimatedTokensPerRun;
+  const costUsd = (tokens / 1000) * config.tokenCostPer1k;
+  return {
+    tokens,
+    costUsd,
+    formatted: `~$${costUsd.toFixed(3)} (${(tokens / 1000).toFixed(1)}K tokens)`,
+  };
+}
+
+/** Call this AFTER a successful runPrismAnalysis() to record the run */
+export function recordPrismRun(actualTokens?: number, isManualOverride = false): PrismScheduleConfig {
+  const config = loadScheduleConfig();
+  const tokens = actualTokens ?? config.estimatedTokensPerRun;
+  const costUsd = (tokens / 1000) * config.tokenCostPer1k;
+  const now = new Date().toISOString();
+  const nextScheduledAt = new Date(
+    Date.now() + config.frequencyHours * 60 * 60 * 1000,
+  ).toISOString();
+
+  return updateScheduleConfig({
+    lastRunAt: now,
+    lastRunCostUsd: costUsd,
+    totalRunsAllTime: config.totalRunsAllTime + 1,
+    totalCostAllTimeUsd: config.totalCostAllTimeUsd + costUsd,
+    nextScheduledAt,
+    manualOverrideCount: isManualOverride
+      ? config.manualOverrideCount + 1
+      : config.manualOverrideCount,
+  });
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type PrismTargetAgent =
@@ -787,13 +892,14 @@ function buildMockPrismState(): PrismState {
 
 // ─── Main export: runPrismAnalysis ────────────────────────────────────────────
 
-export function runPrismAnalysis(): PrismState {
+export function runPrismAnalysis(options?: { force?: boolean; manualOverride?: boolean }): PrismState {
   const traces = listRecentTraces(50);
 
   // Use mock data if no real traces exist
   if (traces.length === 0) {
     const mockState = buildMockPrismState();
     storePrismState(mockState);
+    recordPrismRun(undefined, options?.manualOverride);
     return mockState;
   }
 
@@ -824,6 +930,7 @@ export function runPrismAnalysis(): PrismState {
   };
 
   storePrismState(state);
+  recordPrismRun(undefined, options?.manualOverride);
   return state;
 }
 
