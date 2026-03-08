@@ -610,4 +610,113 @@
   }
   .flash-correct { animation: flashGreen 0.5s ease-out forwards; }
   .flash-incorrect { animation: flashRed 0.5s ease-out forwards; }
+
+  /* ── Progressive disclosure ── */
+  .disclosure-trigger {
+    cursor: pointer;
+    user-select: none;
+  }
+  .disclosure-content {
+    overflow: hidden;
+    transition: max-height 0.25s ease-out, opacity 0.25s ease;
+  }
+
+  /* ── Breathing room — page content max-width ── */
+  .page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+  @media (max-width: 768px) {
+    .page-container {
+      padding: 16px;
+    }
+  }
+
+  /* ── One-job card ── */
+  .primary-action-card {
+    background: linear-gradient(135deg, rgba(14,165,233,0.12), rgba(99,102,241,0.08));
+    border: 1px solid rgba(14,165,233,0.25);
+    border-radius: 20px;
+    padding: 24px;
+  }
+
+  /* ── Compact KPI card ── */
+  .kpi-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  html:not(.dark) .kpi-card {
+    background: #fff;
+    border-color: rgba(0,0,0,0.07);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  /* ── Segmented control ── */
+  .segmented-control {
+    display: inline-flex;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 3px;
+    gap: 2px;
+  }
+  html:not(.dark) .segmented-control {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+  }
+  .segmented-option {
+    padding: 7px 16px;
+    border-radius: 9px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    color: rgba(255,255,255,0.5);
+    background: transparent;
+    border: none;
+  }
+  html:not(.dark) .segmented-option {
+    color: #6b7280;
+  }
+  .segmented-option.active {
+    background: rgba(14,165,233,0.2);
+    color: #38bdf8;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  html:not(.dark) .segmented-option.active {
+    background: #fff;
+    color: #0284c7;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    gap: 12px;
+  }
+  .empty-state-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    opacity: 0.6;
+  }
+  .empty-state-title {
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+  .empty-state-hint {
+    font-size: 0.875rem;
+    opacity: 0.5;
+    max-width: 280px;
+    line-height: 1.5;
+  }
 }

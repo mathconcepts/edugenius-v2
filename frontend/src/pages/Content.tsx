@@ -2142,6 +2142,93 @@ function generatedToContentItem(g: GeneratedContent): ContentItem {
   };
 }
 
+// ── Segmented Source Control ──────────────────────────────────────────────────
+
+// Primary tabs always visible; secondary tabs in "More" dropdown
+const PRIMARY_SOURCE_IDS: SourceTab[] = ['prompt', 'batch', 'persona_batch'];
+const SECONDARY_SOURCE_IDS: SourceTab[] = ['document', 'api', 'agent', 'wolfram', 'auto'];
+
+function SegmentedSourceControl({
+  activeSource,
+  onSelect,
+}: {
+  activeSource: SourceTab;
+  onSelect: (id: SourceTab) => void;
+}) {
+  const [showMore, setShowMore] = useState(false);
+
+  const primaryTabs = SOURCE_TABS.filter(t => PRIMARY_SOURCE_IDS.includes(t.id));
+  const secondaryTabs = SOURCE_TABS.filter(t => SECONDARY_SOURCE_IDS.includes(t.id));
+  const activeIsSecondary = SECONDARY_SOURCE_IDS.includes(activeSource);
+
+  return (
+    <div className="flex items-center gap-2 mb-5 flex-wrap">
+      <div className="segmented-control">
+        {primaryTabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => onSelect(tab.id)}
+            className={clsx('segmented-option', activeSource === tab.id && 'active')}
+          >
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sm:hidden flex items-center gap-1">
+              <tab.icon className="w-3.5 h-3.5" />
+              <span>{tab.label.split(' ')[0]}</span>
+            </span>
+          </button>
+        ))}
+
+        {/* More button */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMore(v => !v)}
+            className={clsx('segmented-option flex items-center gap-1', activeIsSecondary && 'active')}
+          >
+            {activeIsSecondary
+              ? (() => { const t = SOURCE_TABS.find(x => x.id === activeSource)!; return <><t.icon className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t.label}</span></>; })()
+              : 'More'}
+            <ChevronDown className="w-3 h-3 opacity-60" />
+          </button>
+
+          <AnimatePresence>
+            {showMore && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowMore(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: 4, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute left-0 top-full mt-1.5 w-44 glass rounded-xl shadow-xl z-40 p-1.5 overflow-hidden"
+                >
+                  {secondaryTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => { onSelect(tab.id); setShowMore(false); }}
+                      className={clsx(
+                        'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left',
+                        activeSource === tab.id
+                          ? 'bg-primary-500/20 text-primary-400'
+                          : 'text-surface-300 hover:bg-surface-700 hover:text-white'
+                      )}
+                    >
+                      <tab.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{tab.label}</span>
+                      {tab.id === 'wolfram' && !isWolframAvailable() && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 ml-auto" title="Not configured" />
+                      )}
+                    </button>
+                  ))}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Content() {
   const [activeSource, setActiveSource] = useState<SourceTab>('prompt');
   const [filter, setFilter] = useState('all');
@@ -2216,24 +2303,11 @@ export default function Content() {
           )}
         </div>
 
-        {/* Source tabs */}
-        <div className="flex gap-1 mb-5 p-1 bg-surface-800/60 rounded-xl w-fit flex-wrap">
-          {SOURCE_TABS.map(tab => (
-            <button key={tab.id} onClick={() => { setActiveSource(tab.id); setGeneratedContent(null); }}
-              className={clsx('flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                activeSource === tab.id
-                  ? tab.id === 'wolfram'
-                    ? 'bg-gradient-to-r from-primary-500 to-green-600 text-white shadow-lg'
-                    : 'bg-primary-500 text-white shadow-lg'
-                  : 'text-surface-400 hover:text-white hover:bg-surface-700')}>
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
-              {tab.id === 'wolfram' && !isWolframAvailable() && (
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 ml-0.5" title="Not configured" />
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Source tabs — segmented control */}
+        <SegmentedSourceControl
+          activeSource={activeSource}
+          onSelect={(id) => { setActiveSource(id); setGeneratedContent(null); }}
+        />
 
         {/* Active source panel */}
         <AnimatePresence mode="wait">

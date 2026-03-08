@@ -1,21 +1,21 @@
 /**
  * Sidebar — Role-adaptive, frugal navigation
- * CEO: grouped sections with collapsible headers
+ * CEO: 5 primary items + agents panel on hover
  * Student/Teacher: clean 4-5 items, prominent chat CTA
- * Redesigned: 56px collapsed, w-5 h-5 icons, gradient active pill, tooltips
+ * Admin: 6 items | Teacher: 5 items | Manager: 4 items
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
-  Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot, Zap,
+  Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Plug, Target, PenTool, MessageSquarePlus, Trophy, TrendingUp, Network, UserCheck, Headphones, Rocket, Activity, Compass, ClipboardList, Sparkles, Link2, Gem, DollarSign, ChevronDown,
+  BookMarked, Target, Trophy, Network,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
-// ── CEO Section definitions ──────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface NavItem {
   to: string;
@@ -24,131 +24,62 @@ interface NavItem {
   highlight?: boolean;
 }
 
-interface CEOSection {
-  id: string;
-  emoji: string;
-  label: string;
-  items: NavItem[];
-}
+// ── CEO — 5 primary nav items only ──────────────────────────────────────────
 
-const ceoSections: CEOSection[] = [
-  {
-    id: 'core',
-    emoji: '🏠',
-    label: 'Core',
-    items: [
-      { to: '/briefing', icon: ClipboardList, label: 'Daily Brief', highlight: true },
-      { to: '/', icon: Home, label: 'Dashboard' },
-      { to: '/strategy', icon: Target, label: 'Strategy' },
-    ],
-  },
-  {
-    id: 'intelligence',
-    emoji: '📊',
-    label: 'Intelligence',
-    items: [
-      { to: '/opportunity-discovery', icon: Compass, label: 'Opportunities', highlight: false },
-      { to: '/prism', icon: Gem, label: 'Prism Intelligence', highlight: false },
-      { to: '/revenue', icon: DollarSign, label: 'Revenue Intel', highlight: false },
-      { to: '/content-intelligence', icon: Sparkles, label: 'Content Intel', highlight: false },
-    ],
-  },
-  {
-    id: 'people',
-    emoji: '👥',
-    label: 'People',
-    items: [
-      { to: '/users', icon: Users, label: 'Users' },
-      { to: '/students', icon: GraduationCap, label: 'Students' },
-      { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
-      { to: '/connections', icon: Network, label: 'Connections' },
-    ],
-  },
-  {
-    id: 'platform',
-    emoji: '⚙️',
-    label: 'Platform',
-    items: [
-      { to: '/agents', icon: Bot, label: 'Agents' },
-      { to: '/integrations', icon: Plug, label: 'Integrations' },
-      { to: '/create-exam', icon: Rocket, label: 'Create Exam' },
-      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-      { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
-      { to: '/content', icon: FileText, label: 'Content' },
-      { to: '/blog', icon: PenTool, label: 'Blog' },
-      { to: '/user-attributes', icon: UserCheck, label: 'User Attributes' },
-      { to: '/events', icon: Zap, label: 'Events' },
-    ],
-  },
-  {
-    id: 'dev',
-    emoji: '🔧',
-    label: 'Dev',
-    items: [
-      { to: '/status', icon: Activity, label: 'System Status' },
-      { to: '/trace', icon: Link2, label: 'Trace Explorer' },
-      { to: '/autonomy-settings', icon: Settings, label: 'Autonomy' },
-      { to: '/settings', icon: Settings, label: 'Settings' },
-    ],
-  },
+const ceoNavItems: NavItem[] = [
+  { to: '/briefing',              icon: Home,        label: 'Home',         highlight: true },
+  { to: '/create-exam',           icon: Target,      label: 'Exams' },
+  { to: '/opportunity-discovery', icon: BarChart3,   label: 'Intelligence' },
+  { to: '/students',              icon: Users,       label: 'People' },
+  { to: '/settings',              icon: Settings,    label: 'Settings' },
 ];
 
 // ── Non-CEO role nav items ────────────────────────────────────────────────────
 
 const roleNavItems = {
   manager: [
-    { to: '/manager', icon: Headphones, label: 'My Dashboard', highlight: true },
-    { to: '/users',   icon: Users,      label: 'Students' },
-    { to: '/feedback', icon: MessageSquarePlus, label: 'Tickets' },
-    { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { to: '/manager',   icon: Home,         label: 'My Dashboard', highlight: true },
+    { to: '/users',     icon: Users,        label: 'Students' },
+    { to: '/feedback',  icon: MessageSquare, label: 'Tickets' },
+    { to: '/analytics', icon: BarChart3,    label: 'Analytics' },
   ],
   admin: [
-    { to: '/', icon: Home, label: 'Dashboard' },
-    { to: '/users', icon: Users, label: 'Users' },
-    { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Analytics' },
-    { to: '/content', icon: FileText, label: 'Content' },
-    { to: '/content-intelligence', icon: Sparkles, label: 'Content Intel' },
-    { to: '/prism', icon: Gem, label: 'Prism Intelligence' },
-    { to: '/blog', icon: PenTool, label: 'Blog' },
-    { to: '/connections', icon: Network, label: 'Connections' },
-    { to: '/user-attributes', icon: UserCheck, label: 'User Attributes' },
-    { to: '/admin/feedback', icon: MessageSquarePlus, label: 'Feedback' },
-    { to: '/analytics', icon: BarChart3, label: 'Reports' },
-    { to: '/settings', icon: Settings, label: 'Settings' },
-    { to: '/status', icon: Activity, label: 'System Status' },
-    { to: '/trace', icon: Link2, label: 'Trace Explorer' },
+    { to: '/',          icon: Home,      label: 'Home' },
+    { to: '/briefing',  icon: BarChart3, label: 'Dashboard' },
+    { to: '/content',   icon: FileText,  label: 'Content' },
+    { to: '/users',     icon: Users,     label: 'Users' },
+    { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { to: '/settings',  icon: Settings,  label: 'Settings' },
   ],
   teacher: [
-    { to: '/', icon: Home, label: 'Home' },
-    { to: '/chat', icon: MessageSquare, label: 'AI Chat', highlight: true },
-    { to: '/students', icon: Users, label: 'Students' },
-    { to: '/content-intelligence', icon: Sparkles, label: 'Content Intel' },
-    { to: '/exam-analytics', icon: TrendingUp, label: 'Exam Stats' },
-    { to: '/content', icon: BookOpen, label: 'Lessons' },
-    { to: '/analytics', icon: BarChart3, label: 'Progress' },
-    { to: '/connections', icon: Network, label: 'Connections' },
+    { to: '/',          icon: Home,         label: 'Home' },
+    { to: '/students',  icon: Users,        label: 'Students' },
+    { to: '/chat',      icon: MessageSquare, label: 'Sage Chat', highlight: true },
+    { to: '/content',   icon: BookOpen,     label: 'Lessons' },
+    { to: '/analytics', icon: BarChart3,    label: 'Progress' },
   ],
   student: [
-    { to: '/', icon: Home, label: 'Home' },
-    { to: '/chat', icon: MessageSquare, label: 'Ask Tutor', highlight: true },
-    { to: '/learn', icon: GraduationCap, label: 'Study' },
-    { to: '/notebook', icon: BookMarked, label: 'Notebook' },
-    { to: '/network', icon: Network, label: 'Community', highlight: false },
-    { to: '/progress', icon: BarChart3, label: 'Progress' },
+    { to: '/',          icon: Home,         label: 'Home' },
+    { to: '/chat',      icon: MessageSquare, label: 'Ask Tutor', highlight: true },
+    { to: '/learn',     icon: GraduationCap, label: 'Study' },
+    { to: '/notebook',  icon: BookMarked,   label: 'Notebook' },
+    { to: '/progress',  icon: BarChart3,    label: 'Progress' },
   ],
 };
 
+// ── Agent shortcuts (CEO only) ────────────────────────────────────────────────
+
 const agentShortcuts = [
-  { id: 'scout', emoji: '🔍', label: 'Scout' },
-  { id: 'atlas', emoji: '📚', label: 'Atlas' },
-  { id: 'sage', emoji: '🎓', label: 'Sage' },
+  { id: 'scout',  emoji: '🔍', label: 'Scout' },
+  { id: 'atlas',  emoji: '📚', label: 'Atlas' },
+  { id: 'sage',   emoji: '🎓', label: 'Sage' },
   { id: 'mentor', emoji: '👨‍🏫', label: 'Mentor' },
   { id: 'herald', emoji: '📢', label: 'Herald' },
-  { id: 'forge', emoji: '⚙️', label: 'Forge' },
+  { id: 'forge',  emoji: '⚙️', label: 'Forge' },
   { id: 'oracle', emoji: '📊', label: 'Oracle' },
 ];
 
-// ── Tooltip wrapper (for collapsed sidebar) ──────────────────────────────────
+// ── Tooltip wrapper ───────────────────────────────────────────────────────────
 
 function Tooltip({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -161,7 +92,7 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-// ── Streak indicator (student only) ─────────────────────────────────────────
+// ── Streak badge (student) ────────────────────────────────────────────────────
 
 function StreakBadge({ streak, open }: { streak: number; open: boolean }) {
   if (!open) return null;
@@ -176,123 +107,9 @@ function StreakBadge({ streak, open }: { streak: number; open: boolean }) {
   );
 }
 
-// ── CEO Section Component ─────────────────────────────────────────────────────
+// ── Nav item link ─────────────────────────────────────────────────────────────
 
-function CEOSectionGroup({
-  section,
-  sidebarOpen,
-  defaultOpen = true,
-}: {
-  section: CEOSection;
-  sidebarOpen: boolean;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  if (!sidebarOpen) {
-    // Collapsed: just show section emoji as divider + icons
-    return (
-      <div className="mb-1">
-        <Tooltip label={section.label}>
-          <div className="flex justify-center py-1 my-0.5">
-            <span className="text-[10px] text-surface-600 select-none">{section.emoji}</span>
-          </div>
-        </Tooltip>
-        {section.items.map(item => (
-          <Tooltip key={item.to} label={item.label}>
-            <NavLink
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center justify-center p-2.5 rounded-xl transition-all mb-0.5',
-                  isActive
-                    ? 'bg-gradient-to-r from-primary-600/30 to-primary-500/20 text-primary-400'
-                    : item.highlight
-                      ? 'text-accent-300 hover:bg-accent-500/10'
-                      : 'text-surface-400 hover:bg-surface-800/60 hover:text-white'
-                )
-              }
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-            </NavLink>
-          </Tooltip>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-1">
-      {/* Section header */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-800/40 transition-colors group"
-      >
-        <span className="text-sm">{section.emoji}</span>
-        <span className="flex-1 text-[10px] font-semibold uppercase tracking-widest text-surface-500 group-hover:text-surface-400 text-left">
-          {section.label}
-        </span>
-        <ChevronDown className={clsx(
-          'w-3 h-3 text-surface-600 transition-transform',
-          open ? 'rotate-0' : '-rotate-90'
-        )} />
-      </button>
-
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18 }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-0.5 pl-1">
-              {section.items.map(item => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/'}
-                  className={({ isActive }) =>
-                    clsx(
-                      'flex items-center gap-3 px-3 py-2 rounded-xl transition-all',
-                      isActive
-                        ? 'bg-gradient-to-r from-primary-600/25 to-primary-500/15 text-primary-400 border border-primary-500/20'
-                        : item.highlight
-                          ? 'text-accent-300 hover:bg-accent-500/10 hover:text-accent-200'
-                          : 'text-surface-400 hover:bg-surface-800/60 hover:text-white'
-                    )
-                  }
-                >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  <span className={clsx(
-                    'font-medium text-sm truncate',
-                    item.highlight && 'font-semibold'
-                  )}>
-                    {item.label}
-                  </span>
-                </NavLink>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="my-1 mx-2 border-t border-surface-700/30" />
-    </div>
-  );
-}
-
-// ── Nav Item (non-CEO roles) ──────────────────────────────────────────────────
-
-function NavItemLink({
-  item,
-  sidebarOpen,
-}: {
-  item: NavItem;
-  sidebarOpen: boolean;
-}) {
+function NavItemLink({ item, sidebarOpen }: { item: NavItem; sidebarOpen: boolean }) {
   const link = (
     <NavLink
       to={item.to}
@@ -311,36 +128,99 @@ function NavItemLink({
     >
       <item.icon className="w-5 h-5 flex-shrink-0" />
       {sidebarOpen && (
-        <span className={clsx(
-          'font-medium text-sm',
-          item.highlight && 'font-semibold'
-        )}>
+        <span className={clsx('font-medium text-sm', item.highlight && 'font-semibold')}>
           {item.label}
         </span>
       )}
     </NavLink>
   );
 
-  if (!sidebarOpen) {
-    return <Tooltip label={item.label}>{link}</Tooltip>;
-  }
-  return link;
+  return !sidebarOpen ? <Tooltip label={item.label}>{link}</Tooltip> : link;
 }
 
-// ── Main Sidebar ─────────────────────────────────────────────────────────────
+// ── Agents hover panel (CEO only) ─────────────────────────────────────────────
+
+function AgentsPanel({ sidebarOpen, navigate }: { sidebarOpen: boolean; navigate: (to: string) => void }) {
+  const [showAgents, setShowAgents] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setShowAgents(true);
+  };
+  const handleMouseLeave = () => {
+    hideTimer.current = setTimeout(() => setShowAgents(false), 200);
+  };
+
+  if (!sidebarOpen) {
+    return (
+      <Tooltip label="Agents">
+        <button
+          onClick={() => navigate('/agents')}
+          className="flex items-center justify-center p-2.5 rounded-xl text-surface-400 hover:bg-surface-800/60 hover:text-white transition-all w-full"
+        >
+          <Bot className="w-5 h-5" />
+        </button>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-surface-400 hover:bg-surface-800/60 hover:text-white transition-all w-full">
+        <Bot className="w-5 h-5 flex-shrink-0" />
+        <span className="font-medium text-sm">Agents 🤖</span>
+      </button>
+
+      <AnimatePresence>
+        {showAgents && (
+          <motion.div
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-full top-0 ml-2 w-40 glass rounded-xl shadow-xl z-50 overflow-hidden"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className="p-1.5">
+              {agentShortcuts.map(agent => (
+                <button
+                  key={agent.id}
+                  onClick={() => { navigate(`/agents/${agent.id}`); setShowAgents(false); }}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-surface-300 hover:bg-surface-700 hover:text-white transition-colors w-full text-left"
+                >
+                  <span className="text-base">{agent.emoji}</span>
+                  <span className="text-sm">{agent.label}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Main Sidebar ──────────────────────────────────────────────────────────────
 
 export function Sidebar() {
-  const { sidebarOpen, toggleSidebar, userRole, setUserRole } = useAppStore();
+  const { sidebarOpen, toggleSidebar, userRole } = useAppStore();
   const navigate = useNavigate();
-  const isSimple = userRole === 'student' || userRole === 'teacher';
   const isCEO = userRole === 'ceo';
 
-  const navItems = isCEO ? [] : (roleNavItems[userRole as keyof typeof roleNavItems] || roleNavItems.admin);
+  const navItems = isCEO
+    ? ceoNavItems
+    : (roleNavItems[userRole as keyof typeof roleNavItems] || roleNavItems.admin);
 
   return (
     <motion.aside
       initial={false}
-      animate={{ width: sidebarOpen ? 240 : 56 }}
+      animate={{ width: sidebarOpen ? 220 : 56 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="fixed left-0 top-0 h-screen glass border-r border-surface-700/50 z-40 flex flex-col"
     >
@@ -371,7 +251,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Playground indicator (non-intrusive) */}
+      {/* Playground indicator */}
       {sidebarOpen && (
         <div className="px-4 py-1.5 border-b border-surface-700/30">
           <div className="flex items-center gap-1.5">
@@ -381,85 +261,20 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Role Switcher — only when expanded, only for CEO/Admin preview */}
-      {sidebarOpen && !isSimple && (
-        <div className="px-3 py-2 border-b border-surface-700/30">
-          <p className="text-[10px] text-surface-500 mb-1.5 px-1 uppercase tracking-wider">View as</p>
-          <div className="grid grid-cols-2 gap-1">
-            {(['ceo', 'admin', 'manager', 'teacher', 'student'] as const).map(role => (
-              <button
-                key={role}
-                onClick={() => { setUserRole(role); navigate('/'); }}
-                className={clsx(
-                  'px-2 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  userRole === role
-                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30'
-                    : 'bg-surface-800/50 text-surface-400 hover:text-white hover:bg-surface-700'
-                )}
-              >
-                {role === 'ceo' ? 'CEO' : role.charAt(0).toUpperCase() + role.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Simple role switcher for student/teacher (collapsed) */}
-      {!sidebarOpen && (
-        <div className="px-2 py-2 border-b border-surface-700/30">
-          <Tooltip label="Switch role">
-            <button
-              onClick={() => setUserRole(userRole === 'student' ? 'teacher' : userRole === 'teacher' ? 'student' : 'ceo')}
-              className="w-full flex items-center justify-center p-1.5 hover:bg-surface-800 rounded-lg transition-colors"
-            >
-              <User className="w-4 h-4 text-surface-500" />
-            </button>
-          </Tooltip>
-        </div>
-      )}
-
       {/* Streak badge (student) */}
       {userRole === 'student' && <StreakBadge streak={12} open={sidebarOpen} />}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {/* CEO: grouped sections */}
-        {isCEO && ceoSections.map((section, i) => (
-          <CEOSectionGroup
-            key={section.id}
-            section={section}
-            sidebarOpen={sidebarOpen}
-            defaultOpen={i < 2} /* Core + Intelligence open by default */
-          />
-        ))}
-
-        {/* Non-CEO: flat nav */}
-        {!isCEO && navItems.map(item => (
+        {navItems.map(item => (
           <NavItemLink key={item.to} item={item} sidebarOpen={sidebarOpen} />
         ))}
 
-        {/* Agent shortcuts (CEO only, expanded) */}
-        {isCEO && sidebarOpen && (
-          <>
-            <div className="pt-2 pb-1">
-              <p className="text-[10px] text-surface-500 px-3 uppercase tracking-wider">Agent Shortcuts</p>
-            </div>
-            {agentShortcuts.map(agent => (
-              <NavLink
-                key={agent.id}
-                to={`/agents/${agent.id}`}
-                className={({ isActive }) =>
-                  clsx(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all',
-                    isActive ? 'bg-surface-800 text-white' : 'text-surface-400 hover:bg-surface-800/50 hover:text-white'
-                  )
-                }
-              >
-                <span className="text-base">{agent.emoji}</span>
-                <span className="text-xs">{agent.label}</span>
-              </NavLink>
-            ))}
-          </>
+        {/* Agents hover panel (CEO only) */}
+        {isCEO && (
+          <div className="pt-1">
+            <AgentsPanel sidebarOpen={sidebarOpen} navigate={navigate} />
+          </div>
         )}
 
         {/* Student extra nav when expanded */}
