@@ -537,3 +537,195 @@ export async function checkCohortAlert(topicId: string): Promise<{
     alertMessage: alert,
   };
 }
+
+// ─── Gap-fill connections — bidirectional audit 2026-03-08 ───────────────────
+// 7 missing agent→agent links identified and wired below.
+
+/** Scout → Atlas: trending keyword / new PYQ pattern found — generate content */
+export async function emitTrendSignal(params: {
+  examId: string;
+  topicId: string;
+  trendType: 'keyword' | 'pyq_pattern' | 'competitor_gap' | 'reddit_spike';
+  keyword?: string;
+  urgency: 'low' | 'medium' | 'high';
+  suggestedFormats?: string[];
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'TREND_SIGNAL',
+    sourceAgent: 'scout',
+    targetAgent: 'atlas',
+    examId: params.examId,
+    topicId: params.topicId,
+    payload: params,
+  });
+}
+
+/** Scout → Herald: trending keyword opportunity — launch a campaign or blog post */
+export async function emitKeywordOpportunity(params: {
+  examId: string;
+  keyword: string;
+  searchVolume: number;
+  difficulty: number;  // 0–100 KD score
+  recommendedAction: 'blog_post' | 'landing_page' | 'social_campaign';
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'KEYWORD_OPPORTUNITY',
+    sourceAgent: 'scout',
+    targetAgent: 'herald',
+    examId: params.examId,
+    payload: params,
+  });
+}
+
+/** Forge → Scout: exam deployed — monitor SEO rankings + CDN performance */
+export async function emitDeployMetrics(params: {
+  examId: string;
+  url: string;
+  deployedAt: string;
+  topicsLive: string[];
+  regions: string[];
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'DEPLOY_METRICS',
+    sourceAgent: 'forge',
+    targetAgent: 'scout',
+    examId: params.examId,
+    payload: params,
+  });
+}
+
+/** Mentor → Sage: student struggling for N days — trigger doubt-clearing session */
+export async function emitStudentStruggling(params: {
+  studentId: string;
+  examId: string;
+  topicId: string;
+  dayStruggling: number;
+  mistakeTypes: string[];
+  lastSessionAt?: string;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'STUDENT_STRUGGLING',
+    sourceAgent: 'mentor',
+    targetAgent: 'sage',
+    studentId: params.studentId,
+    topicId: params.topicId,
+    payload: params,
+  });
+}
+
+/** Mentor → Atlas: topic has persistent low engagement — generate fresh variant */
+export async function emitEngagementGap(params: {
+  examId: string;
+  topicId: string;
+  engagementScore: number;   // 0–100
+  avgSessionDurationSec: number;
+  dropoffPoint?: string;     // where students leave
+  suggestedFormat?: string;  // e.g. 'analogy_explainer', 'visual_diagram_text'
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'ENGAGEMENT_GAP',
+    sourceAgent: 'mentor',
+    targetAgent: 'atlas',
+    topicId: params.topicId,
+    payload: params,
+  });
+}
+
+/** Oracle → Herald: campaign CTR / ROAS feedback — adjust or kill campaigns */
+export async function emitCampaignPerformance(params: {
+  examId: string;
+  campaignId: string;
+  ctr: number;         // click-through rate %
+  roas?: number;       // return on ad spend
+  impressions: number;
+  verdict: 'scale' | 'hold' | 'kill' | 'adjust_copy';
+  suggestedChange?: string;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'CAMPAIGN_PERFORMANCE',
+    sourceAgent: 'oracle',
+    targetAgent: 'herald',
+    examId: params.examId,
+    payload: params,
+  });
+}
+
+/** Herald → Scout: campaign underperformed — research why and find alternatives */
+export async function emitCampaignResult(params: {
+  examId: string;
+  campaignId: string;
+  ctr: number;
+  expectedCtr: number;
+  hypothesis: string;   // Herald's guess why it underperformed
+  researchRequest: string; // What Scout should look into
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'CAMPAIGN_RESULT',
+    sourceAgent: 'herald',
+    targetAgent: 'scout',
+    examId: params.examId,
+    payload: params,
+  });
+}
+
+/** Atlas → Oracle: new content published — set up performance tracking */
+export async function emitContentPublished(params: {
+  examId: string;
+  topicId: string;
+  contentIds: string[];
+  formats: string[];
+  publishedAt: string;
+  estimatedReach?: number;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'CONTENT_PUBLISHED',
+    sourceAgent: 'atlas',
+    targetAgent: 'oracle',
+    topicId: params.topicId,
+    payload: params,
+  });
+}
+
+// ─── Updated inbox processors (include new signal types) ─────────────────────
+
+/** Scout processes its full inbox — trend requests + performance feedback */
+export async function processScoutInbox(): Promise<{
+  deployMetrics: AgentSignal[];
+  campaignResults: AgentSignal[];
+  performanceInsights: AgentSignal[];
+}> {
+  const signals = await drainPendingSignals('scout');
+  return {
+    deployMetrics:      signals.filter(s => s.type === 'DEPLOY_METRICS'),
+    campaignResults:    signals.filter(s => s.type === 'CAMPAIGN_RESULT'),
+    performanceInsights: signals.filter(s => s.type === 'PERFORMANCE_INSIGHT'),
+  };
+}
+
+/** Herald processes its full inbox — campaign feedback + content verified + deployed */
+export async function processHeraldInbox(): Promise<{
+  contentVerified: AgentSignal[];
+  examDeployed: AgentSignal[];
+  campaignPerformance: AgentSignal[];
+  keywordOpportunities: AgentSignal[];
+}> {
+  const signals = await drainPendingSignals('herald');
+  return {
+    contentVerified:      signals.filter(s => s.type === 'CONTENT_VERIFIED'),
+    examDeployed:         signals.filter(s => s.type === 'EXAM_DEPLOYED'),
+    campaignPerformance:  signals.filter(s => s.type === 'CAMPAIGN_PERFORMANCE'),
+    keywordOpportunities: signals.filter(s => s.type === 'KEYWORD_OPPORTUNITY'),
+  };
+}
+
+/** Forge processes its inbox — content verified (deploy) */
+export async function processForgeInbox(): Promise<{
+  contentVerified: AgentSignal[];
+  examApproved: AgentSignal[];
+}> {
+  const signals = await drainPendingSignals('forge');
+  return {
+    contentVerified: signals.filter(s => s.type === 'CONTENT_VERIFIED'),
+    examApproved:    signals.filter(s => s.type === 'EXAM_APPROVED'),
+  };
+}

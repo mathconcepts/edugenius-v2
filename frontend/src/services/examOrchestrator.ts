@@ -629,6 +629,212 @@ async function processFeedbackLoop(
       break;
     }
 
+    // ── Scout → Atlas: trending keyword / PYQ pattern — generate content ──
+    case 'TREND_SIGNAL': {
+      const { topicId, trendType, keyword, urgency } = signal.payload as {
+        topicId: string; trendType: string; keyword?: string; urgency: string;
+      };
+      state = updateAgentStatus(state, 'scout', {
+        status: 'active',
+        lastAction: `Trend detected: ${trendType} on ${topicId} (urgency: ${urgency})`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'TREND_SIGNAL',
+        sourceAgent: 'scout',
+        targetAgent: 'atlas',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Scout→Atlas: trend signal (${trendType}${keyword ? ` — "${keyword}"` : ''})`);
+      signalsEmitted.push(`TREND_SIGNAL → atlas`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Scout', to: 'Atlas', type: 'TREND_SIGNAL',
+        summary: `${trendType} trend: ${keyword ?? topicId} (${urgency} urgency)`,
+      });
+      break;
+    }
+
+    // ── Scout → Herald: keyword opportunity — create campaign ──────────────
+    case 'KEYWORD_OPPORTUNITY': {
+      const { keyword, recommendedAction } = signal.payload as {
+        keyword: string; recommendedAction: string;
+      };
+      state = updateAgentStatus(state, 'scout', {
+        status: 'active',
+        lastAction: `Keyword opportunity: "${keyword}" → ${recommendedAction}`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'KEYWORD_OPPORTUNITY',
+        sourceAgent: 'scout',
+        targetAgent: 'herald',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Scout→Herald: keyword opportunity "${keyword}" (${recommendedAction})`);
+      signalsEmitted.push(`KEYWORD_OPPORTUNITY → herald`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Scout', to: 'Herald', type: 'KEYWORD_OPPORTUNITY',
+        summary: `"${keyword}" → ${recommendedAction}`,
+      });
+      break;
+    }
+
+    // ── Forge → Scout: deploy metrics — start SEO monitoring ───────────────
+    case 'DEPLOY_METRICS': {
+      const { url, topicsLive } = signal.payload as { url: string; topicsLive: string[] };
+      state = updateAgentStatus(state, 'forge', {
+        status: 'idle',
+        lastAction: `Deploy metrics sent to Scout (${topicsLive?.length ?? 0} topics live)`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'DEPLOY_METRICS',
+        sourceAgent: 'forge',
+        targetAgent: 'scout',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Forge→Scout: monitor SEO for ${url} (${topicsLive?.length ?? 0} topics)`);
+      signalsEmitted.push(`DEPLOY_METRICS → scout`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Forge', to: 'Scout', type: 'DEPLOY_METRICS',
+        summary: `Monitor ${url} — ${topicsLive?.length ?? 0} topics`,
+      });
+      break;
+    }
+
+    // ── Mentor → Sage: student struggling — trigger doubt clearing ─────────
+    case 'STUDENT_STRUGGLING': {
+      const { studentId, topicId, dayStruggling } = signal.payload as {
+        studentId: string; topicId: string; dayStruggling: number;
+      };
+      state = updateAgentStatus(state, 'mentor', {
+        status: 'active',
+        lastAction: `Escalated struggling student ${studentId} to Sage (${dayStruggling}d)`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'STUDENT_STRUGGLING',
+        sourceAgent: 'mentor',
+        targetAgent: 'sage',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Mentor→Sage: student ${studentId} struggling on ${topicId} for ${dayStruggling}d`);
+      signalsEmitted.push(`STUDENT_STRUGGLING → sage`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Mentor', to: 'Sage', type: 'STUDENT_STRUGGLING',
+        summary: `${studentId} on ${topicId} — ${dayStruggling} days`,
+      });
+      break;
+    }
+
+    // ── Mentor → Atlas: engagement gap — generate fresh content variant ─────
+    case 'ENGAGEMENT_GAP': {
+      const { topicId, engagementScore, suggestedFormat } = signal.payload as {
+        topicId: string; engagementScore: number; suggestedFormat?: string;
+      };
+      state = updateAgentStatus(state, 'mentor', {
+        status: 'active',
+        lastAction: `Engagement gap on ${topicId} (score: ${engagementScore}) → Atlas`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'ENGAGEMENT_GAP',
+        sourceAgent: 'mentor',
+        targetAgent: 'atlas',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Mentor→Atlas: low engagement on ${topicId} (${engagementScore}/100) — generate ${suggestedFormat ?? 'variant'}`);
+      signalsEmitted.push(`ENGAGEMENT_GAP → atlas`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Mentor', to: 'Atlas', type: 'ENGAGEMENT_GAP',
+        summary: `${topicId}: score ${engagementScore} → ${suggestedFormat ?? 'new variant'}`,
+      });
+      break;
+    }
+
+    // ── Oracle → Herald: campaign performance feedback ──────────────────────
+    case 'CAMPAIGN_PERFORMANCE': {
+      const { campaignId, ctr, verdict } = signal.payload as {
+        campaignId: string; ctr: number; verdict: string;
+      };
+      state = updateAgentStatus(state, 'oracle', {
+        status: 'active',
+        lastAction: `Campaign ${campaignId} CTR ${ctr}% → ${verdict} → Herald`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'CAMPAIGN_PERFORMANCE',
+        sourceAgent: 'oracle',
+        targetAgent: 'herald',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Oracle→Herald: campaign ${campaignId} CTR ${ctr}% — verdict: ${verdict}`);
+      signalsEmitted.push(`CAMPAIGN_PERFORMANCE → herald`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Oracle', to: 'Herald', type: 'CAMPAIGN_PERFORMANCE',
+        summary: `Campaign ${campaignId}: ${ctr}% CTR → ${verdict}`,
+      });
+      break;
+    }
+
+    // ── Herald → Scout: campaign underperformed — research why ─────────────
+    case 'CAMPAIGN_RESULT': {
+      const { campaignId, ctr, researchRequest } = signal.payload as {
+        campaignId: string; ctr: number; researchRequest: string;
+      };
+      state = updateAgentStatus(state, 'herald', {
+        status: 'active',
+        lastAction: `Campaign ${campaignId} result (${ctr}%) → Scout for research`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'CAMPAIGN_RESULT',
+        sourceAgent: 'herald',
+        targetAgent: 'scout',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Herald→Scout: campaign ${campaignId} underperformed (${ctr}%) — research: ${researchRequest}`);
+      signalsEmitted.push(`CAMPAIGN_RESULT → scout`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Herald', to: 'Scout', type: 'CAMPAIGN_RESULT',
+        summary: `Campaign ${campaignId} CTR ${ctr}% — ${researchRequest}`,
+      });
+      break;
+    }
+
+    // ── Atlas → Oracle: content published — start tracking ─────────────────
+    case 'CONTENT_PUBLISHED': {
+      const { topicId, contentIds, formats } = signal.payload as {
+        topicId: string; contentIds: string[]; formats: string[];
+      };
+      state = updateAgentStatus(state, 'atlas', {
+        status: 'active',
+        lastAction: `Published ${contentIds?.length ?? 0} pieces for ${topicId} → Oracle`,
+        lastActionAt: now,
+      });
+      await enqueueSignal({
+        type: 'CONTENT_PUBLISHED',
+        sourceAgent: 'atlas',
+        targetAgent: 'oracle',
+        examId,
+        payload: signal.payload,
+      });
+      actions.push(`Atlas→Oracle: ${contentIds?.length ?? 0} pieces published for ${topicId} (${formats?.join(', ')})`);
+      signalsEmitted.push(`CONTENT_PUBLISHED → oracle`);
+      state = appendSignalLog(state, {
+        timestamp: now, from: 'Atlas', to: 'Oracle', type: 'CONTENT_PUBLISHED',
+        summary: `${contentIds?.length ?? 0} pieces on ${topicId}`,
+      });
+      break;
+    }
+
     default:
       // Pass-through: log but don't re-emit
       actions.push(`Signal ${signal.type} received and acknowledged`);

@@ -79,7 +79,16 @@ export interface AgentSignal {
        | 'PERFORMANCE_INSIGHT' // Oracle → Scout+Atlas+Mentor: analytics feedback loop
        | 'CONTENT_STALE'       // Oracle → Atlas: topic needs refresh (>7 days, low engagement)
        | 'CHURN_COHORT_ALERT'  // Oracle+Mentor → Sage+Atlas: cohort dropping off a topic
-       | 'EXAM_HEALTH_REPORT'; // Oracle → CEO dashboard: weekly health summary
+       | 'EXAM_HEALTH_REPORT'  // Oracle → CEO dashboard: weekly health summary
+       // ── Gap-fill connections (bidirectional audit 2026-03-08) ─────────────
+       | 'TREND_SIGNAL'        // Scout → Atlas: new keyword/PYQ pattern found, generate content
+       | 'KEYWORD_OPPORTUNITY' // Scout → Herald: trending keyword needs campaign
+       | 'DEPLOY_METRICS'      // Forge → Scout: SEO/CDN performance to monitor
+       | 'STUDENT_STRUGGLING'  // Mentor → Sage: student needs doubt-clearing session
+       | 'ENGAGEMENT_GAP'      // Mentor → Atlas: topic has low engagement, generate new variant
+       | 'CAMPAIGN_PERFORMANCE'// Oracle → Herald: campaign CTR/ROAS feedback
+       | 'CAMPAIGN_RESULT'     // Herald → Scout: campaign underperformed, research why
+       | 'CONTENT_PUBLISHED';  // Atlas → Oracle: new content live, start tracking
   sourceAgent: string;
   targetAgent: string;
   payload: Record<string, unknown>;

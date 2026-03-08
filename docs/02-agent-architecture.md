@@ -2,6 +2,8 @@
 
 Comprehensive documentation of all 7 domain agents and their 45 sub-agents.
 
+> **See also:** [`18-agent-connection-map.md`](./18-agent-connection-map.md) — complete bidirectional signal reference with full connection matrix, all 24 signal types, and the exam lifecycle flow diagram. Last audited 2026-03-08 (all gaps filled).
+
 ---
 
 ## Agent Hierarchy
