@@ -68,7 +68,18 @@ export interface AgentSignal {
   id: string;
   type: 'CONTENT_GAP' | 'STRUGGLE_PATTERN' | 'MASTERY_ACHIEVED' | 'FRUSTRATION_ALERT'
        | 'COHORT_ALERT' | 'CHURN_RISK' | 'BREAKTHROUGH'
-       | 'FORMAT_REQUEST' | 'SR_OVERDUE' | 'BEHAVIORAL_SNAPSHOT' | 'FORMAT_SUCCESS';
+       | 'FORMAT_REQUEST' | 'SR_OVERDUE' | 'BEHAVIORAL_SNAPSHOT' | 'FORMAT_SUCCESS'
+       // ── Exam Lifecycle signals ────────────────────────────────────────────
+       | 'EXAM_APPROVED'       // CEO → all agents: exam is finalized, start your jobs
+       | 'CONTENT_READY'       // Atlas → Sage+Forge+Herald: content batch ready for verification
+       | 'CONTENT_VERIFIED'    // Sage → Forge+Herald: accuracy verified, safe to deploy
+       | 'EXAM_DEPLOYED'       // Forge → Oracle+Herald+Mentor: exam is live on CDN
+       | 'MARKETING_LIVE'      // Herald → Oracle: campaigns are running
+       | 'STUDENT_ENROLLED'    // User service → Mentor+Sage+Oracle: first student signed up
+       | 'PERFORMANCE_INSIGHT' // Oracle → Scout+Atlas+Mentor: analytics feedback loop
+       | 'CONTENT_STALE'       // Oracle → Atlas: topic needs refresh (>7 days, low engagement)
+       | 'CHURN_COHORT_ALERT'  // Oracle+Mentor → Sage+Atlas: cohort dropping off a topic
+       | 'EXAM_HEALTH_REPORT'; // Oracle → CEO dashboard: weekly health summary
   sourceAgent: string;
   targetAgent: string;
   payload: Record<string, unknown>;
@@ -76,6 +87,7 @@ export interface AgentSignal {
   deliveredAt?: string;    // null = pending
   studentId?: string;
   topicId?: string;
+  examId?: string;         // exam this signal belongs to (lifecycle signals)
 }
 
 // ─── DB Init ──────────────────────────────────────────────────────────────────

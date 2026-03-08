@@ -329,6 +329,139 @@ export async function recordSageInteraction(params: {
   }
 }
 
+// ─── Exam Lifecycle Emitters ──────────────────────────────────────────────────
+
+/** CEO → All agents: exam approved, begin your jobs */
+export async function emitExamApproved(params: {
+  examId: string;
+  examName: string;
+  topics: string[];
+  isPilot: boolean;
+  targetAgents: string[];
+}): Promise<void> {
+  await Promise.all(
+    params.targetAgents.map((agent) =>
+      enqueueSignal({
+        type: 'EXAM_APPROVED',
+        sourceAgent: 'ceo',
+        targetAgent: agent,
+        examId: params.examId,
+        payload: {
+          examId: params.examId,
+          examName: params.examName,
+          topics: params.topics,
+          isPilot: params.isPilot,
+        },
+      }),
+    ),
+  );
+}
+
+/** Atlas → Sage+Forge+Herald: content batch is ready for verification */
+export async function emitContentReady(params: {
+  examId: string;
+  batchId: string;
+  topicIds: string[];
+  contentCount: number;
+  formats: string[];
+}): Promise<void> {
+  await Promise.all(
+    ['sage', 'forge', 'herald'].map((agent) =>
+      enqueueSignal({
+        type: 'CONTENT_READY',
+        sourceAgent: 'atlas',
+        targetAgent: agent,
+        examId: params.examId,
+        payload: params,
+      }),
+    ),
+  );
+}
+
+/** Sage → Forge+Herald: content verified, deploy + promote */
+export async function emitContentVerified(params: {
+  examId: string;
+  batchId: string;
+  verifiedCount: number;
+  avgAccuracy: number;
+  failedTopicIds: string[];
+}): Promise<void> {
+  await Promise.all(
+    ['forge', 'herald'].map((agent) =>
+      enqueueSignal({
+        type: 'CONTENT_VERIFIED',
+        sourceAgent: 'sage',
+        targetAgent: agent,
+        examId: params.examId,
+        payload: params,
+      }),
+    ),
+  );
+}
+
+/** Forge → Oracle+Herald+Mentor: exam is live on CDN */
+export async function emitExamDeployed(params: {
+  examId: string;
+  deployedAt: string;
+  url: string;
+  contentCount: number;
+  regions: string[];
+}): Promise<void> {
+  await Promise.all(
+    ['oracle', 'herald', 'mentor'].map((agent) =>
+      enqueueSignal({
+        type: 'EXAM_DEPLOYED',
+        sourceAgent: 'forge',
+        targetAgent: agent,
+        examId: params.examId,
+        payload: params,
+      }),
+    ),
+  );
+}
+
+/** Oracle → Scout+Atlas+Mentor: performance insights for feedback loop */
+export async function emitPerformanceInsight(params: {
+  examId: string;
+  staleTopicIds: string[];
+  churnRiskCount: number;
+  lowEngagementTopics: string[];
+  highPerformingTopics: string[];
+  weeklyDAU: number;
+}): Promise<void> {
+  await Promise.all(
+    ['scout', 'atlas', 'mentor'].map((agent) =>
+      enqueueSignal({
+        type: 'PERFORMANCE_INSIGHT',
+        sourceAgent: 'oracle',
+        targetAgent: agent,
+        examId: params.examId,
+        payload: params,
+      }),
+    ),
+  );
+}
+
+/** User service → Mentor+Sage+Oracle: student enrolled */
+export async function emitStudentEnrolled(params: {
+  examId: string;
+  studentId: string;
+  isFirstForExam: boolean;
+}): Promise<void> {
+  await Promise.all(
+    ['mentor', 'sage', 'oracle'].map((agent) =>
+      enqueueSignal({
+        type: 'STUDENT_ENROLLED',
+        sourceAgent: 'user_service',
+        targetAgent: agent,
+        examId: params.examId,
+        payload: params,
+        studentId: params.studentId,
+      }),
+    ),
+  );
+}
+
 // ─── Agent inbox processors ───────────────────────────────────────────────────
 
 /**

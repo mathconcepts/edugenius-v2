@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { generateLiveBrief, LiveDecision } from '../../services/liveBriefing';
+import { ExamLifecycleDashboard } from '../../components/ExamLifecycleDashboard';
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
@@ -482,6 +483,15 @@ export function CEOBriefing() {
           </div>
         </section>
       )}
+
+      {/* ── Live Exams — Orchestrator Dashboard ── */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.65 }}
+      >
+        <ExamLifecycleDashboard />
+      </motion.section>
 
       {/* ── Today's win ── */}
       <motion.section

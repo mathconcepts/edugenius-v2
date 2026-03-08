@@ -90,6 +90,32 @@ export type {
   RenderedPrompt,
 } from './contentPersonaEngine';
 
+// Exam Lifecycle Orchestrator — CEO approves once, all 7 agents auto-run bidirectionally
+export {
+  triggerExamApproval,
+  processAgentInbox,
+  getExamLifecycleState,
+  getAllLifecycles,
+} from './examOrchestrator';
+export type {
+  ExamLifecycleState,
+  ExamLifecyclePhase,
+  AgentLifecycleStatus,
+  AgentInboxResult,
+  SignalLogEntry,
+  AgentId,
+} from './examOrchestrator';
+
+// Signal Bus — Exam Lifecycle Emitters
+export {
+  emitExamApproved,
+  emitContentReady,
+  emitContentVerified,
+  emitExamDeployed,
+  emitPerformanceInsight,
+  emitStudentEnrolled,
+} from './signalBus';
+
 // Type re-exports for convenience
 export * from '@/types/personalization';
 export * from '@/types/teaching';

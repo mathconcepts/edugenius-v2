@@ -27,6 +27,7 @@ import {
   EXAM_CREATION_CONNECTIONS, runExamCreationWorkflow,
   type ExamCreationStep,
 } from '@/services/examCreationWorkflow';
+import { triggerExamApproval } from '@/services/examOrchestrator';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -281,7 +282,29 @@ export function ExamCreationWizard() {
     );
 
     setRunning(false);
-    setCompleted(result.success);
+
+    if (result.success) {
+      setCompleted(true);
+      // 🚀 Trigger the exam lifecycle orchestrator — CEO approves once, all agents auto-run
+      try {
+        await triggerExamApproval({
+          examId: examName.toLowerCase().replace(/\s+/g, '_'),
+          examName,
+          examConfig: {
+            topics: [], // ExamCreationWizard doesn't collect topics yet — agents use exam registry defaults
+            targetAudience: 'Indian competitive exam aspirants',
+            difficulty: 'intermediate',
+            isPilot: pilotMode,
+          },
+        });
+        console.log('[Orchestrator] Exam lifecycle started:', examName);
+      } catch (err) {
+        console.error('[Orchestrator] Failed to start lifecycle:', err);
+        // Non-blocking — wizard completion is not gated on orchestrator
+      }
+    } else {
+      setCompleted(false);
+    }
   }, [examName, pilotMode, multilingual, uploadedFiles, updateStep]);
 
   const handleGateDecision = (approved: boolean) => {
