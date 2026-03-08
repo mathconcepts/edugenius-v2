@@ -246,6 +246,56 @@ function UserDetailPanel({
             )}
           </section>
 
+          {/* Item 11: Multi-exam summary row */}
+          {user.examSubscriptions.length > 0 && (() => {
+            const activeOnly = user.examSubscriptions.filter(
+              (s) => s.status === 'active' || s.status === 'trial'
+            );
+            const effectivePriv = computeMCPPrivileges(activeOnly);
+            const subStatusIcon = (status: string) =>
+              status === 'active' ? '✅' : status === 'trial' ? '⏳' : '🔒';
+            return (
+              <section>
+                <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">Subscription Summary</h3>
+                <div className="bg-surface-800/60 rounded-xl border border-white/8 p-3 space-y-2">
+                  <div>
+                    <p className="text-xs text-surface-400 mb-1.5">Active exams:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {user.examSubscriptions.map((s) => {
+                        const exam = EXAM_CATALOG.find((e) => e.id === s.examId);
+                        return (
+                          <span key={s.examId} className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-surface-700 rounded-lg">
+                            <span>{exam?.emoji}</span>
+                            <span className="text-white">{s.examName}</span>
+                            <Chip className={`${planMeta[s.plan].color} text-xs py-0 px-1`}>{s.plan}</Chip>
+                            <span>{subStatusIcon(s.status)}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="border-t border-white/8 pt-2">
+                    <p className="text-xs text-surface-400 mb-1">Effective privileges (highest plan):</p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className={effectivePriv.wolframEnabled ? 'text-green-400' : 'text-surface-500'}>
+                        {effectivePriv.wolframEnabled ? '✅' : '❌'} Wolfram
+                      </span>
+                      <span className={effectivePriv.ragEnabled ? 'text-green-400' : 'text-surface-500'}>
+                        {effectivePriv.ragEnabled ? '✅' : '❌'} RAG
+                      </span>
+                      <span className={effectivePriv.customMcpEnabled ? 'text-green-400' : 'text-surface-500'}>
+                        {effectivePriv.customMcpEnabled ? '✅' : '❌'} Custom MCP
+                      </span>
+                      <span className="text-surface-400">
+                        Max {effectivePriv.maxKnowledgeSources === 99 ? '∞' : effectivePriv.maxKnowledgeSources} sources
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
+
           {/* Exam Subscriptions */}
           <section>
             <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">Exam Subscriptions</h3>

@@ -39,7 +39,17 @@ import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmServi
 import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
 import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext, type UserContext } from '@/services/sagePersonaPrompts';
 import { resolveKnowledgeForUser } from '@/services/knowledgeRouter';
-import { loadCurrentUser, getFilteredSources, computeMCPPrivileges } from '@/services/userService';
+import {
+  loadCurrentUser,
+  getFilteredSources,
+  computeMCPPrivileges,
+  resolveActiveExam,
+  getExamPrivileges,
+  getExamFilteredSources,
+  setActiveExamForSession,
+  subscribeToExam,
+  EXAM_CATALOG,
+} from '@/services/userService';
 import { getCohortSignals } from '@/services/networkEffectsEngine';
 // Wire 8 — P1: Notebook ← Sage: log explained/solved topics to notebookEngine
 import { loadNotebookState, saveNotebookState, addProblem, type ExamScope } from '@/services/notebookEngine';
@@ -540,6 +550,13 @@ export function Chat() {
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [lastIntent, setLastIntent] = useState<IntentResult | null>(null);
   const [autoRoutedAgent, setAutoRoutedAgent] = useState<AgentType | null>(null);
+  // Item 5: multi-exam switcher state
+  const [showExamSwitcher, setShowExamSwitcher] = useState(false);
+  const [activeExamSession, setActiveExamSession] = useState<string | null>(() => {
+    try { return sessionStorage.getItem('edugenius_active_exam_session'); } catch { return null; }
+  });
+  // Item 9: first-login exam selection modal
+  const [showExamSelectModal, setShowExamSelectModal] = useState(false);
 
   // ── Traceability — session-level trace tree ──
   const [sessionTrace, setSessionTrace] = useState<TraceTree | null>(null);
@@ -565,6 +582,20 @@ export function Chat() {
   const [srDueCount, setSrDueCount] = useState(0);
 
   const currentSession = getCurrentSession();
+
+  // Item 9: First-login onboarding gate — show exam selection for students/parents with no active subs
+  useEffect(() => {
+    const user = loadCurrentUser();
+    if (user && (user.role === 'student' || user.role === 'parent')) {
+      const hasActive = user.examSubscriptions.filter(
+        (s) => s.status === 'active' || s.status === 'trial'
+      ).length > 0;
+      const hasChildExams = user.role === 'parent' && (user.preferences.childExamIds?.length ?? 0) > 0;
+      if (!hasActive && !hasChildExams) {
+        setShowExamSelectModal(true);
+      }
+    }
+  }, []);
 
   // Auto-create session on mount; pre-fill ?q= / ?topic= and inject studentContext
   useEffect(() => {
@@ -890,14 +921,21 @@ export function Chat() {
 
       // ── Knowledge Router: ground Sage in verified sources ─────────────────
       try {
-        // Load current EGUser for plan-based source filtering
+        // Items 4 & 10: Load current EGUser, resolve active exam, use per-exam privileges
         const egUser = loadCurrentUser();
-        const filteredSources = getFilteredSources(egUser);
+        // resolveActiveExam is the single source of truth for active exam
+        const activeExamSub = egUser ? resolveActiveExam(egUser) : null;
+        // Item 10: always use resolveActiveExam result, not stale updatedPersona.exam
+        const activeExamId = activeExamSub?.examId ?? updatedPersona.exam ?? 'gate-em';
+        // Item 4: per-exam source filtering (not global highest plan)
+        const filteredSources = egUser
+          ? getExamFilteredSources(egUser.examSubscriptions, activeExamId)
+          : getFilteredSources(null);
 
         const kResult = await resolveKnowledgeForUser(
           {
             text: userText,
-            examId: updatedPersona.exam ?? 'gate-em',
+            examId: activeExamId,
             topicId: detectedTopicId,
             sessionId,
           },
@@ -911,20 +949,26 @@ export function Chat() {
             steps: kResult.steps,
             wolframCode: kResult.wolframCode,
           };
-          // Build user context for persona-aware prompting
-          const ucPriv = egUser ? computeMCPPrivileges(egUser.examSubscriptions) : null;
+          // Item 4: use per-exam privileges (not global highest plan)
+          const examPriv = egUser
+            ? getExamPrivileges(egUser.examSubscriptions, activeExamId)
+            : null;
+          const activeExamSubs = egUser
+            ? egUser.examSubscriptions.filter((s) => s.status === 'active' || s.status === 'trial')
+            : [];
           const userCtx: UserContext | undefined = egUser
             ? {
                 uid: egUser.uid,
                 name: egUser.name,
-                activeExam: updatedPersona.exam ?? egUser.preferences.preferredExamId ?? 'gate-em',
-                plan: egUser.examSubscriptions.find(
-                  (s) => s.examId === (updatedPersona.exam ?? egUser.preferences.preferredExamId)
-                )?.plan ?? 'free',
+                activeExam: activeExamId,
+                plan: activeExamSub?.plan ?? 'free',
                 channel: 'web',
+                role: egUser.role,
+                examCount: activeExamSubs.length,
+                allExams: activeExamSubs.map((s) => s.examId),
                 mcpPrivileges: {
-                  wolframEnabled: ucPriv?.wolframEnabled ?? false,
-                  ragEnabled: ucPriv?.ragEnabled ?? false,
+                  wolframEnabled: examPriv?.wolframEnabled ?? false,
+                  ragEnabled: examPriv?.ragEnabled ?? false,
                 },
                 daysToExam: updatedPersona.daysToExam,
                 studyStreakDays: updatedPersona.streakDays,
@@ -1323,6 +1367,67 @@ export function Chat() {
               </button>
               {/* ── Smart Memory Chip ── */}
               {isStudent && <SmartMemoryChip />}
+              {/* Item 5: Multi-exam switcher — shown only if user has >1 active subscription */}
+              {isStudent && (() => {
+                const egUser = loadCurrentUser();
+                if (!egUser) return null;
+                const activeSubs = egUser.examSubscriptions.filter(
+                  (s) => s.status === 'active' || s.status === 'trial'
+                );
+                if (activeSubs.length <= 1) return null;
+                const activeExamSub = resolveActiveExam(egUser);
+                return (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowExamSwitcher(!showExamSwitcher)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs transition-colors"
+                      title="Switch active exam"
+                    >
+                      <span>{EXAM_CATALOG.find((e) => e.id === activeExamSub?.examId)?.emoji ?? '📚'}</span>
+                      <span className="text-surface-200 font-medium">{activeExamSub?.examName ?? 'Select Exam'}</span>
+                      <ChevronDown className="w-3 h-3 text-surface-400" />
+                    </button>
+                    <AnimatePresence>
+                      {showExamSwitcher && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowExamSwitcher(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            className="absolute top-full left-0 mt-1 w-52 glass rounded-xl shadow-xl z-50 p-2"
+                          >
+                            <p className="text-xs text-surface-500 px-2 py-1 mb-1">Switch exam</p>
+                            {activeSubs.map((sub) => {
+                              const examEntry = EXAM_CATALOG.find((e) => e.id === sub.examId);
+                              const isActive = sub.examId === activeExamSub?.examId;
+                              return (
+                                <button
+                                  key={sub.examId}
+                                  onClick={() => {
+                                    setActiveExamForSession(sub.examId);
+                                    setActiveExamSession(sub.examId);
+                                    setShowExamSwitcher(false);
+                                  }}
+                                  className={clsx(
+                                    'w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left text-xs transition-colors',
+                                    isActive ? 'bg-primary-500/20 text-primary-300' : 'hover:bg-surface-700 text-surface-300'
+                                  )}
+                                >
+                                  <span>{examEntry?.emoji}</span>
+                                  <span className="flex-1">{sub.examName}</span>
+                                  <span className="text-surface-500">{sub.plan}</span>
+                                  {isActive && <span className="text-green-400">✓</span>}
+                                </button>
+                              );
+                            })}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
           <div className="relative">
@@ -1653,6 +1758,64 @@ export function Chat() {
           </p>
         </div>
       </div>
+
+      {/* Item 9: First-login exam selection modal */}
+      <AnimatePresence>
+        {showExamSelectModal && (() => {
+          const egUser = loadCurrentUser();
+          if (!egUser) return null;
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="glass rounded-2xl p-6 w-full max-w-md shadow-2xl"
+              >
+                <div className="text-center mb-6">
+                  <div className="text-4xl mb-3">🎓</div>
+                  <h2 className="text-xl font-bold text-white">Choose Your Exam</h2>
+                  <p className="text-sm text-surface-400 mt-1">
+                    {egUser.role === 'parent'
+                      ? "Which exam is your child preparing for?"
+                      : "Select an exam to start your free trial"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {EXAM_CATALOG.map((exam) => (
+                    <button
+                      key={exam.id}
+                      onClick={async () => {
+                        const updated = subscribeToExam(egUser.uid, exam.id, 'free');
+                        if (updated) {
+                          setActiveExamForSession(exam.id);
+                          setActiveExamSession(exam.id);
+                        }
+                        setShowExamSelectModal(false);
+                      }}
+                      className="flex items-center gap-2 p-3 rounded-xl bg-surface-800 hover:bg-surface-700 border border-white/8 hover:border-primary-500/40 transition-all text-left"
+                    >
+                      <span className="text-2xl">{exam.emoji}</span>
+                      <div>
+                        <p className="text-sm font-medium text-white">{exam.name}</p>
+                        <p className="text-xs text-surface-500">{exam.subjects.slice(0, 2).join(', ')}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-surface-500 text-center">
+                  Free trial • No credit card required
+                </p>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }

@@ -17,6 +17,8 @@
 import {
   getUserByChannelId,
   getFilteredSources,
+  getExamFilteredSources,
+  getExamPrivileges,
   isChannelAllowed,
   EXAM_CATALOG,
   type EGUser,
@@ -66,6 +68,28 @@ const DEFAULT_MCP: MCPPrivileges = {
   maxKnowledgeSources: 1,
 };
 
+// ─── Bot Active Exam Storage (Item 8) ────────────────────────────────────────
+// Since bot handlers run in a browser-side simulation, localStorage is available.
+// In a true server-side environment, this would be a Redis/session store.
+
+const BOT_ACTIVE_EXAM_KEY = 'edugenius_bot_active_exam';
+
+function getBotActiveExamKey(channelUserId: string, channel: string): string {
+  return `${BOT_ACTIVE_EXAM_KEY}_${channel}_${channelUserId}`;
+}
+
+export function storeBotActiveExam(channelUserId: string, channel: string, examId: string): void {
+  try {
+    localStorage.setItem(getBotActiveExamKey(channelUserId, channel), examId);
+  } catch { /* storage unavailable (server-side) — no-op */ }
+}
+
+export function getBotActiveExam(channelUserId: string, channel: string): string | null {
+  try {
+    return localStorage.getItem(getBotActiveExamKey(channelUserId, channel));
+  } catch { return null; }
+}
+
 // ─── Session Builder ──────────────────────────────────────────────────────────
 
 export function buildBotSession(msg: InboundBotMessage): BotSessionContext {
@@ -82,13 +106,16 @@ export function buildBotSession(msg: InboundBotMessage): BotSessionContext {
     };
   }
 
-  // Find active exam (prefer preferred exam, else first active)
+  // Item 8: Find active exam — bot session override → preferred → first active
   const activeExams = user.examSubscriptions.filter(
     (s) => s.status === 'active' || s.status === 'trial'
   );
-  const preferred = user.preferences.preferredExamId
-    ? activeExams.find((s) => s.examId === user.preferences.preferredExamId)
-    : null;
+  const botExamId = getBotActiveExam(msg.channelUserId, msg.channel);
+  const preferred = botExamId
+    ? activeExams.find((s) => s.examId === botExamId)
+    : user.preferences.preferredExamId
+      ? activeExams.find((s) => s.examId === user.preferences.preferredExamId)
+      : null;
   const activeExam = preferred ?? activeExams[0] ?? null;
 
   return {
@@ -125,21 +152,59 @@ export function handleCommand(text: string, session: BotSessionContext): BotResp
       const active = user.examSubscriptions.filter(
         (s) => s.status === 'active' || s.status === 'trial'
       );
+      // Derive channel from capabilities; to = appropriate channel identifier
+      const isTg = session.channelCapabilities === CHANNEL_CAPS.telegram;
+      const ch: 'whatsapp' | 'telegram' = isTg ? 'telegram' : 'whatsapp';
+      const to = isTg
+        ? (user.channelAccess.telegramChatId ?? user.channelAccess.whatsappPhone ?? '')
+        : (user.channelAccess.whatsappPhone ?? user.channelAccess.telegramChatId ?? '');
+      // Bot exam storage key — derive from user identifier
+      const botUserId = isTg
+        ? (user.channelAccess.telegramChatId ?? user.uid)
+        : (user.channelAccess.whatsappPhone ?? user.uid);
+
       if (active.length === 0) {
         return {
           text: '📚 You have no active exam subscriptions.\n\nVisit https://edugenius-ui.netlify.app to subscribe to an exam.',
-          channel: 'whatsapp',
-          to: user.channelAccess.whatsappPhone ?? user.channelAccess.telegramChatId ?? '',
+          channel: ch,
+          to,
           buttons: [{ text: '🌐 Subscribe Now', payload: 'https://edugenius-ui.netlify.app/users' }],
         };
       }
-      const examList = active.map((s) => `${s.examName} (${s.plan})`).join('\n');
-      const current = session.activeExam ? `Current: *${session.activeExam.examName}*\n\n` : '';
+
+      // Item 8: /exam [name] — direct switch
+      const parts = text.trim().split(/\s+/);
+      if (parts.length > 1) {
+        const examIdArg = parts.slice(1).join('-').toLowerCase();
+        const target = active.find(
+          (s) => s.examId.toLowerCase().includes(examIdArg) ||
+                 s.examName.toLowerCase().includes(examIdArg)
+        );
+        if (target) {
+          storeBotActiveExam(botUserId, ch, target.examId);
+          return {
+            text: `✅ Switched to *${target.examName}*. Ask me anything!`,
+            channel: ch,
+            to,
+          };
+        }
+        return {
+          text: `❌ Exam not found. Your active exams:\n${active.map((s, i) => `${i + 1}. ${s.examName}`).join('\n')}\n\nTry: /exam jee or /exam neet`,
+          channel: ch,
+          to,
+        };
+      }
+
+      // No arg — list exams with current highlighted
+      const current = getBotActiveExam(botUserId, ch) ?? user.preferences.preferredExamId;
+      const list = active
+        .map((s, i) => `${i + 1}. ${s.examName} (${s.plan})${s.examId === current ? ' ✓' : ''}`)
+        .join('\n');
       return {
-        text: `${current}Your subscribed exams:\n${examList}\n\nReply with the exam name to switch.`,
-        channel: 'telegram',
-        to: user.channelAccess.telegramChatId ?? user.channelAccess.whatsappPhone ?? '',
-        buttons: active.map((s) => ({ text: s.examName, payload: `/setexam ${s.examId}` })),
+        text: `Your exams:\n${list}\n\nReply with: /exam [name] to switch (e.g., /exam jee or /exam neet)`,
+        channel: ch,
+        to,
+        buttons: active.map((s) => ({ text: s.examName, payload: `/exam ${s.examId}` })),
       };
     }
 
@@ -239,7 +304,8 @@ export async function routeToSage(
   }
 
   try {
-    const filteredSources = getFilteredSources(user);
+    // Item 8: use per-exam source filtering for the active exam
+    const filteredSources = getExamFilteredSources(user.examSubscriptions, activeExam.examId);
     const kResult = await resolveKnowledgeForUser(
       {
         text: msg.text,

@@ -81,6 +81,8 @@ export interface UserPreferences {
   notificationsEnabled: boolean;
   studyReminderTime?: string;
   preferredExamId?: string;
+  // Parent-specific
+  childExamIds?: string[];    // exams their children are preparing for
 }
 
 // ─── Plan → MCP Privilege Mapping ────────────────────────────────────────────
@@ -310,8 +312,10 @@ const ALL_USERS_KEY = 'edugenius_users';
 
 export function loadCurrentUser(): EGUser | null {
   try {
-    const raw = localStorage.getItem(CURRENT_USER_KEY);
-    return raw ? (JSON.parse(raw) as EGUser) : null;
+    const stored = localStorage.getItem(CURRENT_USER_KEY);
+    if (!stored) return null;
+    const user = JSON.parse(stored) as EGUser;
+    return cleanExpiredSubscriptions(user); // always clean expired on load
   } catch {
     return null;
   }
@@ -384,6 +388,143 @@ export function computeMCPPrivileges(examSubscriptions: ExamSubscription[]): MCP
     PLAN_ORDER.indexOf(p) > PLAN_ORDER.indexOf(best) ? p : best
   );
   return { ...PLAN_MCP_MAP[highestPlan] };
+}
+
+// ─── Per-Exam Privilege Helpers (Item 1) ─────────────────────────────────────
+
+/**
+ * Returns MCP privileges for a specific exam subscription (not the global highest).
+ * Use this instead of computeMCPPrivileges() when you need per-exam source filtering.
+ */
+export function getExamPrivileges(
+  examSubscriptions: ExamSubscription[],
+  examId: string
+): MCPPrivileges {
+  const sub = examSubscriptions.find(
+    (s) => s.examId === examId && (s.status === 'active' || s.status === 'trial')
+  );
+  if (!sub) return { ...PLAN_MCP_MAP.free }; // no subscription = free tier
+  return { ...PLAN_MCP_MAP[sub.plan] };
+}
+
+/**
+ * Returns allowed source IDs for a specific exam.
+ * Empty array means all sources allowed (enterprise).
+ */
+export function getExamFilteredSources(
+  examSubscriptions: ExamSubscription[],
+  examId: string
+): string[] {
+  const priv = getExamPrivileges(examSubscriptions, examId);
+  if (!priv.allowedSources || priv.allowedSources.length === 0) {
+    return []; // enterprise = all sources
+  }
+  return priv.allowedSources;
+}
+
+// ─── Expired Subscription Cleanup (Item 2) ───────────────────────────────────
+
+/**
+ * Marks expired subscriptions (expiresAt < now) so they are excluded from privilege computation.
+ * Call on every user load to keep subscription state fresh.
+ */
+export function cleanExpiredSubscriptions(user: EGUser): EGUser {
+  const now = new Date().toISOString();
+  const updated = user.examSubscriptions.map((s) => {
+    if (s.expiresAt && s.expiresAt < now && s.status !== 'expired') {
+      return { ...s, status: 'expired' as const };
+    }
+    return s;
+  });
+  const newPrivileges = computeMCPPrivileges(updated);
+  return { ...user, examSubscriptions: updated, mcpPrivileges: newPrivileges };
+}
+
+// ─── Session-scoped Active Exam (Item 3) ─────────────────────────────────────
+
+const ACTIVE_EXAM_SESSION_KEY = 'edugenius_active_exam_session';
+
+/**
+ * Get the session-scoped active exam override (clears on tab close).
+ */
+export function getActiveExamForSession(): string | null {
+  return sessionStorage.getItem(ACTIVE_EXAM_SESSION_KEY);
+}
+
+/**
+ * Set the session-scoped active exam (survives page refresh, not tab close).
+ */
+export function setActiveExamForSession(examId: string): void {
+  sessionStorage.setItem(ACTIVE_EXAM_SESSION_KEY, examId);
+}
+
+/**
+ * Clear the session-scoped active exam override.
+ */
+export function clearActiveExamSession(): void {
+  sessionStorage.removeItem(ACTIVE_EXAM_SESSION_KEY);
+}
+
+/**
+ * Single source of truth for which exam is active.
+ * Priority: sessionStorage override → preferredExamId → first active subscription.
+ * For parent role: falls back to childExamIds synthetic subscription.
+ */
+export function resolveActiveExam(user: EGUser): ExamSubscription | null {
+  const sessionExamId = getActiveExamForSession();
+  const active = user.examSubscriptions.filter(
+    (s) => s.status === 'active' || s.status === 'trial'
+  );
+
+  // Teacher/admin/owner/manager: no exam restriction — return first active or null
+  if (user.role === 'teacher' || user.role === 'admin' || user.role === 'owner' || user.role === 'manager') {
+    if (active.length === 0) return null;
+    if (sessionExamId) {
+      const match = active.find((s) => s.examId === sessionExamId);
+      if (match) return match;
+    }
+    return active[0];
+  }
+
+  // Parent role: use childExamIds if no own subscriptions
+  if (user.role === 'parent' && active.length === 0 && user.preferences.childExamIds?.length) {
+    const childExamId = sessionExamId && user.preferences.childExamIds.includes(sessionExamId)
+      ? sessionExamId
+      : user.preferences.childExamIds[0];
+    const examEntry = EXAM_CATALOG.find((e) => e.id === childExamId);
+    if (examEntry) {
+      // Synthetic subscription for parent role
+      return {
+        examId: examEntry.id,
+        examName: examEntry.name,
+        plan: 'free',
+        status: 'active',
+        startedAt: user.createdAt,
+        features: {
+          chatEnabled: true,
+          practiceEnabled: false,
+          wolframVerification: false,
+          mcpEnabled: false,
+          ragEnabled: false,
+          practiceLimit: null,
+          aiExplanations: false,
+          downloadContent: false,
+        },
+      };
+    }
+  }
+
+  if (active.length === 0) return null;
+
+  if (sessionExamId) {
+    const match = active.find((s) => s.examId === sessionExamId);
+    if (match) return match;
+  }
+  if (user.preferences.preferredExamId) {
+    const match = active.find((s) => s.examId === user.preferences.preferredExamId);
+    if (match) return match;
+  }
+  return active[0];
 }
 
 // ─── Subscription Management ──────────────────────────────────────────────────

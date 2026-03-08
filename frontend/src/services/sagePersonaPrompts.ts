@@ -172,6 +172,11 @@ export interface UserContext {
   activeExam: string;
   plan: 'free' | 'starter' | 'pro' | 'enterprise';
   channel: 'web' | 'whatsapp' | 'telegram' | 'widget';
+  // Item 6: role-based exam restriction
+  role?: 'student' | 'teacher' | 'parent' | 'manager' | 'admin' | 'owner';
+  // Item 6: multi-exam student support
+  examCount?: number;   // how many active exam subscriptions
+  allExams?: string[];  // all exam IDs subscribed (for multi-exam students)
   mcpPrivileges: {
     wolframEnabled: boolean;
     ragEnabled: boolean;
@@ -273,16 +278,57 @@ ${kCtx.context}`;
 
   // ── Inject user context if provided ────────────────────────────────────────
   if (userContext) {
-    systemPrompt += `\n\n## USER CONTEXT
-Student: ${userContext.name} (${userContext.uid})
-Active Exam: ${userContext.activeExam}
+    const isStaff = userContext.role === 'teacher' || userContext.role === 'admin' ||
+                    userContext.role === 'owner' || userContext.role === 'manager';
+    const isParent = userContext.role === 'parent';
+
+    let userBlock = `## USER CONTEXT
+`;
+    // Item 7: parents get a different label
+    if (isParent) {
+      userBlock += `Parent ID: ${userContext.uid}
+Name: ${userContext.name}
+Child's Active Exam: ${userContext.activeExam || 'Not set'}
+Channel: ${userContext.channel}
+Wolfram verification: ${userContext.mcpPrivileges.wolframEnabled ? 'ENABLED' : 'DISABLED for this plan'}
+RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for this plan'}${userContext.daysToExam !== undefined ? `\nDays to exam: ${userContext.daysToExam}` : ''}
+
+Role: parent — You are helping this parent understand their child's exam preparation.
+Introduction: Open with "I'll help you understand your child's exam preparation." Skip student-specific emotional tones and motivational pushes — be informative and supportive for a parent's perspective.`;
+    } else if (isStaff) {
+      // Item 6: teacher/admin/owner/manager — no exam restriction
+      userBlock += `Staff ID: ${userContext.uid}
+Name: ${userContext.name}
+Active Exam context: ${userContext.activeExam || 'Not set'}
+Plan: ${userContext.plan}
+Channel: ${userContext.channel}
+Wolfram verification: ${userContext.mcpPrivileges.wolframEnabled ? 'ENABLED' : 'DISABLED for this plan'}
+RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for this plan'}
+
+Role: ${userContext.role} — no exam restriction. Answer any subject freely. Do NOT redirect based on exam scope.`;
+    } else {
+      // student path
+      userBlock += `Student ID: ${userContext.uid}
+Name: ${userContext.name}
+Active Exam: ${userContext.activeExam || 'Not set'}
 Plan: ${userContext.plan}
 Channel: ${userContext.channel}
 Wolfram verification: ${userContext.mcpPrivileges.wolframEnabled ? 'ENABLED' : 'DISABLED for this plan'}
 RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for this plan'}${userContext.daysToExam !== undefined ? `\nDays to exam: ${userContext.daysToExam}` : ''}${userContext.studyStreakDays !== undefined ? `\nStudy streak: ${userContext.studyStreakDays} days 🔥` : ''}
+`;
+      // Item 6: per-exam focus restriction
+      if (userContext.activeExam) {
+        userBlock += `\nPrimary focus: ${userContext.activeExam}. For out-of-scope questions, acknowledge but gently return focus.`;
+      }
+      if (userContext.examCount && userContext.examCount > 1) {
+        userBlock += `\nStudent has ${userContext.examCount} active exam subscriptions (${(userContext.allExams ?? []).join(', ')}). They may ask about any of them.`;
+      }
+      if (userContext.plan === 'free') {
+        userBlock += `\nThis student is on the FREE plan. Keep responses helpful but occasionally mention that Pro/Starter plans unlock more features (Wolfram verification, practice tests).`;
+      }
+    }
 
-If the student asks about topics outside their subscribed exam (${userContext.activeExam}), gently redirect them and mention their current exam focus.
-${userContext.plan === 'free' ? 'This student is on the FREE plan. Keep responses helpful but occasionally mention that Pro/Starter plans unlock more features (Wolfram verification, practice tests).' : ''}`;
+    systemPrompt += '\n\n' + userBlock;
   }
 
   return systemPrompt;
