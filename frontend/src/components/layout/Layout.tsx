@@ -49,21 +49,28 @@ function MobileTabBar({ role }: { role: 'student' | 'teacher' }) {
               'flex-1 flex flex-col items-center justify-center py-2.5 gap-1 min-w-0',
               'touch-manipulation transition-colors duration-150',
               isActive
-                ? 'text-primary-400'
+                ? 'text-emerald-400'
                 : tab.highlight
-                  ? 'text-indigo-400'
+                  ? 'text-emerald-400'
                   : 'text-surface-500 dark:text-surface-500'
             )
           }
         >
           {({ isActive }) => (
             <>
+              {/* Warm pill indicator above active tab icon */}
+              {!tab.highlight && (
+                <div className={clsx(
+                  'h-[2px] rounded-full mb-0.5 transition-all duration-200',
+                  isActive ? 'w-5 bg-gradient-to-r from-amber-400 to-emerald-400' : 'w-0 bg-transparent'
+                )} />
+              )}
               {tab.highlight ? (
                 <div className={clsx(
                   'w-12 h-12 -mt-6 rounded-2xl flex items-center justify-center shadow-xl transition-all duration-200',
                   isActive
-                    ? 'bg-primary-500 scale-110 shadow-primary-500/40'
-                    : 'bg-indigo-600 shadow-indigo-600/30'
+                    ? 'bg-gradient-to-br from-emerald-500 to-sky-500 scale-110 shadow-emerald-500/40'
+                    : 'bg-gradient-to-br from-emerald-600 to-sky-600 shadow-emerald-700/30'
                 )}>
                   <tab.icon size={22} className="text-white" strokeWidth={isActive ? 2.5 : 2} />
                 </div>
@@ -72,6 +79,7 @@ function MobileTabBar({ role }: { role: 'student' | 'teacher' }) {
               )}
               <span className={clsx(
                 'text-[11px] font-medium leading-none',
+                isActive ? 'text-emerald-400' : '',
                 tab.highlight && !isActive ? 'mt-1' : '',
               )}>
                 {tab.label}
@@ -88,6 +96,28 @@ function MobileTabBar({ role }: { role: 'student' | 'teacher' }) {
 
 function MobileTopBar({ role }: { role: 'student' | 'teacher' }) {
   const { theme, toggleTheme } = useAppStore();
+
+  // Read streak from localStorage (kept in sync by StudentDashboard)
+  const streak = (() => {
+    try { return parseInt(localStorage.getItem('edugenius_streak') ?? '0', 10) || 0; } catch { return 0; }
+  })();
+
+  // Read exam + days from persona if available (graceful fallback)
+  const examChip = (() => {
+    try {
+      const raw = localStorage.getItem('edugenius_persona');
+      if (!raw) return null;
+      const p = JSON.parse(raw) as { exam?: string; daysToExam?: number };
+      const labels: Record<string, string> = {
+        JEE_MAIN: 'JEE', JEE_ADVANCED: 'JEE Adv', NEET: 'NEET',
+        CBSE_12: 'CBSE', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
+      };
+      const name = (p.exam && labels[p.exam]) ?? 'Exam';
+      const days = p.daysToExam ?? null;
+      return days !== null ? `${name} · ${days}d` : name;
+    } catch { return null; }
+  })();
+
   return (
     <header
       className={clsx(
@@ -101,19 +131,30 @@ function MobileTopBar({ role }: { role: 'student' | 'teacher' }) {
         paddingRight: 'max(1rem, env(safe-area-inset-right))',
       }}
     >
+      {/* Logo mark — emerald → sky gradient */}
       <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center shadow-lg">
-          <span className="text-white font-bold text-sm">E</span>
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+          <span className="text-white font-black text-sm">E</span>
         </div>
         <span className="font-bold text-white text-base tracking-tight">EduGenius</span>
       </div>
+
       <div className="flex items-center gap-2">
-        {role === 'student' && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/15 border border-orange-500/25 rounded-full touch-manipulation">
-            <span className="text-base leading-none">🔥</span>
-            <span className="text-sm font-bold text-orange-400">12</span>
+        {/* Exam countdown chip */}
+        {role === 'student' && examChip && (
+          <div className="flex items-center px-2.5 py-1 bg-sky-500/10 border border-sky-500/25 rounded-full">
+            <span className="text-xs font-semibold text-sky-300">{examChip}</span>
           </div>
         )}
+
+        {/* Streak pill — amber, prominent */}
+        {role === 'student' && streak > 0 && (
+          <div className="streak-badge touch-manipulation">
+            <span className="text-sm leading-none">🔥</span>
+            <span>{streak}</span>
+          </div>
+        )}
+
         <button onClick={toggleTheme}
           className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-800/80 border border-surface-700/60 touch-manipulation hover:bg-surface-700/80 transition-colors">
           <span className="text-base leading-none">{theme === 'dark' ? '☀️' : '🌙'}</span>

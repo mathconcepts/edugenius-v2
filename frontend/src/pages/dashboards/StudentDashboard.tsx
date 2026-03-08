@@ -145,7 +145,7 @@ function ExamRing({ daysLeft, exam }: { daysLeft: number; exam: string }) {
           <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
           <circle
             cx="40" cy="40" r={r} fill="none"
-            stroke={daysLeft < 15 ? '#ef4444' : daysLeft < 30 ? '#f59e0b' : '#38bdf8'}
+            stroke={daysLeft <= 7 ? '#ef4444' : daysLeft <= 30 ? '#f59e0b' : '#10b981'}
             strokeWidth="6" strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -312,19 +312,19 @@ export function StudentDashboard() {
       )}
 
       {/* ────────────────────────────────────────
-          ZONE A — Hero Header (animated gradient)
+          ZONE A — Hero Header (warm confidence gradient)
           ──────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="hero-gradient rounded-2xl px-5 py-6 md:py-8 relative overflow-hidden"
+        className="rounded-2xl px-5 py-6 md:py-8 relative overflow-hidden bg-gradient-to-br from-emerald-900/80 via-sky-900/60 to-slate-900"
         style={{ minHeight: 160 }}
       >
         {/* Subtle overlay */}
-        <div className="absolute inset-0 bg-black/20 rounded-2xl" />
+        <div className="absolute inset-0 bg-black/10 rounded-2xl" />
 
         <div className="relative z-10 flex items-start justify-between gap-4">
-          {/* Left: greeting + streak */}
+          {/* Left: greeting + streak + tagline */}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{greeting.emoji}</span>
@@ -332,17 +332,31 @@ export function StudentDashboard() {
                 {greeting.text}, Arjun!
               </h1>
             </div>
-            <p className="text-white/70 text-sm mb-4">Let's make today count → {doneTasks}/{totalTasks} tasks done</p>
+            {/* Motivational tagline */}
+            <p className="text-emerald-300/80 text-xs font-medium mb-1 italic">
+              Every minute counts. You're on track.
+            </p>
+            <p className="text-white/60 text-sm mb-4">{doneTasks}/{totalTasks} tasks done today</p>
 
-            {/* Streak pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full">
-              <Flame className="w-4 h-4 text-orange-300" />
-              <span className="text-sm font-bold text-white">{streak} day streak</span>
-              <span className="text-white/50 text-xs">🔥</span>
-            </div>
+            {/* Streak — amber pulse if streak > 0 */}
+            {streak > 0 ? (
+              <div className={clsx(
+                'inline-flex items-center gap-2 px-3 py-1.5 rounded-full',
+                'bg-amber-500/20 border border-amber-400/30',
+                'streak-pulse'
+              )}>
+                <Flame className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-bold text-amber-300">🔥 {streak} day streak!</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full">
+                <Flame className="w-4 h-4 text-surface-400" />
+                <span className="text-sm font-medium text-white/70">Start your streak today!</span>
+              </div>
+            )}
           </div>
 
-          {/* Right: exam countdown ring */}
+          {/* Right: exam countdown ring — coloured by urgency */}
           <div className="flex-shrink-0">
             <ExamRing daysLeft={examCountdown.daysLeft} exam={examCountdown.exam} />
           </div>
@@ -353,7 +367,7 @@ export function StudentDashboard() {
       <AIStudyCoach />
 
       {/* ────────────────────────────────────────
-          ZONE B — Today's Mission (single next task)
+          ZONE B — ✅ Today's Mission
           ──────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -362,18 +376,25 @@ export function StudentDashboard() {
       >
         {firstIncompleteTask ? (
           <div
-            className="relative rounded-2xl overflow-hidden cursor-pointer group border border-primary-500/30 bg-gradient-to-br from-surface-900 to-surface-800 hover:border-primary-500/50 transition-all"
+            className="relative rounded-2xl overflow-hidden cursor-pointer group border border-emerald-500/30 bg-gradient-to-br from-surface-900 to-surface-800 hover:border-emerald-500/50 transition-all"
             onClick={() => handleTaskPlay(firstIncompleteTask.id)}
           >
             <ConfettiBurst active={celebrating === firstIncompleteTask.id && showConfetti} />
 
-            {/* Left accent bar */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-500 to-accent-500 rounded-l-2xl" />
+            {/* Left accent bar — colour by task type */}
+            <div className={clsx(
+              'absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl',
+              firstIncompleteTask.subject === 'Revision'
+                ? 'bg-gradient-to-b from-emerald-500 to-emerald-600'
+                : firstIncompleteTask.subject === 'Mixed'
+                  ? 'bg-gradient-to-b from-amber-400 to-amber-500'
+                  : 'bg-gradient-to-b from-sky-500 to-sky-600'
+            )} />
 
             <div className="px-6 py-5 pl-7">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary-400 mb-1">Your Next Task →</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-1">✅ Today's Mission</p>
                   <h2 className="text-xl md:text-2xl font-bold text-white mb-1">{firstIncompleteTask.title}</h2>
                   <p className="text-surface-400 text-sm">{firstIncompleteTask.subject} · {firstIncompleteTask.duration}</p>
                 </div>
@@ -382,32 +403,32 @@ export function StudentDashboard() {
                   <div className="relative">
                     <ProgressArc pct={todayPct} />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-primary-400">{todayPct}%</span>
+                      <span className="text-[10px] font-bold text-emerald-400">{todayPct}%</span>
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-primary-500 group-hover:bg-primary-400 flex items-center justify-center transition-colors shadow-lg shadow-primary-500/30">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500 group-hover:bg-emerald-400 flex items-center justify-center transition-colors shadow-lg shadow-emerald-500/30">
                     <Play className="w-4 h-4 text-white ml-0.5" />
                   </div>
                 </div>
               </div>
 
-              {/* Pulsing ring on CTA */}
+              {/* Tap to start hint + pulsing ring */}
               <div className="mt-4 flex items-center gap-2">
                 <div className="relative flex items-center">
-                  <span className="absolute inline-flex h-2.5 w-2.5 rounded-full bg-primary-400 animate-ping opacity-60" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-500" />
+                  <span className="absolute inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping opacity-60" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
                 </div>
-                <span className="text-xs font-semibold text-primary-300 group-hover:text-primary-200 transition-colors">
-                  Tap to start · {todayPlan.filter(t => !t.done).length} tasks left today
+                <span className="text-xs font-semibold text-emerald-300 group-hover:text-emerald-200 transition-colors">
+                  Tap to start → · {todayPlan.filter(t => !t.done).length} tasks left today
                 </span>
               </div>
             </div>
           </div>
         ) : (
           /* All done state */
-          <div className="rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 p-6 text-center">
+          <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-sky-500/10 border border-emerald-500/20 p-6 text-center">
             <div className="text-4xl mb-2">🎉</div>
-            <h2 className="text-xl font-bold text-green-300">All tasks done for today!</h2>
+            <h2 className="text-xl font-bold text-emerald-300">All tasks done for today!</h2>
             <p className="text-surface-400 text-sm mt-1">Incredible focus. Your streak is safe — great work!</p>
           </div>
         )}
@@ -432,40 +453,50 @@ export function StudentDashboard() {
               <div className="card space-y-2.5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-primary-400" />
-                    <h3 className="font-semibold text-sm">Full Today's Plan</h3>
+                    <Target className="w-4 h-4 text-emerald-400" />
+                    <h3 className="font-semibold text-sm">✅ Today's Mission</h3>
                   </div>
                   <span className="text-xs text-surface-500">{doneTasks}/{totalTasks} done</span>
                 </div>
                 <div className="h-1.5 bg-surface-700 rounded-full mb-3 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full" style={{ width: `${todayPct}%` }} />
+                  <div className="progress-shimmer h-full rounded-full" style={{ width: `${todayPct}%` }} />
                 </div>
-                {todayPlan.map(task => {
+                {todayPlan.map((task, taskIdx) => {
                   const isFirst = !task.done && task.id === firstIncompleteTask?.id;
+                  // Colour-code left border: emerald=revision, sky=new, amber=practice
+                  const borderColor =
+                    task.subject === 'Revision' ? 'border-l-emerald-500' :
+                    task.subject === 'Mixed'    ? 'border-l-amber-400' :
+                                                  'border-l-sky-500';
                   return (
                     <div key={task.id} className={clsx(
-                      'flex items-center gap-3 p-2.5 rounded-xl transition-colors relative',
+                      'flex items-center gap-3 p-2.5 rounded-xl transition-colors relative border-l-2',
+                      borderColor,
                       task.done ? 'opacity-50' : 'hover:bg-surface-800/60 cursor-pointer'
                     )}>
                       <div className={clsx(
                         'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0',
-                        task.done ? 'bg-green-500' : 'border-2 border-surface-600'
+                        task.done ? 'bg-emerald-500' : 'border-2 border-surface-600'
                       )}>
                         {task.done && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={clsx('text-sm font-medium truncate', task.done && 'line-through')}>{task.title}</p>
+                        <p className={clsx('text-sm font-medium truncate', task.done && 'line-through text-surface-500')}>{task.title}</p>
                         <p className="text-xs text-surface-500">{task.subject} · {task.duration}</p>
+                        {/* "Tap to start" hint on first uncompleted task */}
+                        {isFirst && !task.done && taskIdx === todayPlan.findIndex(t => !t.done) && (
+                          <p className="text-xs text-emerald-400/70 mt-0.5 italic">Tap to start →</p>
+                        )}
                       </div>
                       {!task.done && (
                         isFirst ? (
-                          <button onClick={() => handleTaskPlay(task.id)} className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-semibold transition-all">
-                            <span className="absolute inset-0 rounded-lg ring-2 ring-green-400/40 animate-ping pointer-events-none" />
+                          <button onClick={() => handleTaskPlay(task.id)} className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs font-semibold transition-all">
+                            <span className="absolute inset-0 rounded-lg ring-2 ring-emerald-400/40 animate-ping pointer-events-none" />
                             <ArrowRight className="w-3.5 h-3.5" /> Continue
                           </button>
                         ) : (
-                          <button onClick={() => handleTaskPlay(task.id)} className="p-1.5 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-colors">
-                            <Play className="w-3.5 h-3.5 text-primary-400" />
+                          <button onClick={() => handleTaskPlay(task.id)} className="p-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 transition-colors">
+                            <Play className="w-3.5 h-3.5 text-sky-400" />
                           </button>
                         )
                       )}
@@ -479,30 +510,45 @@ export function StudentDashboard() {
       </motion.div>
 
       {/* ────────────────────────────────────────
-          ZONE C — Quick Actions (glassmorphism pills)
+          ZONE C — Quick Actions
+          Mobile: full-width stacked | Desktop: 3-col grid
           ──────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.14 }}
-        className="grid grid-cols-3 gap-3"
+        className="flex flex-col md:grid md:grid-cols-3 gap-3"
       >
         {[
-          { to: '/practice', emoji: '📝', label: 'Practice', color: 'from-red-600/20 to-red-500/10 border-red-500/20 hover:border-red-500/40' },
-          { to: '/chat',     emoji: '💬', label: 'Ask Sage', color: 'from-primary-600/20 to-primary-500/10 border-primary-500/20 hover:border-primary-500/40', highlight: true },
-          { to: '/learn',    emoji: '📚', label: 'Study',    color: 'from-blue-600/20 to-blue-500/10 border-blue-500/20 hover:border-blue-500/40' },
+          {
+            to: '/practice', emoji: '🎯', label: 'Test Yourself',
+            color: 'border-amber-500/25 hover:border-amber-400/50',
+            textColor: 'text-amber-300',
+          },
+          {
+            to: '/chat', emoji: '💬', label: 'Ask Sage',
+            color: 'border-emerald-500/30 hover:border-emerald-400/50',
+            textColor: 'text-emerald-300',
+            highlight: true,
+          },
+          {
+            to: '/progress', emoji: '📊', label: 'My Progress',
+            color: 'border-sky-500/25 hover:border-sky-400/50',
+            textColor: 'text-sky-300',
+          },
         ].map(item => (
           <Link
             key={item.to}
             to={item.to}
             className={clsx(
-              'flex flex-col items-center justify-center gap-2 py-5 rounded-2xl border bg-gradient-to-b glass-card transition-all active:scale-95 group',
+              'confidence-card flex items-center md:flex-col md:justify-center gap-3 md:gap-2',
+              'px-4 md:px-0 py-4 md:py-5 rounded-2xl border transition-all active:scale-95 group',
               item.color,
-              item.highlight && 'shadow-lg shadow-primary-500/10'
+              item.highlight && 'shadow-lg shadow-emerald-500/10'
             )}
           >
-            <span className="text-2xl group-hover:scale-110 transition-transform">{item.emoji}</span>
-            <span className={clsx('text-sm font-semibold', item.highlight ? 'text-primary-300' : 'text-surface-200')}>
+            <span className="text-2xl group-hover:scale-110 transition-transform flex-shrink-0">{item.emoji}</span>
+            <span className={clsx('text-sm font-semibold', item.textColor)}>
               {item.label}
             </span>
           </Link>
@@ -557,6 +603,20 @@ export function StudentDashboard() {
 
       {/* ── Peer Activity ── */}
       <PeerActivity />
+
+      {/* ── Motivational Footer Banner ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="motivation-banner"
+      >
+        <p className="text-sm text-emerald-200 font-medium">
+          💪 You've completed{' '}
+          <span className="text-emerald-300 font-bold">{todayPlan.filter(t => t.done).length} topics</span>{' '}
+          today. Keep going — consistency beats intensity.
+        </p>
+      </motion.div>
 
       {/* ────────────────────────────────────────────────────────────────
           Floating Quick-Ask Bar (mobile, fixed above tab bar)

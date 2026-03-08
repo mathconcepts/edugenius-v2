@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { clsx } from 'clsx';
 // Wire 6 imports
 import { loadPersona } from '@/services/studentPersonaEngine';
 import { loadNotebookState, getCoverageSummary, type ExamScope } from '@/services/notebookEngine';
@@ -149,8 +150,55 @@ export default function Progress() {
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const maxActivity = Math.max(...data.weeklyActivity);
 
+  // Compute "topics mastered" (mastery >= 80%)
+  const topicsMastered = data.subjects.reduce((acc, s) => acc + (s.mastery >= 80 ? s.topicsCompleted : 0), 0);
+
+  // Days to exam from localStorage/persona
+  const daysToExam = (() => {
+    try {
+      const raw = localStorage.getItem('edugenius_persona');
+      if (!raw) return null;
+      return (JSON.parse(raw) as { daysToExam?: number }).daysToExam ?? null;
+    } catch { return null; }
+  })();
+
+  // Check if milestone reached (≥10 total topics completed)
+  const totalTopicsCompleted = data.subjects.reduce((acc, s) => acc + s.topicsCompleted, 0);
+  const milestoneReached = totalTopicsCompleted >= 10;
+
   return (
     <div className="space-y-6">
+
+      {/* ── Progress Summary — 3 stats in mobile-cards ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="mobile-card flex flex-col items-center text-center gap-1.5">
+          <span className="text-2xl">🏅</span>
+          <p className="text-xl font-black text-emerald-400">{topicsMastered}</p>
+          <p className="text-[11px] text-surface-400 leading-tight">Topics<br/>Mastered</p>
+        </div>
+        <div className="mobile-card flex flex-col items-center text-center gap-1.5">
+          <span className={clsx('text-2xl', data.streaks.current > 0 ? 'streak-pulse' : '')}>🔥</span>
+          <p className="text-xl font-black text-amber-400">{data.streaks.current}</p>
+          <p className="text-[11px] text-surface-400 leading-tight">Day<br/>Streak</p>
+        </div>
+        <div className="mobile-card flex flex-col items-center text-center gap-1.5">
+          <span className="text-2xl">📅</span>
+          <p className="text-xl font-black text-sky-400">{daysToExam ?? '—'}</p>
+          <p className="text-[11px] text-surface-400 leading-tight">Days to<br/>Exam</p>
+        </div>
+      </div>
+
+      {/* Milestone celebration */}
+      {milestoneReached && (
+        <div className="confidence-card p-4 flex items-center gap-3">
+          <span className={clsx('text-3xl', 'achievement-pulse')}>🎉</span>
+          <div>
+            <p className="text-sm font-bold text-emerald-300">Milestone: {totalTopicsCompleted}+ topics complete!</p>
+            <p className="text-xs text-surface-400">You're building real momentum — keep it up!</p>
+          </div>
+        </div>
+      )}
+
       {/* Header Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card bg-gradient-to-br from-primary-600/20 to-primary-800/20 border-primary-500/30">
@@ -234,45 +282,59 @@ export default function Progress() {
         <div className="lg:col-span-2 card">
           <h3 className="text-lg font-semibold text-white mb-4">Subject-wise Progress</h3>
           <div className="space-y-4">
-            {data.subjects.map(subject => (
-              <div key={subject.name} className="p-4 bg-surface-800/50 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{trendIcon(subject.trend)}</span>
-                    <span className="font-medium text-white">{subject.name}</span>
+            {data.subjects.map(subject => {
+              const masteryBadge = subject.mastery >= 80 ? '🏆' : subject.mastery >= 50 ? '⭐' : null;
+              return (
+                <div key={subject.name} className="p-4 bg-surface-800/50 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{trendIcon(subject.trend)}</span>
+                      <span className="font-medium text-white">{subject.name}</span>
+                      {masteryBadge && (
+                        <span className={clsx('text-base', subject.mastery >= 80 ? 'achievement-pulse' : '')}>
+                          {masteryBadge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm text-surface-400">
+                      {subject.topicsCompleted}/{subject.totalTopics} topics
+                    </span>
                   </div>
-                  <span className="text-sm text-surface-400">
-                    {subject.topicsCompleted}/{subject.totalTopics} topics
-                  </span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-surface-400">Progress</span>
+                        <span className="text-primary-400">{subject.progress}%</span>
+                      </div>
+                      <div className="h-2 bg-surface-700 rounded-full overflow-hidden">
+                        <div
+                          className={clsx(
+                            'h-full rounded-full transition-all',
+                            subject.progress >= 70 ? 'progress-shimmer' : 'bg-primary-500'
+                          )}
+                          style={{ width: `${subject.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-surface-400">Mastery</span>
+                        <span className={subject.mastery >= 80 ? 'text-emerald-400' : 'text-accent-400'}>{subject.mastery}%</span>
+                      </div>
+                      <div className="h-2 bg-surface-700 rounded-full overflow-hidden">
+                        <div
+                          className={clsx(
+                            'h-full rounded-full transition-all',
+                            subject.mastery >= 80 ? 'progress-shimmer' : 'bg-accent-500'
+                          )}
+                          style={{ width: `${subject.mastery}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-surface-400">Progress</span>
-                      <span className="text-primary-400">{subject.progress}%</span>
-                    </div>
-                    <div className="h-2 bg-surface-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary-500 rounded-full transition-all"
-                        style={{ width: `${subject.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-surface-400">Mastery</span>
-                      <span className="text-accent-400">{subject.mastery}%</span>
-                    </div>
-                    <div className="h-2 bg-surface-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-accent-500 rounded-full transition-all"
-                        style={{ width: `${subject.mastery}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

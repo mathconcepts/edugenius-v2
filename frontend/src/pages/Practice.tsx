@@ -748,28 +748,35 @@ function QuizScreen({
 
   return (
     <div className="max-w-2xl mx-auto py-6 px-4">
-      {/* Header bar */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="flex-1 bg-zinc-800 rounded-full h-1.5">
-          <div className="bg-blue-500 h-1.5 rounded-full transition-all"
-            style={{ width: `${((idx) / questions.length) * 100}%` }} />
-        </div>
-        <span className="text-sm text-zinc-400 whitespace-nowrap">{idx + 1}/{questions.length}</span>
-        {config.timed && (
-          <div className="flex items-center gap-1.5 text-sm min-w-[52px]">
-            <Clock size={14} className={timeLeft < 10 ? 'text-red-400' : 'text-zinc-400'} />
-            <span className={timeLeft < 10 ? 'text-red-400 font-bold' : 'text-zinc-300'}>{timeLeft}s</span>
+      {/* Progress bar — shimmer style with Q X of Y label */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-bold text-emerald-400 tracking-wide">Q {idx + 1} of {questions.length}</span>
+          <div className="flex items-center gap-3">
+            {config.timed && (
+              <div className="flex items-center gap-1.5 text-sm min-w-[52px]">
+                <Clock size={14} className={timeLeft < 10 ? 'text-red-400' : 'text-zinc-400'} />
+                <span className={timeLeft < 10 ? 'text-red-400 font-bold' : 'text-zinc-300'}>{timeLeft}s</span>
+              </div>
+            )}
+            <button onClick={() => setFlagged(f => {
+              const n = new Set(f);
+              n.has(idx) ? n.delete(idx) : n.add(idx);
+              return n;
+            })}
+              className={clsx('p-1.5 rounded-lg transition-all',
+                flagged.has(idx) ? 'text-yellow-400 bg-yellow-400/10' : 'text-zinc-600 hover:text-zinc-400')}>
+              <Flag size={16} />
+            </button>
           </div>
-        )}
-        <button onClick={() => setFlagged(f => {
-          const n = new Set(f);
-          n.has(idx) ? n.delete(idx) : n.add(idx);
-          return n;
-        })}
-          className={clsx('p-1.5 rounded-lg transition-all',
-            flagged.has(idx) ? 'text-yellow-400 bg-yellow-400/10' : 'text-zinc-600 hover:text-zinc-400')}>
-          <Flag size={16} />
-        </button>
+        </div>
+        {/* Shimmer progress bar */}
+        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+          <div
+            className="progress-shimmer h-2 rounded-full transition-all duration-500"
+            style={{ width: `${((idx + (revealed ? 1 : 0)) / questions.length) * 100}%` }}
+          />
+        </div>
       </div>
 
       {config.timed && (
@@ -806,26 +813,57 @@ function QuizScreen({
           {/* Question */}
           <p className="text-white text-lg font-medium mb-6 leading-relaxed">{q.question}</p>
 
-          {/* Options */}
+          {/* Options — full-width mobile, min 52px touch targets */}
           <div className="space-y-2.5">
             {q.options.map((opt, i) => {
               let style = 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-600';
+              let flashClass = '';
               if (revealed) {
-                if (i === q.correctIndex) style = 'bg-emerald-600/20 border-emerald-500 text-emerald-300';
-                else if (i === selected) style = 'bg-red-600/20 border-red-500 text-red-300';
-                else style = 'bg-zinc-800/50 border-zinc-800 text-zinc-500';
+                if (i === q.correctIndex) {
+                  style = 'bg-emerald-600/20 border-emerald-500 text-emerald-300';
+                  if (i === selected) flashClass = 'flash-correct';
+                } else if (i === selected) {
+                  style = 'bg-red-600/20 border-red-500 text-red-300';
+                  flashClass = 'flash-incorrect';
+                } else {
+                  style = 'bg-zinc-800/50 border-zinc-800 text-zinc-500';
+                }
               }
               return (
                 <button key={i} onClick={() => handleSelect(i)} disabled={revealed}
-                  className={clsx('w-full text-left px-4 py-3 rounded-xl border transition-all flex items-center gap-3', style)}>
-                  <span className="font-bold text-sm w-5">{String.fromCharCode(65 + i)}.</span>
-                  <span className="text-sm">{opt}</span>
+                  className={clsx(
+                    'w-full text-left px-4 rounded-xl border transition-all flex items-center gap-3',
+                    'min-h-[52px] py-3',  /* mobile thumb-friendly */
+                    style, flashClass
+                  )}>
+                  <span className="font-bold text-sm w-5 shrink-0">{String.fromCharCode(65 + i)}.</span>
+                  <span className="text-sm text-left leading-snug">{opt}</span>
                   {revealed && i === q.correctIndex && <CheckCircle size={16} className="ml-auto text-emerald-400 shrink-0" />}
                   {revealed && i === selected && i !== q.correctIndex && <XCircle size={16} className="ml-auto text-red-400 shrink-0" />}
                 </button>
               );
             })}
           </div>
+
+          {/* Instant feedback toast — correct / incorrect */}
+          {revealed && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={clsx(
+                'mt-3 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2',
+                selected === q.correctIndex
+                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                  : 'bg-red-500/15 border border-red-500/30 text-red-300'
+              )}
+            >
+              {selected === q.correctIndex ? (
+                <>✅ Correct! +1 point</>
+              ) : (
+                <>❌ Not quite — here's why:</>
+              )}
+            </motion.div>
+          )}
 
           {/* Explanation — static fallback + Wires 5 & 6 AI explanation */}
           {revealed && (
@@ -947,9 +985,31 @@ function ResultsScreen({ questions, answers, config, onRestart }: {
         />
       )}
 
-      <div className="text-center mb-8">
-        <div className={clsx('text-6xl font-black mb-2', gradeColor)}>{grade}</div>
-        <p className="text-zinc-400 text-sm">{accuracy}% accuracy · {correct}/{answers.length} correct</p>
+      {/* Confidence card — score summary */}
+      <div className="confidence-card p-6 mb-6 text-center">
+        <p className="text-4xl mb-2">🎯</p>
+        <p className="text-sm text-zinc-400 mb-1">Session Complete!</p>
+        <p className={clsx('text-5xl font-black mb-1', gradeColor)}>{grade}</p>
+        <p className="text-zinc-400 text-sm mb-3">
+          {correct}/{answers.length} correct
+        </p>
+        <p className="text-4xl font-black text-emerald-400">{accuracy}%</p>
+        <p className="text-xs text-zinc-500 mt-1">accuracy</p>
+        {accuracy >= 80 && (
+          <p className="mt-3 text-sm font-semibold text-emerald-300 achievement-pulse">
+            🏆 Excellent! You're in the top tier today.
+          </p>
+        )}
+        {accuracy >= 60 && accuracy < 80 && (
+          <p className="mt-3 text-sm font-semibold text-sky-300">
+            ⭐ Good effort — review the explanations to push higher!
+          </p>
+        )}
+        {accuracy < 60 && (
+          <p className="mt-3 text-sm font-medium text-amber-300">
+            💪 Keep going — every attempt makes you stronger!
+          </p>
+        )}
       </div>
 
       {/* Stats */}

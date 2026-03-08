@@ -24,6 +24,12 @@
     --input: 240 5.9% 90%;
     --ring: 199 89% 48%;
     --radius: 0.75rem;
+    /* Confidence-building palette */
+    --confidence-bg: 45 100% 97%;
+    --success-glow: 142 76% 36%;
+    --streak-fire: 38 92% 50%;
+    --progress-fill: 199 89% 48%;
+    --encourage-text: 142 72% 29%;
   }
 
   .dark {
@@ -46,6 +52,12 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 199 89% 48%;
+    /* Confidence-building palette — dark mode */
+    --confidence-bg: 45 30% 12%;
+    --success-glow: 142 60% 40%;
+    --streak-fire: 38 92% 55%;
+    --progress-fill: 199 89% 52%;
+    --encourage-text: 142 60% 55%;
   }
 
   * {
@@ -463,4 +475,139 @@
   }
   .typing-dot:nth-child(2) { animation-delay: 0.2s; }
   .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ── Confidence-Building Design System ── */
+
+  /* Confidence card — warm glassmorphism */
+  .confidence-card {
+    background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(14,165,233,0.06));
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+  }
+
+  /* Achievement badge pulse */
+  .achievement-pulse {
+    animation: achievementPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes achievementPop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    70%  { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Progress bar shimmer */
+  .progress-shimmer {
+    background: linear-gradient(90deg,
+      hsl(var(--primary)) 0%,
+      hsl(142 76% 50%) 50%,
+      hsl(var(--primary)) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Motivational banner */
+  .motivation-banner {
+    background: linear-gradient(135deg,
+      rgba(16,185,129,0.15) 0%,
+      rgba(14,165,233,0.10) 50%,
+      rgba(217,70,239,0.08) 100%);
+    border-left: 3px solid #10b981;
+    border-radius: 0 12px 12px 0;
+    padding: 10px 16px;
+  }
+
+  /* Floating action button (mobile) */
+  .fab {
+    position: fixed;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    right: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    box-shadow: 0 8px 24px rgba(14,165,233,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 30;
+  }
+  .fab:active {
+    transform: scale(0.94);
+    box-shadow: 0 4px 12px rgba(14,165,233,0.3);
+  }
+
+  /* Mobile card — full-width, rounded, shadow */
+  .mobile-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  html:not(.dark) .mobile-card {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  /* Streak badge */
+  .streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(251,191,36,0.1));
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 999px;
+    font-weight: 700;
+    color: #f59e0b;
+    font-size: 0.8125rem;
+  }
+
+  /* Tap highlight for iOS */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Bottom sheet slide-up */
+  @keyframes slideUpSheet {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .sheet-slide-up {
+    animation: slideUpSheet 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+
+  /* Exam countdown ring colour helpers */
+  .ring-success { stroke: #10b981; }
+  .ring-warning  { stroke: #f59e0b; }
+  .ring-danger   { stroke: #ef4444; }
+
+  /* Streak pulse animation */
+  @keyframes streakPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.75; transform: scale(1.08); }
+  }
+  .streak-pulse {
+    animation: streakPulse 1.6s ease-in-out infinite;
+  }
+
+  /* Correct / incorrect flash */
+  @keyframes flashGreen {
+    0%   { background-color: rgba(16,185,129,0.3); }
+    100% { background-color: transparent; }
+  }
+  @keyframes flashRed {
+    0%   { background-color: rgba(239,68,68,0.3); }
+    100% { background-color: transparent; }
+  }
+  .flash-correct { animation: flashGreen 0.5s ease-out forwards; }
+  .flash-incorrect { animation: flashRed 0.5s ease-out forwards; }
 }
