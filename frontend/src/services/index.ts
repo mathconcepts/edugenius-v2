@@ -36,6 +36,60 @@ export type {
   OutreachTrigger,
 } from './personaContentBridge';
 
+// Persona Batch Service — batch content generation pipeline
+export {
+  expandBatchSpec,
+  scrapeContextForRequests,
+  runPersonaBatch,
+  buildMCQBatchSpec,
+  buildFullCoverageBatchSpec,
+  summariseBatchResult,
+} from './personaBatchService';
+export type {
+  BatchMode,
+  PersonaBatchSpec,
+  PersonaBatchExpansion,
+  PersonaBatchRequest,
+  PersonaBatchOutput,
+  PersonaBatchResult,
+  PersonaBatchProgress,
+} from './personaBatchService';
+
+// Template Registry — exam × topic × style × objective overrides
+export {
+  TEMPLATE_REGISTRY,
+  REGISTRY_SIZE,
+  topicSlug,
+  buildLookupKeys,
+  resolveTemplate,
+} from './templateRegistry';
+export type { TemplateOverride } from './templateRegistry';
+
+// Content Persona Engine — prompt rendering
+export {
+  renderPrompt,
+  inferPersonaContext,
+  buildLearningStyleDirective,
+  buildObjectiveDirective,
+  buildCognitiveTierDirective,
+  buildExamContextDirective,
+  buildChannelDirective,
+  buildFormatDirective,
+  LEARNING_STYLE_LABELS,
+  OBJECTIVE_LABELS,
+  COGNITIVE_TIER_LABELS,
+  FORMAT_LABELS,
+} from './contentPersonaEngine';
+export type {
+  LearningStyle,
+  LearningObjective,
+  CognitiveTier,
+  ContentPersonaFormat,
+  PersonaContext,
+  PersonaPromptTemplate,
+  RenderedPrompt,
+} from './contentPersonaEngine';
+
 // Type re-exports for convenience
 export * from '@/types/personalization';
 export * from '@/types/teaching';

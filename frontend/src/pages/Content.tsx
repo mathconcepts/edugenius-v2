@@ -52,6 +52,7 @@ import {
 } from '@/services/contentAutomationService';
 import { useContentStore } from '@/stores/contentStore';
 import { getLiveExams } from '@/data/examRegistry';
+import { BatchGenerationPanel } from '@/components/BatchGenerationPanel';
 
 // ── Types & data ─────────────────────────────────────────────────────────────
 
@@ -95,6 +96,7 @@ const SOURCE_TABS = [
   { id: 'agent', icon: Bot, label: 'AI Agent' },
   { id: 'wolfram', icon: Calculator, label: 'Wolfram ∑' },
   { id: 'batch', icon: Zap, label: 'Batch ⚡' },
+  { id: 'persona_batch', icon: Brain, label: 'Persona Batch 🎯' },
   { id: 'auto', icon: Settings, label: 'Auto ⚙️' },
 ] as const;
 
@@ -2244,6 +2246,7 @@ export default function Content() {
             {activeSource === 'agent' && <AgentPanel onGenerated={handleGenerated} />}
             {activeSource === 'wolfram' && <WolframPanel onGenerated={handleGenerated} />}
             {activeSource === 'batch' && <BatchPanel onGenerated={handleGenerated} />}
+            {activeSource === 'persona_batch' && <BatchGenerationPanel />}
             {activeSource === 'auto' && <AutomationPanel onGenerated={handleGenerated} />}
           </motion.div>
         </AnimatePresence>

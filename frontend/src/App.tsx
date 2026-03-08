@@ -19,6 +19,7 @@ const Students = lazy(() => import('@/pages/Students'));
 const RolePreview = lazy(() => import('@/pages/RolePreview'));
 const CEOIntegrations = lazy(() => import('@/pages/dashboards/CEOIntegrations').then(m => ({ default: m.CEOIntegrations })));
 const CEOStrategy = lazy(() => import('@/pages/dashboards/CEOStrategy').then(m => ({ default: m.CEOStrategy })));
+const BatchGenerate = lazy(() => import('@/components/BatchGenerationPanel').then(m => ({ default: m.BatchGenerationPanel })));
 
 // Lazy load website pages
 const WebsiteHome = lazy(() => import('@/pages/website/Home'));
@@ -139,6 +140,7 @@ export default function App() {
           <Route path="autonomy-settings" element={<CEOThresholdConfig />} />
           <Route path="strategy" element={<CEOStrategy />} />
           <Route path="content-intelligence" element={<ContentIntelligence />} />
+          <Route path="batch-generate" element={<Suspense fallback={<PageLoader />}><BatchGenerate /></Suspense>} />
           <Route path="blog" element={<WebsiteBlog adminMode />} />
           
           {/* Student routes */}
