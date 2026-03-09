@@ -164,6 +164,33 @@ export interface KnowledgeContext {
   wolframCode?: string;
 }
 
+// ── Learning Moment directives ────────────────────────────────────────────────
+
+/**
+ * Returns a behaviour directive for Sage based on the current LearningMoment.
+ * Exported so it can be unit-tested independently.
+ */
+export function getMomentDirective(moment: import('./contentFramework').LearningMoment): string {
+  switch (moment) {
+    case 'first_encounter':
+      return 'Student is seeing this topic FOR THE FIRST TIME. Build from absolute basics. Use a real-world hook before any formula. Do NOT assume any prior knowledge of this topic.';
+    case 'building_concept':
+      return 'Student is mid-learning. They have a partial picture. Build on what they know, fill gaps, connect to what they\'ve seen.';
+    case 'practice_session':
+      return 'Student is in DRILL mode. Keep explanations tight. After answering, immediately offer the next question. Don\'t over-explain correct answers.';
+    case 'doubt_resolution':
+      return 'Student is STUCK on something specific. Don\'t reteach the whole topic. Diagnose exactly where they\'re confused, address THAT, confirm understanding.';
+    case 'quick_revision':
+      return 'EXAM IS APPROACHING. Be formula-first. Bullet points over paragraphs. No new concepts — only consolidate what they already know.';
+    case 'exam_day':
+      return 'EXAM DAY. Be calm and confidence-boosting. Only address what they ask. No new information. Reassure, focus, execute.';
+    case 'lesson_planning':
+      return 'User is a TEACHER planning a lesson. Give structured, pedagogically-organised content. Include common student mistakes to anticipate.';
+    default:
+      return 'Continue with normal Sage tutoring — be empathetic, clear, and check understanding after each explanation.';
+  }
+}
+
 // ── User Context (for channel-aware, plan-aware prompting) ────────────────────
 
 export interface UserContext {
@@ -190,7 +217,8 @@ export function buildSageSystemPrompt(
   topicId?: string,
   networkCtxOrKnowledge?: SageNetworkContext | KnowledgeContext,
   knowledgeContext?: KnowledgeContext,
-  userContext?: UserContext
+  userContext?: UserContext,
+  learningMoment?: import('./contentFramework').LearningMoment
 ): string {
   // Distinguish overloads: networkCtx has cohortNote; KnowledgeContext has context
   let networkCtx: SageNetworkContext | null = null;
@@ -329,6 +357,11 @@ RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for t
     }
 
     systemPrompt += '\n\n' + userBlock;
+  }
+
+  // ── Inject LearningMoment directive if provided ───────────────────────────
+  if (learningMoment) {
+    systemPrompt += `\n\n═══ LEARNING MOMENT ═══\n${getMomentDirective(learningMoment)}`;
   }
 
   return systemPrompt;

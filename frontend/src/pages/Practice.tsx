@@ -5,8 +5,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { callLLM } from '@/services/llmService';
-import { loadPersona } from '@/services/studentPersonaEngine';
+import { loadPersona, personaToCustomerProfileRaw } from '@/services/studentPersonaEngine';
 import { buildSageNetworkContext } from '@/services/networkAgentBridge';
+import { ContentCard } from '@/components/ContentCard';
+import { buildCustomerProfile, type ContentAtom } from '@/services/contentFramework';
 import { selectOptimalStrategy } from '@/services/teachingStrategy';
 import {
   createRootTrace,
@@ -351,6 +353,50 @@ const DIFF_STYLE: Record<Difficulty, string> = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// ─── MCQ → ContentAtom adapter ───────────────────────────────────────────────
+
+function mcqToAtom(q: MCQ): ContentAtom {
+  return {
+    id:   q.id,
+    type: 'mcq',
+    title: q.topic,
+    body:  q.question,
+    bodyMarkdown: q.question,
+    mcq: {
+      question:  q.question,
+      options: {
+        A: q.options[0] ?? '',
+        B: q.options[1] ?? '',
+        C: q.options[2] ?? '',
+        D: q.options[3] ?? '',
+      },
+      correct:           (['A', 'B', 'C', 'D'] as const)[q.correctIndex] ?? 'A',
+      explanation:       q.explanation,
+      commonWrongAnswer: 'B',
+      examTip:           q.formulaHint,
+    },
+    examId:           q.exam[0] ?? 'gate-em',
+    topic:            q.topic,
+    difficulty:       q.difficulty,
+    syllabusPriority: 'high',
+    quality: {
+      accuracy:        0.9,
+      clarity:         0.85,
+      examRelevance:   0.88,
+      engagementScore: 0,
+      wolframVerified: false,
+      reviewedByHuman: false,
+    },
+    generatedBy:    'atlas',
+    generatedAt:    new Date(),
+    sourceType:     'pyq',
+    version:        1,
+    timesServed:    0,
+    avgRating:      0,
+    completionRate: 0,
+  };
+}
 
 function filterQuestions(cfg: SessionConfig): MCQ[] {
   let pool = QUESTION_BANK.filter(q => {
@@ -785,6 +831,24 @@ function QuizScreen({
             style={{ width: `${timerPct}%` }} />
         </div>
       )}
+
+      {/* ContentCard preview — difficulty badge + preface from contentFramework */}
+      {(() => {
+        try {
+          const _persona = loadPersona();
+          const _profileRaw = personaToCustomerProfileRaw(_persona);
+          return (
+            <ContentCard
+              atom={mcqToAtom(q)}
+              profileRaw={_profileRaw}
+              renderSurface="card"
+              className="mb-3"
+            />
+          );
+        } catch {
+          return null;
+        }
+      })()}
 
       {/* Question card */}
       <AnimatePresence mode="wait">

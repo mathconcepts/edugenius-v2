@@ -22,6 +22,7 @@ import { loadPersona } from './studentPersonaEngine';
 import { resolveActiveExam } from './userService';
 import type { EGUser } from './userService';
 import { resolveTemplate } from './templateRegistry';
+import type { LearningMoment } from './contentFramework';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,9 @@ export interface PersonaContext {
 
   // Channel context
   channel: 'web' | 'whatsapp' | 'telegram' | 'widget';
+
+  // Learning moment (from contentFramework)
+  learningMoment?: LearningMoment;
 }
 
 export interface PersonaPromptTemplate {
@@ -550,6 +554,33 @@ export function buildFormatDirective(
   return directives[format];
 }
 
+// ─── Learning Moment Banner ───────────────────────────────────────────────────
+
+/**
+ * Local variant of getMomentDirective — no import from sagePersonaPrompts to
+ * avoid circular dependencies. Keys match sagePersonaPrompts.ts.
+ */
+function momentBanner(m: LearningMoment): string {
+  switch (m) {
+    case 'first_encounter':
+      return 'Student is seeing this topic FOR THE FIRST TIME. Build from absolute basics. Use a real-world hook before any formula. Do NOT assume any prior knowledge of this topic.';
+    case 'building_concept':
+      return 'Student is mid-learning. They have a partial picture. Build on what they know, fill gaps, connect to what they\'ve seen.';
+    case 'practice_session':
+      return 'Student is in DRILL mode. Keep explanations tight. After answering, immediately offer the next question. Don\'t over-explain correct answers.';
+    case 'doubt_resolution':
+      return 'Student is STUCK on something specific. Don\'t reteach the whole topic. Diagnose exactly where they\'re confused, address THAT, confirm understanding.';
+    case 'quick_revision':
+      return 'EXAM IS APPROACHING. Be formula-first. Bullet points over paragraphs. No new concepts — only consolidate what they already know.';
+    case 'exam_day':
+      return 'EXAM DAY. Be calm and confidence-boosting. Only address what they ask. No new information. Reassure, focus, execute.';
+    case 'lesson_planning':
+      return 'User is a TEACHER planning a lesson. Give structured, pedagogically-organised content. Include common student mistakes to anticipate.';
+    default:
+      return 'Continue with normal content generation — be clear, accurate, and exam-relevant.';
+  }
+}
+
 // ─── Main Renderer ────────────────────────────────────────────────────────────
 
 /**
@@ -601,6 +632,11 @@ export function renderPrompt(ctx: PersonaContext): RenderedPrompt {
 
   if (overloadBanner) systemPromptParts.push(overloadBanner);
   if (examSoonBanner) systemPromptParts.push(examSoonBanner);
+
+  // Inject LearningMoment directive when set
+  if (ctx.learningMoment) {
+    systemPromptParts.push(`\n## LEARNING MOMENT\n${momentBanner(ctx.learningMoment)}`);
+  }
 
   // ── Template Registry: resolve override (most-specific first) ────────────
   const templateMatch = resolveTemplate(
@@ -718,6 +754,20 @@ export function inferPersonaContext(
   };
   const cognitiveTier: CognitiveTier = tierMap[persona?.tier ?? ''] ?? 'developing';
 
+  // Infer LearningMoment from emotional state + performance signals
+  const emotionalState = persona?.emotionalState ?? 'neutral';
+  const masteryPct = persona?.syllabusCompletion ?? 50;
+  // questionsThisSession is not available on StudentPersona directly; use messagesThisSession as proxy
+  const questionsThisSession = persona?.messagesThisSession ?? 0;
+
+  const inferredLearningMoment: LearningMoment =
+    daysToExam === 0                              ? 'exam_day'
+    : emotionalState === 'frustrated'             ? 'doubt_resolution'
+    : emotionalState === 'anxious' && daysToExam <= 7 ? 'quick_revision'
+    : masteryPct < 20                             ? 'first_encounter'
+    : questionsThisSession > 5                    ? 'practice_session'
+    : 'building_concept';
+
   return {
     learningStyle:    mappedStyle,
     objective:        inferredObjective,
@@ -735,6 +785,7 @@ export function inferPersonaContext(
     itemCount:        format === 'mcq_set' ? 10 : undefined,
     difficulty:       'medium',
     channel:          'web',
+    learningMoment:   inferredLearningMoment,
     ...overrides,
   };
 }

@@ -36,8 +36,9 @@ import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
-import { loadPersona, updatePersonaAfterMessage } from '@/services/studentPersonaEngine';
+import { loadPersona, updatePersonaAfterMessage, personaToCustomerProfileRaw } from '@/services/studentPersonaEngine';
 import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext, type UserContext } from '@/services/sagePersonaPrompts';
+import { buildCustomerProfile, type LearningMoment } from '@/services/contentFramework';
 import { resolveKnowledgeForUser } from '@/services/knowledgeRouter';
 import {
   loadCurrentUser,
@@ -904,7 +905,11 @@ export function Chat() {
         sageSystemPrompt = buildLensPrompt(activeLensCtx, baseConfig);
       } else {
         // Legacy path (no IndexedDB or first load)
-        sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId);
+        // Compute learning moment from persona
+        const _legacyProfileRaw = personaToCustomerProfileRaw(updatedPersona, { currentTopic: detectedTopicId ?? undefined });
+        const _legacyCustomerProfile = buildCustomerProfile(_legacyProfileRaw);
+        const _legacyLearningMoment: LearningMoment = _legacyCustomerProfile.moment;
+        sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, undefined, undefined, undefined, _legacyLearningMoment);
         if (isGateExam && shouldUseRag(userText)) {
           sageSystemPrompt = buildGateRagPrompt(userText, detectedTopicId, sageSystemPrompt);
         }
@@ -974,7 +979,11 @@ export function Chat() {
                 studyStreakDays: updatedPersona.streakDays,
               }
             : undefined;
-          sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, kCtx, undefined, userCtx);
+          // Compute learning moment for the grounded path
+          const _profileRaw = personaToCustomerProfileRaw(updatedPersona, { currentTopic: detectedTopicId ?? undefined });
+          const _customerProfile = buildCustomerProfile(_profileRaw);
+          const _learningMoment: LearningMoment = _customerProfile.moment;
+          sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, kCtx, undefined, userCtx, _learningMoment);
         }
       } catch { /* non-blocking — Sage works without knowledge grounding */ }
     }

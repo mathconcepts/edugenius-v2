@@ -193,3 +193,43 @@ export function updatePersonaAfterMessage(
   savePersona(updated);
   return updated;
 }
+
+// ── CustomerProfile bridge ────────────────────────────────────────────────────
+
+import type { CustomerProfile } from './contentFramework';
+
+/**
+ * Converts a StudentPersona to the raw input shape expected by buildCustomerProfile().
+ * Use `import type` ensures CustomerProfile is erased at runtime (no circular dep).
+ */
+export function personaToCustomerProfileRaw(
+  persona: StudentPersona,
+  overrides?: {
+    channel?: CustomerProfile['channel'];
+    deviceType?: CustomerProfile['deviceType'];
+    currentTopic?: string;
+    questionsThisSession?: number;
+  }
+): Parameters<typeof import('./contentFramework').buildCustomerProfile>[0] {
+  return {
+    uid:                 persona.studentId,
+    name:                persona.name,
+    role:                'student' as const,
+    examId:              persona.exam,
+    examName:            persona.exam,
+    daysToExam:          persona.daysToExam,
+    channel:             overrides?.channel ?? 'web',
+    deviceType:          overrides?.deviceType ?? 'desktop',
+    emotionalState:      persona.emotionalState as CustomerProfile['emotionalState'],
+    masteryPct:          persona.syllabusCompletion,
+    recentScore:         persona.currentScore,
+    streak:              persona.streakDays,
+    weakTopics:          persona.weakSubjects,
+    strongTopics:        persona.strongSubjects,
+    sessionDurationMin:  persona.avgSessionMinutes,
+    questionsThisSession: overrides?.questionsThisSession ?? 0,
+    currentTopic:        overrides?.currentTopic,
+    language:            (persona.nativeLanguage === 'english' ? 'english' : 'mixed') as CustomerProfile['language'],
+    prefersShortContent: persona.prefersShortAnswers,
+  };
+}

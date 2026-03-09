@@ -26,6 +26,7 @@ import {
   type LearningStyle,
   type LearningObjective,
 } from './contentPersonaEngine';
+import type { ContentAtom, ContentAtomType } from './contentFramework';
 import { resolveKnowledgeForUser } from './knowledgeRouter';
 import { callLLM } from './llmService';
 import { loadCurrentUser, getExamFilteredSources } from './userService';
@@ -87,6 +88,25 @@ export interface PersonaBatchOutput {
   wolframVerified: boolean;
   qualityScore: number;                 // 0–1
   agentRouted: 'atlas' | 'herald' | null;
+  contentAtom?: ContentAtom;            // structured atom built from the generated content
+}
+
+// ─── Format → AtomType mapper ─────────────────────────────────────────────────
+
+function formatToAtomType(format: ContentPersonaFormat): ContentAtomType {
+  const map: Partial<Record<ContentPersonaFormat, ContentAtomType>> = {
+    mcq_set:           'mcq',
+    lesson_notes:      'lesson_block',
+    formula_sheet:     'formula_card',
+    flashcard_set:     'flashcard',
+    blog_post:         'blog_post',
+    cheatsheet:        'summary',
+    worked_example:    'worked_example',
+    analogy_explainer: 'analogy',
+    doubt_resolution:  'lesson_block',
+    visual_diagram_text: 'visual_explainer',
+  };
+  return map[format] ?? 'lesson_block';
 }
 
 export interface PersonaBatchResult {
@@ -383,15 +403,47 @@ export async function runPersonaBatch(
         const agentRouted: 'atlas' | 'herald' | null =
           req.personaContext.format === 'blog_post' ? 'herald' : 'atlas';
 
-        outputs.push({
-          requestId:      req.id,
-          personaContext: req.personaContext,
-          content:        result.text,
-          format:         req.personaContext.format,
+        const ctx = req.personaContext;
+        const output: PersonaBatchOutput = {
+          requestId:       req.id,
+          personaContext:  ctx,
+          content:         result.text,
+          format:          ctx.format,
           wolframVerified: false,     // Oracle/Wolfram verifies asynchronously
-          qualityScore:   quality,
+          qualityScore:    quality,
           agentRouted,
-        });
+        };
+
+        // Build a ContentAtom from the raw generated output
+        const atom: ContentAtom = {
+          id:    `batch_${req.id}`,
+          type:  formatToAtomType(ctx.format),
+          title: `${ctx.topic} — ${ctx.format} #${outputs.length + 1}`,
+          body:  result.text.slice(0, 500),
+          bodyMarkdown: result.text,
+          examId: ctx.examId,
+          topic: ctx.topic,
+          difficulty: (ctx.difficulty === 'mixed' ? 'medium' : ctx.difficulty) ?? 'medium',
+          syllabusPriority: 'high',
+          quality: {
+            accuracy:        quality,
+            clarity:         quality * 0.9,
+            examRelevance:   0.85,
+            engagementScore: 0,
+            wolframVerified: false,
+            reviewedByHuman: false,
+          },
+          generatedBy:   'atlas',
+          generatedAt:   new Date(),
+          sourceType:    'llm',
+          version:       1,
+          timesServed:   0,
+          avgRating:     0,
+          completionRate: 0,
+        };
+        output.contentAtom = atom;
+
+        outputs.push(output);
         succeeded++;
       } else {
         failed++;

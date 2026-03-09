@@ -53,6 +53,8 @@ import {
 import { useContentStore } from '@/stores/contentStore';
 import { getLiveExams } from '@/data/examRegistry';
 import { BatchGenerationPanel } from '@/components/BatchGenerationPanel';
+import { ContentFeed } from '@/components/ContentFeed';
+import type { ContentAtom } from '@/services/contentFramework';
 
 // ── Types & data ─────────────────────────────────────────────────────────────
 
@@ -2428,6 +2430,75 @@ export default function Content() {
           ))}
         </div>
       </div>
+
+      {/* ── Content Library Preview (ContentFeed) ── */}
+      {(() => {
+        const ceoProfileRaw = {
+          uid:        'ceo-giri',
+          name:       'Giri',
+          role:       'ceo' as const,
+          channel:    'web' as const,
+          deviceType: 'desktop' as const,
+        };
+
+        // Build ContentAtoms from auto-generated content for the feed
+        const formatToAtomType = (fmt: string): ContentAtom['type'] => {
+          const typeMap: Record<string, ContentAtom['type']> = {
+            mcq_set: 'mcq', lesson_notes: 'lesson_block', summary: 'summary',
+            quiz: 'practice_set', flashcard_set: 'flashcard', formula_sheet: 'formula_card',
+            blog_post: 'blog_post', worked_example: 'worked_example',
+            analogy_explainer: 'analogy', visual_diagram_text: 'visual_explainer',
+          };
+          return typeMap[fmt] ?? 'lesson_block';
+        };
+
+        const feedAtoms: ContentAtom[] = autoContent.slice(0, 8).map((g, i) => ({
+          id:    `feed_${g.id ?? i}`,
+          type:  formatToAtomType(g.format),
+          title: g.title ?? 'Generated Content',
+          body:  g.content.slice(0, 500),
+          bodyMarkdown: g.content,
+          examId: g.examTarget ?? 'gate-em',
+          topic:  g.topicId ?? 'General',
+          difficulty: 'medium' as ContentAtom['difficulty'],
+          syllabusPriority: 'high' as const,
+          quality: {
+            accuracy:        g.confidence,
+            clarity:         g.confidence * 0.9,
+            examRelevance:   0.88,
+            engagementScore: 0,
+            wolframVerified: g.wolframVerified,
+            reviewedByHuman: false,
+          },
+          generatedBy:    'atlas' as const,
+          generatedAt:    g.generatedAt instanceof Date ? g.generatedAt : new Date(g.generatedAt),
+          sourceType:     'llm' as const,
+          version:        1,
+          timesServed:    0,
+          avgRating:      0,
+          completionRate: 0,
+        }));
+
+        if (feedAtoms.length === 0) {
+          return (
+            <div className="card">
+              <h3 className="font-semibold mb-2">📚 Content Library Preview</h3>
+              <p className="text-surface-400 text-sm">Generate content above to populate the Content Library feed.</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="card">
+            <h3 className="font-semibold mb-4">📚 Content Library Preview</h3>
+            <ContentFeed
+              atoms={feedAtoms}
+              profileRaw={ceoProfileRaw}
+              isLoading={false}
+            />
+          </div>
+        );
+      })()}
     </div>
   );
 }
