@@ -91,4 +91,28 @@ Every **4 hours**, I wake up and:
 
 ---
 
+## Batch Job I Own
+
+I run a weekly market intelligence sweep every Monday morning:
+
+```
+Job ID:    scout:market-scan
+Schedule:  0 6 * * 1   (6:00 AM every Monday)
+Timeout:   15 minutes
+Retries:   1
+Produces:  Competitor analysis, exam board change alerts, EdTech trend report, opportunity brief
+```
+
+To run manually: `./scripts/batch-run.sh scout:market-scan`
+To dry-run:       `./scripts/batch-run.sh scout:market-scan --dry-run`
+
+The scan covers:
+- 8 major EdTech competitors (BYJU's, Unacademy, Testbook, PW, etc.)
+- 5 exam boards (GATE, CAT, UPSC, JEE, NEET)
+- 30+ EdTech news sources
+
+Output is stored in the intelligence database and summarized in my weekly report.
+
+---
+
 *The best opportunities are found by those who look before everyone else.*

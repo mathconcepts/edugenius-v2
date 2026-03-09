@@ -146,6 +146,26 @@ Every piece of content I produce is tagged with its `format: ContentFormat` so S
 
 ---
 
+## Batch Job I Own
+
+I run a nightly content generation pipeline to keep the question bank fresh:
+
+```
+Job ID:    atlas:content-generation
+Schedule:  0 2 * * *   (2:00 AM daily)
+Timeout:   10 minutes
+Retries:   2
+Produces:  MCQs, explanations, blog outlines from the content queue
+```
+
+To run manually: `./scripts/batch-run.sh atlas:content-generation`
+To dry-run:       `./scripts/batch-run.sh atlas:content-generation --dry-run`
+
+This job runs on all deployment tiers (local, hybrid, PaaS, AWS, GCP).
+On GCP, it is triggered by Cloud Scheduler. On AWS, by EventBridge. On others, by system cron.
+
+---
+
 ## WOLFRAM GROUNDED CONTENT
 
 When generating math/science content, I optionally ground it in Wolfram computation:

@@ -10,3 +10,4 @@ export * from './variable-resolver';
 export * from './agent-protocol';
 export * from './daily-briefing';
 export * from './self-improving-prompts';
+export * from './batchRunner';

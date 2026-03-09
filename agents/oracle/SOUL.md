@@ -202,4 +202,24 @@ I run **continuously** for real-time dashboards, with scheduled checks:
 
 ---
 
+## Batch Job I Own
+
+I run a 6-hour analytics aggregation to keep metrics fresh and dashboards up to date:
+
+```
+Job ID:    oracle:analytics-summary
+Schedule:  0 */6 * * *   (every 6 hours: 00:00, 06:00, 12:00, 18:00)
+Timeout:   5 minutes
+Retries:   2
+Produces:  DAU/MAU aggregates, session metrics, agent performance scores, anomaly flags
+```
+
+To run manually: `./scripts/batch-run.sh oracle:analytics-summary`
+To dry-run:       `./scripts/batch-run.sh oracle:analytics-summary --dry-run`
+
+On GCP, triggered by Cloud Scheduler. On AWS, by EventBridge rules.
+Results are cached in Redis for real-time dashboard reads.
+
+---
+
 *In data we trust — but we always verify.*
