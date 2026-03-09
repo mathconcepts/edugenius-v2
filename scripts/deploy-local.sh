@@ -8,12 +8,17 @@
 #   - Postgres 16 (Docker)
 #   - Redis 7 (Docker)
 #
-# Requirements:
-#   - Docker Engine 24+ with Compose v2 plugin
-#   - Node 20+ and npm (for optional local dev mode)
+# INSTALLS automatically if missing:
+#   - Docker Engine + Compose v2
+#   - Node.js 20 LTS (for dev mode)
 #
 # Usage:
 #   ./scripts/deploy-local.sh [--dev] [--reset] [--down]
+#
+# Options:
+#   --dev     Start with live-reload (tsx watch, logs attached)
+#   --reset   Wipe the Postgres volume (fresh DB)
+#   --down    Stop all services
 # ============================================================
 set -euo pipefail
 
@@ -26,7 +31,6 @@ DEV_MODE=false
 RESET_DB=false
 BRING_DOWN=false
 
-# Parse args
 for arg in "$@"; do
   case $arg in
     --dev)    DEV_MODE=true ;;
@@ -35,94 +39,121 @@ for arg in "$@"; do
   esac
 done
 
-# Colors
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+# ── Load shared installers ────────────────────────────────────
+# shellcheck source=./_install_common.sh
+source "$SCRIPT_DIR/_install_common.sh"
+
+# Override colors with deploy-local prefix
 info()    { echo -e "${BLUE}[local]${NC} $*"; }
 success() { echo -e "${GREEN}[local] ✅${NC} $*"; }
-warn()    { echo -e "${YELLOW}[local] ⚠️${NC} $*"; }
+warn()    { echo -e "${YELLOW}[local] ⚠️${NC}  $*"; }
 error()   { echo -e "${RED}[local] ❌${NC} $*"; exit 1; }
 
-# ── Bring down ──────────────────────────────────────────────
+# ── Bring down ───────────────────────────────────────────────
 if $BRING_DOWN; then
   info "Stopping all local services..."
-  docker compose -f "$PROJECT_ROOT/docker-compose.yml" down
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" down 2>/dev/null || true
+  pkill -f "tsx.*src/index" 2>/dev/null || true
   success "All services stopped."
   exit 0
 fi
 
-# ── Pre-flight checks ────────────────────────────────────────
-info "EduGenius Local Deployment"
-echo "────────────────────────────────────────"
+echo ""
+echo -e "${CYAN}╔══════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║   EduGenius — Local Deployment       ║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
+echo ""
 
-command -v docker &>/dev/null  || error "Docker not found. Install from https://docs.docker.com/get-docker/"
-docker info &>/dev/null        || error "Docker daemon not running. Start Docker first."
-command -v docker compose &>/dev/null || \
-  docker compose version &>/dev/null  || \
-  error "Docker Compose v2 not found. Update Docker Desktop or install the plugin."
-
-DOCKER_VER=$(docker version --format '{{.Client.Version}}' 2>/dev/null | cut -d. -f1)
-if [[ "${DOCKER_VER:-0}" -lt 20 ]]; then
-  warn "Docker version might be old. Recommend Docker Engine 20+."
-fi
-
-success "Docker OK"
+# ── Install missing dependencies ─────────────────────────────
+info "Checking dependencies..."
+ensure_curl
+ensure_docker
+$DEV_MODE && ensure_node
 
 # ── Environment file ─────────────────────────────────────────
 if [[ ! -f "$ENV_FILE" ]]; then
   if [[ -f "$ENV_EXAMPLE" ]]; then
-    info "No .env.local found — copying from example..."
+    info "No .env.local found — copying from template..."
     cp "$ENV_EXAMPLE" "$ENV_FILE"
-    warn "Edit $ENV_FILE and add your API keys (GEMINI_API_KEY etc.) before starting."
-    warn "Re-run this script after editing."
-    exit 0
   else
-    warn "No .env.local found and no example file. Creating minimal config..."
+    info "Creating .env.local with defaults..."
     cat > "$ENV_FILE" <<'ENVEOF'
 NODE_ENV=development
 DATABASE_URL=postgresql://edugenius:edugenius@db:5432/edugenius
 REDIS_URL=redis://redis:6379
 PORT=3000
 LOG_LEVEL=info
-# Add your API keys:
+
+# ── Required API Keys ──────────────────────────────────────
+# Get from: https://aistudio.google.com/app/apikey
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# Get from: https://console.anthropic.com/
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Get from: https://developer.wolframalpha.com/
+# VITE_WOLFRAM_APP_ID=your_wolfram_app_id_here
+
+# ── Optional ──────────────────────────────────────────────
+# JWT_SECRET=change_this_in_production
+# TAVILY_API_KEY=your_tavily_key
 ENVEOF
-    warn "Edit $ENV_FILE with your API keys, then re-run."
-    exit 0
   fi
+
+  warn "Created $ENV_FILE"
+  warn "Please open it and fill in your API keys, then re-run this script."
+  echo ""
+  echo "  Edit: nano $ENV_FILE"
+  echo "  Then: ./scripts/deploy-local.sh"
+  exit 0
 fi
 
-# Check required vars
-source "$ENV_FILE" 2>/dev/null || true
+# Check for placeholder API key
+set -a; source "$ENV_FILE" 2>/dev/null; set +a
 if [[ -z "${GEMINI_API_KEY:-}" ]] || [[ "${GEMINI_API_KEY}" == "your_gemini_api_key_here" ]]; then
-  error "GEMINI_API_KEY is not set in $ENV_FILE. Please add your API key."
+  warn "GEMINI_API_KEY is not set in $ENV_FILE"
+  echo ""
+  echo "  1. Get your free key at: https://aistudio.google.com/app/apikey"
+  echo "  2. Edit: nano $ENV_FILE"
+  echo "  3. Set:  GEMINI_API_KEY=your_actual_key"
+  echo "  4. Re-run this script"
+  echo ""
+  error "API key required to start."
 fi
+success "Environment loaded from $ENV_FILE"
 
-success "Environment OK"
-
-# ── Optional DB reset ─────────────────────────────────────────
+# ── Optional DB reset ────────────────────────────────────────
 if $RESET_DB; then
   warn "Resetting database volumes (all data will be lost)..."
   docker compose -f "$PROJECT_ROOT/docker-compose.yml" down -v 2>/dev/null || true
-  success "Volumes cleared."
+  success "Volumes cleared — fresh database will be created."
 fi
 
-# ── Build & launch ────────────────────────────────────────────
-info "Building Docker images..."
-docker compose -f "$PROJECT_ROOT/docker-compose.yml" build --no-cache
-
+# ── Build & launch ───────────────────────────────────────────
 if $DEV_MODE; then
-  info "Starting in development mode (logs attached)..."
-  docker compose -f "$PROJECT_ROOT/docker-compose.yml" \
-    --env-file "$ENV_FILE" \
-    up
+  # Dev mode: Docker for Postgres+Redis only, Node locally for hot reload
+  info "Starting Postgres + Redis via Docker..."
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" up -d db redis
+
+  info "Installing npm dependencies..."
+  cd "$PROJECT_ROOT" && npm install
+
+  info "Starting backend in dev mode (hot reload)..."
+  echo ""
+  warn "Press Ctrl+C to stop."
+  echo ""
+  DATABASE_URL="postgresql://edugenius:edugenius@localhost:5432/edugenius" \
+  REDIS_URL="redis://localhost:6379" \
+    npx tsx watch src/index.ts
 else
-  info "Starting services in background..."
+  info "Building Docker images..."
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" build
+
+  info "Starting all services..."
   docker compose -f "$PROJECT_ROOT/docker-compose.yml" \
     --env-file "$ENV_FILE" \
     up -d
 
-  # Wait for backend to be healthy
   info "Waiting for backend to be ready..."
   for i in $(seq 1 30); do
     if curl -sf http://localhost:3000/health &>/dev/null; then
@@ -134,15 +165,15 @@ else
   echo ""
 fi
 
-# ── Status ────────────────────────────────────────────────────
 echo ""
-echo "════════════════════════════════════════"
+echo -e "${GREEN}════════════════════════════════════════${NC}"
 success "EduGenius is running locally!"
 echo ""
 echo "  🔧 Backend API:   http://localhost:3000"
-echo "  🗄️  Postgres:     localhost:5432 (user: edugenius)"
+echo "  🗄️  Postgres:     localhost:5432  (user: edugenius)"
 echo "  🔴 Redis:         localhost:6379"
 echo ""
-echo "  Logs:   docker compose logs -f"
-echo "  Stop:   ./scripts/deploy-local.sh --down"
-echo "════════════════════════════════════════"
+echo "  📋 Logs:   docker compose logs -f"
+echo "  🛑 Stop:   ./scripts/deploy-local.sh --down"
+echo "  🔄 Reset:  ./scripts/deploy-local.sh --reset"
+echo -e "${GREEN}════════════════════════════════════════${NC}"
