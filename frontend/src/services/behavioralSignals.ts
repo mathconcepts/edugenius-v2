@@ -357,3 +357,44 @@ export function createBehavioralTracker(): BehavioralTracker {
     },
   };
 }
+
+// ─── Emotional State Inference ────────────────────────────────────────────────
+
+export type EmotionalState = 'confident' | 'anxious' | 'frustrated' | 'motivated' | 'exhausted' | 'neutral';
+
+/**
+ * inferEmotionalStateFromSignals()
+ *
+ * Derives the student's emotional state from real-time behavioral signals.
+ * Used by Chat.tsx to feed CustomerProfile.emotionalState, which then
+ * drives Sage's tone and content presentation via contentFramework.
+ *
+ * Priority: behavioral signal > persona stored state
+ */
+export function inferEmotionalStateFromSignals(tracker: BehavioralTracker): EmotionalState {
+  const signals = tracker.getSignals();
+
+  const hesitations = signals.hesitationBursts ?? 0;
+  const cogLoad = signals.cognitiveLoad ?? 'low';        // 'low'|'medium'|'high'|'overloaded'
+  const confidence = signals.confidenceSignal ?? 'unknown'; // 'high'|'medium'|'low'|'unknown'
+  const msgLenTrend = signals.messageLengthTrend ?? 'stable';
+  const latencyMs = signals.avgResponseLatencyMs ?? 0;
+  const isHighCog = cogLoad === 'high' || cogLoad === 'overloaded';
+  const isMedCog  = cogLoad === 'medium' || isHighCog;
+
+  // Exhausted: cognitive load maxed + very slow responses + short messages
+  if (cogLoad === 'overloaded' && latencyMs > 15000 && msgLenTrend === 'decreasing') return 'exhausted';
+
+  // Frustrated: high hesitation + high backspace + declining message length
+  if (hesitations >= 5 && msgLenTrend === 'decreasing') return 'frustrated';
+  if (hesitations >= 3 && isHighCog) return 'frustrated';
+
+  // Anxious: moderate hesitation + high cognitive load + fast responses (panic)
+  if (hesitations >= 3 && latencyMs < 3000 && isMedCog) return 'anxious';
+
+  // Confident: low hesitation + high confidence signal
+  if (hesitations === 0 && confidence === 'high') return 'confident';
+  if (hesitations <= 1 && (confidence === 'high' || confidence === 'medium') && msgLenTrend === 'stable') return 'motivated';
+
+  return 'neutral';
+}

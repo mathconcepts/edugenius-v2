@@ -14,6 +14,7 @@ import type {
   RealWorldExample,
 } from '@/types/teaching';
 import type { PracticeProblem } from '@/types/notebook';
+import type { LearningMoment } from './contentFramework';
 
 // ============================================
 // TEACHING STRATEGY TEMPLATES
@@ -704,8 +705,22 @@ export function selectOptimalStrategy(
     preferredStyle: 'visual' | 'logical' | 'practical' | 'sequential';
     currentMood: 'curious' | 'struggling' | 'confident' | 'rushed';
     timeAvailable: 'short' | 'medium' | 'long';
-  }
+  },
+  learningMoment?: LearningMoment,
 ): TeachingStrategy {
+  // LearningMoment takes priority — override strategy selection for key moments
+  if (learningMoment === 'exam_day' || learningMoment === 'quick_revision') {
+    return teachingStrategies['problem_first'] ?? Object.values(teachingStrategies)[0];
+  }
+  if (learningMoment === 'doubt_resolution') {
+    return teachingStrategies['socratic_discovery'] ?? Object.values(teachingStrategies)[0];
+  }
+  if (learningMoment === 'first_encounter') {
+    return teachingStrategies['visual_first'] ?? teachingStrategies['socratic_discovery'] ?? Object.values(teachingStrategies)[0];
+  }
+  if (learningMoment === 'practice_session') {
+    return teachingStrategies['scaffolded_mastery'] ?? teachingStrategies['problem_first'] ?? Object.values(teachingStrategies)[0];
+  }
   // Score each strategy based on fit
   const scores = Object.values(teachingStrategies).map((strategy) => {
     let score = 0;

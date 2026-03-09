@@ -8,7 +8,13 @@ import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 // Wire 6 imports
 import { loadPersona } from '@/services/studentPersonaEngine';
+import { getDaysToExam } from '@/services/examDateService';
 import { loadNotebookState, getCoverageSummary, type ExamScope } from '@/services/notebookEngine';
+
+const EXAM_TO_CATALOG_PROG: Record<string, string> = {
+  JEE_MAIN: 'jee-main', JEE_ADVANCED: 'jee-advanced', NEET: 'neet',
+  CBSE_12: 'cbse-12', CAT: 'cat', UPSC: 'upsc', GATE: 'gate-em',
+};
 
 interface ProgressData {
   overall: number;
@@ -153,14 +159,9 @@ export default function Progress() {
   // Compute "topics mastered" (mastery >= 80%)
   const topicsMastered = data.subjects.reduce((acc, s) => acc + (s.mastery >= 80 ? s.topicsCompleted : 0), 0);
 
-  // Days to exam from localStorage/persona
-  const daysToExam = (() => {
-    try {
-      const raw = localStorage.getItem('edugenius_persona');
-      if (!raw) return null;
-      return (JSON.parse(raw) as { daysToExam?: number }).daysToExam ?? null;
-    } catch { return null; }
-  })();
+  // Days to exam — live from examDateService (priority: user-set → system default → fallback)
+  const persona_dtoe = loadPersona();
+  const daysToExam = getDaysToExam(EXAM_TO_CATALOG_PROG[persona_dtoe.exam] ?? 'gate-em');
 
   // Check if milestone reached (≥10 total topics completed)
   const totalTopicsCompleted = data.subjects.reduce((acc, s) => acc + s.topicsCompleted, 0);
@@ -183,7 +184,7 @@ export default function Progress() {
         </div>
         <div className="mobile-card flex flex-col items-center text-center gap-1.5">
           <span className="text-2xl">📅</span>
-          <p className="text-xl font-black text-sky-400">{daysToExam ?? '—'}</p>
+          <p className="text-xl font-black text-sky-400">{daysToExam}</p>
           <p className="text-[11px] text-surface-400 leading-tight">Days to<br/>Exam</p>
         </div>
       </div>

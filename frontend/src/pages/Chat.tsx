@@ -37,6 +37,7 @@ import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
 import { loadPersona, updatePersonaAfterMessage, personaToCustomerProfileRaw } from '@/services/studentPersonaEngine';
+import { inferEmotionalStateFromSignals } from '@/services/behavioralSignals';
 import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext, type UserContext } from '@/services/sagePersonaPrompts';
 import { buildCustomerProfile, type LearningMoment } from '@/services/contentFramework';
 import { resolveKnowledgeForUser } from '@/services/knowledgeRouter';
@@ -907,6 +908,9 @@ export function Chat() {
         // Legacy path (no IndexedDB or first load)
         // Compute learning moment from persona
         const _legacyProfileRaw = personaToCustomerProfileRaw(updatedPersona, { currentTopic: detectedTopicId ?? undefined });
+        // Override emotionalState with real-time behavioral signal if available
+        const _legacyBehaviorState = inferEmotionalStateFromSignals(behavioralTrackerRef.current);
+        if (_legacyBehaviorState !== 'neutral') _legacyProfileRaw.emotionalState = _legacyBehaviorState;
         const _legacyCustomerProfile = buildCustomerProfile(_legacyProfileRaw);
         const _legacyLearningMoment: LearningMoment = _legacyCustomerProfile.moment;
         sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, undefined, undefined, undefined, _legacyLearningMoment);
@@ -981,6 +985,9 @@ export function Chat() {
             : undefined;
           // Compute learning moment for the grounded path
           const _profileRaw = personaToCustomerProfileRaw(updatedPersona, { currentTopic: detectedTopicId ?? undefined });
+          // Override emotionalState with real-time behavioral signal if available
+          const _behaviorState = inferEmotionalStateFromSignals(behavioralTrackerRef.current);
+          if (_behaviorState !== 'neutral') _profileRaw.emotionalState = _behaviorState;
           const _customerProfile = buildCustomerProfile(_profileRaw);
           const _learningMoment: LearningMoment = _customerProfile.moment;
           sageSystemPrompt = buildSageSystemPrompt(updatedPersona, detectedTopicId, kCtx, undefined, userCtx, _learningMoment);

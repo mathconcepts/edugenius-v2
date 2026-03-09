@@ -57,6 +57,22 @@ import {
   type IntelligencePacket, type PrismTargetAgent,
   loadPrismState, storePrismState,
 } from './prismBridge';
+import { getDaysToExam } from './examDateService';
+
+// ─── Exam name → catalog ID mapper ───────────────────────────────────────────
+
+function examNameToCatalogId(exam: string): string {
+  const lower = exam.toLowerCase().trim();
+  if (lower.includes('jee') && lower.includes('advanced')) return 'jee-advanced';
+  if (lower.includes('jee')) return 'jee-main';
+  if (lower.includes('neet')) return 'neet';
+  if (lower.includes('gate')) return 'gate-em';
+  if (lower.includes('cat')) return 'cat';
+  if (lower.includes('upsc')) return 'upsc';
+  if (lower.includes('cbse')) return 'cbse-12';
+  if (lower.includes('gmat')) return 'gmat';
+  return 'gate-em';
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -514,6 +530,12 @@ export function getAtlasContentSignals(exam: string = 'JEE Main'): AtlasContentS
   const problems = getContributedProblems(exam);
   const groups = getStudyGroups(exam);
 
+  // Live exam date urgency — boosts signal urgency for imminent exams
+  const _catalogId = examNameToCatalogId(exam);
+  const _daysToExam = getDaysToExam(_catalogId);
+  const _examUrgency: AtlasContentSignal['urgency'] =
+    _daysToExam <= 14 ? 'immediate' : _daysToExam <= 45 ? 'this_week' : 'backlog';
+
   // From cohort struggles
   for (const s of cohort.filter(c => c.avgMastery < 50)) {
     signals.push({
@@ -542,6 +564,11 @@ export function getAtlasContentSignals(exam: string = 'JEE Main'): AtlasContentS
     });
   }
 
+  // Boost urgency for all signals when exam is imminent (≤14 days)
+  if (_examUrgency === 'immediate') {
+    signals.forEach(s => { s.urgency = 'immediate'; });
+  }
+
   // Sort: immediate first, then by studentsStruggling / upvoteSignal
   return signals.sort((a, b) => {
     const urgencyOrder = { immediate: 0, this_week: 1, backlog: 2 };
@@ -566,6 +593,11 @@ export function getHeraldCampaignSignals(exam: string = 'JEE Main'): HeraldCampa
   const cohort = getCohortSignals(exam);
   const groups = getStudyGroups(exam);
   const campaigns: HeraldCampaignSignal[] = [];
+
+  // Live exam date — drives campaign urgency
+  const _heraldCatalogId = examNameToCatalogId(exam);
+  const _heraldDays = getDaysToExam(_heraldCatalogId);
+  const _heraldUrgency: HeraldCampaignSignal['urgency'] = _heraldDays <= 14 ? 'immediate' : 'scheduled';
 
   // Referral re-activation
   campaigns.push({
@@ -601,5 +633,9 @@ export function getHeraldCampaignSignals(exam: string = 'JEE Main'): HeraldCampa
     });
   }
 
+  // When exam is within 14 days, all campaigns become immediate
+  if (_heraldUrgency === 'immediate') {
+    campaigns.forEach(c => { c.urgency = 'immediate'; });
+  }
   return campaigns;
 }

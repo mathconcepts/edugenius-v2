@@ -623,7 +623,10 @@ function QuizScreen({
         relatedConcepts: [q.chapter],
       } as Parameters<typeof selectOptimalStrategy>[0];
 
-      const strategy = selectOptimalStrategy(pseudoProblem, strategyProfile);
+      // Pass LearningMoment for moment-aware strategy selection
+      const _practiceProfileRaw = personaToCustomerProfileRaw(persona);
+      const _practiceCustomer = buildCustomerProfile(_practiceProfileRaw);
+      const strategy = selectOptimalStrategy(pseudoProblem, strategyProfile, _practiceCustomer.moment);
 
       const systemPrompt = [
         `You are Sage, an expert tutor. A student just ${isCorrect ? 'correctly answered' : 'got wrong'} a ${q.difficulty} ${q.subject} question.`,

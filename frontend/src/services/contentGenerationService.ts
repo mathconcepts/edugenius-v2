@@ -18,6 +18,7 @@
  */
 
 import { callLLM } from './llmService';
+import type { ContentAtom, ContentAtomType } from './contentFramework';
 import {
   queryWolfram,
   enrichContentWithWolfram,
@@ -663,5 +664,62 @@ export async function generateContent(
     topicId,
     wordCount: countWords(displayContent),
     readyForReview: true,
+  };
+}
+
+// ─── ContentAtom Bridge ───────────────────────────────────────────────────────
+
+/**
+ * generatedContentToAtom()
+ *
+ * Converts legacy GeneratedContent output to the canonical ContentAtom schema
+ * used by contentFramework, ContentCard, and ContentFeed.
+ *
+ * This bridges Atlas/contentGenerationService output into the presentation layer.
+ */
+export function generatedContentToAtom(
+  content: GeneratedContent,
+): ContentAtom {
+  const formatToAtomType = (fmt: ContentOutputFormat): ContentAtomType => {
+    const map: Record<ContentOutputFormat, ContentAtomType> = {
+      mcq_set:       'mcq',
+      lesson_notes:  'lesson_block',
+      blog_post:     'blog_post',
+      flashcard_set: 'flashcard',
+      quiz:          'mcq',
+      formula_sheet: 'formula_card',
+      worked_example: 'worked_example',
+      summary:       'summary',
+    };
+    return map[fmt] ?? 'lesson_block';
+  };
+
+  return {
+    id: content.id,
+    type: formatToAtomType(content.format),
+    title: content.title,
+    body: content.content.slice(0, 600),
+    bodyMarkdown: content.content,
+    examId: content.examTarget ?? 'gate-em',
+    topic: content.topicId ?? 'General',
+    difficulty: 'medium',
+    syllabusPriority: 'high',
+    quality: {
+      accuracy:        content.wolframVerified ? 0.95 : content.confidence * 0.9,
+      clarity:         content.confidence * 0.85,
+      examRelevance:   0.85,
+      engagementScore: 0,
+      wolframVerified: content.wolframVerified,
+      reviewedByHuman: false,
+    },
+    generatedBy:    content.wolframVerified ? 'wolfram' : 'atlas',
+    generatedAt:    content.generatedAt,
+    sourceType:     content.wolframVerified ? 'wolfram'
+                  : content.source === 'document_upload' ? 'document'
+                  : 'llm',
+    version:        1,
+    timesServed:    0,
+    avgRating:      0,
+    completionRate: 0,
   };
 }

@@ -5,6 +5,18 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { loadPersona } from '@/services/studentPersonaEngine';
+import { getDaysToExam } from '@/services/examDateService';
+import { ExamDatePicker } from '@/components/ExamDatePicker';
+
+const EXAM_TO_CATALOG_INS: Record<string, string> = {
+  JEE_MAIN: 'jee-main', JEE_ADVANCED: 'jee-advanced', NEET: 'neet',
+  CBSE_12: 'cbse-12', CAT: 'cat', UPSC: 'upsc', GATE: 'gate-em',
+};
+const EXAM_NAME_INS: Record<string, string> = {
+  JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Advanced', NEET: 'NEET',
+  CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC CSE', GATE: 'GATE',
+};
 import { 
   BookOpen, 
   AlertTriangle, 
@@ -600,7 +612,10 @@ export default function ExamInsights() {
   const [bestPractices, setBestPractices] = useState<BestPractices | null>(null);
   const [topperStories, setTopperStories] = useState<TopperStory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [daysToExam, setDaysToExam] = useState(90);
+  const [daysToExam, setDaysToExam] = useState(() => {
+    const p = loadPersona();
+    return getDaysToExam(EXAM_TO_CATALOG_INS[p.exam] ?? 'gate-em');
+  });
 
   const exams: { id: ExamType; name: string; icon: string }[] = [
     { id: 'JEE_MAIN', name: 'JEE Main', icon: '🎯' },
@@ -643,6 +658,8 @@ export default function ExamInsights() {
       }
     }
     fetchData();
+    // Sync daysToExam from examDateService when exam changes
+    setDaysToExam(getDaysToExam(EXAM_TO_CATALOG_INS[selectedExam] ?? 'gate-em'));
   }, [selectedExam]);
 
   const getPhaseLabel = () => {
@@ -668,21 +685,19 @@ export default function ExamInsights() {
           </p>
         </div>
 
-        {/* Days to Exam Selector */}
-        <div className={clsx('px-4 py-2 rounded-lg flex items-center gap-3', phase.bg)}>
-          <Calendar className={clsx('w-5 h-5', phase.color)} />
-          <div>
-            <div className="text-sm text-surface-400">Days to Exam</div>
-            <input
-              type="number"
-              value={daysToExam}
-              onChange={(e) => setDaysToExam(Math.max(0, parseInt(e.target.value) || 0))}
-              className="w-16 bg-transparent text-white font-bold text-lg focus:outline-none"
-            />
+        {/* Days to Exam — live from examDateService, user-settable */}
+        <div className={clsx('px-4 py-2 rounded-lg', phase.bg)}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className={clsx('text-2xl font-bold', phase.color)}>{daysToExam}</span>
+            <span className="text-sm text-surface-400">days · </span>
+            <span className={clsx('text-sm font-medium', phase.color)}>{phase.label}</span>
           </div>
-          <span className={clsx('text-sm font-medium px-2 py-1 rounded', phase.bg, phase.color)}>
-            {phase.label}
-          </span>
+          <ExamDatePicker
+            examId={EXAM_TO_CATALOG_INS[selectedExam] ?? 'gate-em'}
+            examName={EXAM_NAME_INS[selectedExam] ?? selectedExam}
+            compact={true}
+            onDateChange={() => setDaysToExam(getDaysToExam(EXAM_TO_CATALOG_INS[selectedExam] ?? 'gate-em'))}
+          />
         </div>
       </div>
 

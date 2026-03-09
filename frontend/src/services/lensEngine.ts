@@ -25,7 +25,13 @@ import {
   type TopicMasteryRecord,
 } from './persistenceDB';
 import { loadPersona, type StudentPersona, type LearningStyle, type EmotionalState } from './studentPersonaEngine';
+import { getDaysToExam } from './examDateService';
 import { getExamById } from '../data/examRegistry';
+
+const EXAM_TO_CATALOG_LENS: Record<string, string> = {
+  JEE_MAIN: 'jee-main', JEE_ADVANCED: 'jee-advanced', NEET: 'neet',
+  CBSE_12: 'cbse-12', CAT: 'cat', UPSC: 'upsc', GATE: 'gate-em',
+};
 import { getTopperPromptAddendum } from './topperIntelligence';
 import type { BehavioralSignals } from './behavioralSignals';
 import { getDueTopics, getOverdueTopics } from './spacedRepetition';
@@ -295,7 +301,13 @@ export async function buildLensContext(opts: BuildLensOptions): Promise<LensCont
 
   // ── Compute derived fields ────────────────────────────────────────────────
   const emotion = detectedEmotion ?? persona.emotionalState;
-  const daysToExam = persona.daysToExam;
+  const daysToExam = (() => {
+    try {
+      const catalogId = EXAM_TO_CATALOG_LENS[persona.exam ?? ''] ?? 'gate-em';
+      const live = getDaysToExam(catalogId);
+      return live >= 0 ? live : (persona.daysToExam ?? 90);
+    } catch { return persona.daysToExam ?? 90; }
+  })();
   const examUrgency = computeExamUrgency(daysToExam);
 
   const isFirstTime = interactionCount === 0;

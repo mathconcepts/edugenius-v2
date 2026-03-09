@@ -8,6 +8,13 @@
  */
 
 import type { StudentPersona, ExamType, EmotionalState, PerformanceTier } from './studentPersonaEngine';
+import { getDaysToExam } from './examDateService';
+
+// In production: computed as mean of getDaysToExam(examId) across all active students
+function getLiveCohortDaysToExam(): number {
+  // Default to gate-em (primary demo exam); real impl aggregates across all active subscriptions
+  return getDaysToExam('gate-em');
+}
 
 // ── Cohort Insight (aggregated from all student personas) ─────────────────────
 
@@ -93,7 +100,7 @@ const MOCK_COHORT: Partial<CohortInsight> = {
     advanced: 6,
   },
   avgSyllabusCompletion: 54,
-  avgDaysToExam: 67,
+  avgDaysToExam: getLiveCohortDaysToExam(),
   avgStreakDays: 3.2,
   avgSessionMinutes: 28,
 };
