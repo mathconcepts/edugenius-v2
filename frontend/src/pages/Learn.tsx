@@ -14,6 +14,9 @@ import {
 import type { TraceTree } from '@/services/traceabilityEngine';
 // Wire 7 — P1: Persona-driven aiRecommended
 import { loadPersona } from '@/services/studentPersonaEngine';
+// Customer-centric content framework
+import { ContentFeed } from '@/components/ContentFeed';
+import type { ContentAtom } from '@/services/contentFramework';
 
 interface Topic {
   id: string;
@@ -157,6 +160,98 @@ export default function Learn() {
     : mockTopics;
 
   const recommendedTopics = mockTopics.filter(t => t.aiRecommended);
+
+  // Build sample ContentAtoms for the selected topic / subject
+  // In production these come from contentGenerationService / Atlas agent
+  const persona = loadPersona();
+  const sampleAtoms: ContentAtom[] = selectedSubject ? [
+    {
+      id: `atom-${selectedSubject}-formula-1`,
+      type: 'formula_card',
+      title: `Key Formula — ${subjects.find(s => s.id === selectedSubject)?.name ?? selectedSubject}`,
+      body: 'The fundamental formula for this topic, grounded and verified.',
+      bodyMarkdown: '**Core formula** — apply this whenever you see...',
+      examId: 'gate-em',
+      topic: selectedSubject,
+      difficulty: 'medium',
+      syllabusPriority: 'high',
+      formula: {
+        latex: 'E = -\\frac{d\\Phi_B}{dt}',
+        plainText: 'E = -dΦ/dt',
+        intuition: 'A changing magnetic flux induces an EMF that opposes the change.',
+        whenToUse: 'Any problem involving changing magnetic field, moving conductor, or transformer.',
+        pitfalls: ['Forgetting the negative sign (Lenz\'s law)', 'Confusing Φ (flux) with B (field)'],
+      },
+      quality: { accuracy: 0.98, clarity: 0.92, examRelevance: 0.95, engagementScore: 0.78, wolframVerified: true, reviewedByHuman: false },
+      generatedBy: 'wolfram', generatedAt: new Date(), sourceType: 'wolfram', version: 1,
+      timesServed: 847, avgRating: 4.6, completionRate: 0.91,
+    },
+    {
+      id: `atom-${selectedSubject}-mcq-1`,
+      type: 'mcq',
+      title: `Practice MCQ — ${subjects.find(s => s.id === selectedSubject)?.name ?? selectedSubject}`,
+      body: 'Test your understanding with this exam-style question.',
+      bodyMarkdown: '**Practice MCQ** — GATE 2022 style',
+      examId: 'gate-em',
+      topic: selectedSubject,
+      difficulty: persona.daysToExam < 14 ? 'hard' : 'medium',
+      syllabusPriority: 'high',
+      mcq: {
+        question: 'A conducting loop of resistance 2Ω is placed in a magnetic field B = 4sin(100t) T. The area of the loop is 0.01 m². What is the peak value of the induced current?',
+        options: { A: '2 A', B: '4 A', C: '8 A', D: '0.5 A' },
+        correct: 'A',
+        explanation: 'Peak EMF = NBAω = 1 × 4 × 0.01 × 100 = 4V. Peak current = EMF/R = 4/2 = 2A.',
+        commonWrongAnswer: 'B',
+        examTip: 'Always extract ω from the sin(ωt) term before applying Faraday\'s law.'
+      },
+      quality: { accuracy: 0.95, clarity: 0.88, examRelevance: 0.92, engagementScore: 0.82, wolframVerified: true, reviewedByHuman: true },
+      generatedBy: 'atlas', generatedAt: new Date(), sourceType: 'pyq', version: 2,
+      timesServed: 1243, avgRating: 4.4, completionRate: 0.87,
+    },
+    {
+      id: `atom-${selectedSubject}-tip-1`,
+      type: 'exam_tip',
+      title: `Exam Tip — ${subjects.find(s => s.id === selectedSubject)?.name ?? selectedSubject}`,
+      body: 'In GATE, problems often combine Faraday\'s law with circuit analysis. Draw the equivalent circuit first, then apply Faraday. This saves 40 seconds per question.',
+      bodyMarkdown: '**Exam Technique:** In GATE, problems often combine Faraday\'s law with circuit analysis...',
+      examId: 'gate-em',
+      topic: selectedSubject,
+      difficulty: 'easy',
+      syllabusPriority: 'high',
+      quality: { accuracy: 0.9, clarity: 0.95, examRelevance: 0.9, engagementScore: 0.88, wolframVerified: false, reviewedByHuman: true },
+      generatedBy: 'atlas', generatedAt: new Date(), sourceType: 'llm', version: 1,
+      timesServed: 562, avgRating: 4.7, completionRate: 0.93,
+    },
+    {
+      id: `atom-${selectedSubject}-flashcard-1`,
+      type: 'flashcard',
+      title: 'What does Lenz\'s Law state?',
+      body: 'The induced current flows in a direction that opposes the change in magnetic flux that produced it.',
+      bodyMarkdown: 'The induced current flows in a direction that **opposes** the change in flux.',
+      examId: 'gate-em',
+      topic: selectedSubject,
+      difficulty: 'easy',
+      syllabusPriority: 'medium',
+      quality: { accuracy: 0.99, clarity: 0.97, examRelevance: 0.85, engagementScore: 0.72, wolframVerified: false, reviewedByHuman: true },
+      generatedBy: 'atlas', generatedAt: new Date(), sourceType: 'llm', version: 1,
+      timesServed: 398, avgRating: 4.5, completionRate: 0.89,
+    },
+  ] : [];
+
+  // Build the customer profile for the content framework
+  const contentProfileRaw = {
+    uid: 'student-1',
+    name: persona.name,
+    role: userRole as 'student' | 'teacher' | 'parent' | 'ceo' | 'admin' | 'guest',
+    examId: 'gate-em',
+    examName: 'GATE EM',
+    daysToExam: persona.daysToExam,
+    channel: 'web' as const,
+    deviceType: 'desktop' as const,
+    masteryPct: selectedSubject ? (filteredTopics.reduce((s, t) => s + t.mastery, 0) / Math.max(filteredTopics.length, 1)) : 50,
+    weakTopics: persona.weakSubjects,
+    currentTopic: selectedSubject ?? undefined,
+  };
 
   return (
     <div className="space-y-6">
@@ -318,6 +413,21 @@ export default function Learn() {
           ))}
         </div>
       </div>
+
+      {/* Content Feed — customer-centric, shows when a subject is selected */}
+      {selectedSubject && sampleAtoms.length > 0 && (
+        <div className="card p-5">
+          <ContentFeed
+            atoms={sampleAtoms}
+            profileRaw={contentProfileRaw}
+            onAtomAction={(atomId, action) => {
+              if (action === 'ask_sage') {
+                window.location.href = `/chat?topic=${encodeURIComponent(selectedSubject)}`;
+              }
+            }}
+          />
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
