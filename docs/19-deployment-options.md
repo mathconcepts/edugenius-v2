@@ -4,6 +4,25 @@
 
 ---
 
+## Step 0 — Check Dependencies First
+
+Before deploying in any mode, run the dependency audit:
+
+```bash
+# Audit only — see what's missing
+./scripts/check-deps.sh
+
+# Audit + install missing (with consent per item)
+./scripts/check-deps.sh --install
+
+# Install everything silently
+./scripts/check-deps.sh --install-all
+```
+
+The script checks all 7 layers: system tools, Node backend packages, frontend packages, Python/Manim, API credentials, cloud CLIs, and Docker images. It auto-installs missing items on Ubuntu, Fedora, and macOS.
+
+---
+
 ## TL;DR Decision Matrix
 
 | Stage | Recommended Option | Monthly Cost | Why |
@@ -386,36 +405,58 @@ Local Dev ──▶ Hybrid ──▶ Railway PaaS ──▶ GCP Cloud Run ──
 
 ---
 
-## Files Added by This Feature
+## Scripts Reference
+
+| Script | Purpose | Key flags |
+|--------|---------|-----------|
+| `check-deps.sh` | Dependency audit + guided install | `--install` `--install-all` `--layer X` `--json` |
+| `deploy-local.sh` | Local Docker Compose | `--dev` `--reset` `--down` |
+| `deploy-hybrid.sh` | Local + Supabase | `--dev` `--down` |
+| `deploy-railway.sh` | Railway PaaS | `--init` `--env-push` `--logs` `--status` |
+| `deploy-gcp.sh` | GCP Cloud Run | `--setup` `--enable-apis` `--infra-only` `--status` `--logs` `--destroy` |
+| `deploy-aws.sh` | AWS ECS Fargate | `--setup` `--infra-only` `--deploy-only` `--status` `--destroy` |
+| `batch-run.sh` | Agent batch jobs | `[job-id\|all\|status\|list]` `--dry-run` |
+| `_install_common.sh` | Shared installer library | (sourced by other scripts) |
+
+---
+
+## Files Reference
 
 ```
-src/deployment/options.ts          — Deployment config type system + registry
-src/autonomy/batchRunner.ts        — Batch job runner (cron-like, Node-based)
+scripts/
+├── check-deps.sh              — Dependency audit + install (7 layers, 50+ checks)
+├── deploy-local.sh            — Local Docker Compose deployment
+├── deploy-hybrid.sh           — Hybrid (local backend + Supabase) deployment
+├── deploy-railway.sh          — Railway PaaS deployment
+├── deploy-aws.sh              — AWS ECS Fargate deployment
+├── deploy-gcp.sh              — GCP Cloud Run deployment
+├── batch-run.sh               — Batch pipeline runner CLI
+└── _install_common.sh         — Shared OS-aware installer library
 
-scripts/deploy-local.sh            — Local Docker Compose deployment
-scripts/deploy-hybrid.sh           — Hybrid (local + Supabase) deployment
-scripts/deploy-railway.sh          — Railway PaaS deployment
-scripts/deploy-aws.sh              — AWS ECS Fargate deployment
-scripts/deploy-gcp.sh              — GCP Cloud Run deployment
-scripts/batch-run.sh               — Batch pipeline runner CLI
+deploy/
+├── local.env.example          — Local env template
+├── hybrid.env.example         — Hybrid env template
+├── railway.env.example        — Railway env template
+├── aws.env.example            — AWS env template
+└── gcp.env.example            — GCP env template
 
-deploy/local.env.example           — Local env template
-deploy/hybrid.env.example          — Hybrid env template
-deploy/railway.env.example         — Railway env template
-deploy/aws.env.example             — AWS env template
-deploy/gcp.env.example             — GCP env template
+src/
+├── deployment/options.ts      — Deployment config registry (5 options)
+└── autonomy/batchRunner.ts    — Batch job runner engine
 
-frontend/src/components/DeploymentOptionsPanel.tsx — CEO dashboard UI
+frontend/src/components/
+└── DeploymentOptionsPanel.tsx — CEO dashboard deployment UI
 
-railway.json                       — Railway deployment config
-
-agents/forge/SOUL.md               — Updated: deployment awareness + health check job
-agents/atlas/SOUL.md               — Updated: nightly content batch job
-agents/oracle/SOUL.md              — Updated: 6h analytics batch job
-agents/scout/SOUL.md               — Updated: weekly market scan batch job
-
-docs/19-deployment-options.md      — This file
+railway.json                   — Zero-config Railway deployment
 ```
+
+---
+
+## See Also
+
+- [`01-quick-start.md`](./01-quick-start.md) — Full installation walkthrough
+- [`09-deployment.md`](./09-deployment.md) — Complete deployment reference
+- [`11-multi-agent-setup.md`](./11-multi-agent-setup.md) — OpenClaw agent config
 
 ---
 

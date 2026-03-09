@@ -1,162 +1,251 @@
-# EduGenius
+# EduGenius v2.0
 
-**Autonomous AI Agent Platform for Education**
+**AI-powered EdTech platform — personalized exam tutoring at scale.**
 
-EduGenius is a multi-agent system that automates educational content creation, tutoring, engagement, marketing, deployment, and analytics.
+Adaptive learning for GATE, CAT, JEE, NEET and more. Multi-agent backend (Scout · Atlas · Sage · Mentor · Herald · Forge · Oracle) + React frontend + Wolfram math engine.
+
+🌐 **Live:** https://edugenius-ui.netlify.app  
+📦 **Repo:** https://github.com/mathconcepts/edugenius-v2  
+🗄️ **DB:** Supabase (pgvector RAG + auth)
+
+---
+
+## ⚡ 60-Second Setup
+
+```bash
+git clone https://github.com/mathconcepts/edugenius-v2.git
+cd edugenius-v2
+
+# 1. Check and install all dependencies (with prompts)
+./scripts/check-deps.sh --install
+
+# 2. Copy env template and add your API keys
+cp deploy/local.env.example .env.local
+nano .env.local          # add GEMINI_API_KEY at minimum
+
+# 3. Launch locally
+./scripts/deploy-local.sh
+```
+
+Frontend opens at **http://localhost:80** · API at **http://localhost:3000**
+
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     EduGenius Orchestrator                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐            │
-│   │  Scout  │  │  Atlas  │  │   Sage  │  │ Mentor  │            │
-│   │ Market  │  │ Content │  │  Tutor  │  │ Engage  │            │
-│   └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘            │
-│        │            │            │            │                  │
-│   ┌─────────┐  ┌─────────┐  ┌─────────┐                          │
-│   │ Herald  │  │  Forge  │  │ Oracle  │                          │
-│   │Marketing│  │ Deploy  │  │Analytics│                          │
-│   └────┬────┘  └────┬────┘  └────┬────┘                          │
-│        │            │            │                                │
-├────────┴────────────┴────────────┴────────────────────────────────┤
-│                        Event Bus                                   │
-├───────────────────────────────────────────────────────────────────┤
-│     LLM Abstraction    │    Data Layer    │    Cache Layer        │
-└───────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    EduGenius Platform                        │
+├──────────────────────────────────────────────────────────────┤
+│  React Frontend (Vite)   ←→   Node.js Backend (Express)      │
+│  TailwindCSS + Zustand        TypeScript ESM + pg            │
+│  KaTeX · Recharts · Framer    Supabase · Redis               │
+├──────────────────────────────────────────────────────────────┤
+│                     7 AI Agents                              │
+│  Scout    Atlas    Sage     Mentor  Herald  Forge   Oracle   │
+│  Market   Content  Tutor    Engage  Market  DevOps  Analytics│
+├──────────────────────────────────────────────────────────────┤
+│           Knowledge Layer                                    │
+│  Wolfram Alpha · Gemini RAG · Static PYQs · Supabase pgvec  │
+├──────────────────────────────────────────────────────────────┤
+│  Manim Visualisation (Python/FastAPI · port 7341)            │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-## Agents
+---
 
-| Agent | Purpose | Sub-Agents |
-|-------|---------|------------|
-| **Scout** | Market intelligence | TrendSpotter, CompetitorTracker, ExamMonitor, KeywordHunter, SentimentScanner |
-| **Atlas** | Content creation | Curator, Writer, QuizMaster, Visualizer, SEOOptimizer, Translator, FactChecker |
-| **Sage** | AI tutoring | Socratic, Explainer, ProblemSolver, ConceptMapper, PracticeCoach, EmotionReader, LanguageAdapter |
-| **Mentor** | Student engagement | ChurnPredictor, NudgeEngine, StreakTracker, MilestoneManager, ReEngager, ParentReporter |
-| **Herald** | Marketing automation | CampaignManager, SocialPoster, EmailCrafter, LeadNurturer, ReferralManager, PRCoordinator, InfluencerFinder |
-| **Forge** | CI/CD & deployment | BuildRunner, TestOrchestrator, CDNSyncer, CacheManager, DBMigrator, RollbackGuard, HealthChecker |
-| **Oracle** | Analytics & insights | MetricTracker, AnomalyDetector, ReportGenerator, FunnelAnalyzer, CohortAnalyzer, ABEvaluator |
+## Deployment Options
 
-## Quick Start
+| Option | Command | Cost/month | Best For |
+|--------|---------|-----------|----------|
+| **Local** (Docker) | `./scripts/deploy-local.sh` | ~$0 | Dev / testing |
+| **Hybrid** (Supabase) | `./scripts/deploy-hybrid.sh` | ~$0 | ✅ Current setup |
+| **Railway PaaS** | `./scripts/deploy-railway.sh` | $20–60 | Launch |
+| **GCP Cloud Run** | `./scripts/deploy-gcp.sh` | $15–40 | Scale (recommended) |
+| **AWS ECS Fargate** | `./scripts/deploy-aws.sh` | $50–80 | Enterprise |
 
-```typescript
-import { start } from 'edugenius';
+Each script **auto-installs** its required CLIs and guides you through credentials.
 
-const { orchestrator, api } = await start({
-  api: true,
-  apiPort: 3000,
-});
+> See [`docs/19-deployment-options.md`](docs/19-deployment-options.md) for full decision guide.
 
-// Start a tutoring session
-const sessionId = await orchestrator.startTutoringSession('student-123', 'algebra');
+---
 
-// Get analytics
-const report = await orchestrator.getReport('daily');
+## Dependency Check
 
-// Run a workflow
-await orchestrator.startWorkflow('exam-launch', {
-  examId: 'cbse-10-math',
-  examName: 'CBSE Class 10 Mathematics',
-});
+```bash
+# Audit all 7 layers — no changes made
+./scripts/check-deps.sh
+
+# Audit + install missing (asks before each)
+./scripts/check-deps.sh --install
+
+# Install everything silently
+./scripts/check-deps.sh --install-all
+
+# Check only one layer
+./scripts/check-deps.sh --layer python   # system|node|frontend|python|creds|cloud|docker
 ```
 
-## API Endpoints
+**Layers checked:**
+- System: Node 20, Docker, Git, curl, Python 3, pip
+- Backend npm: all 11 packages + TypeScript build
+- Frontend npm: React, Vite, Supabase, KaTeX, Tailwind, Recharts…
+- Python/Manim: FastAPI, manim, numpy, ffmpeg, LaTeX, cairo
+- Credentials: Gemini, Anthropic, Supabase, Wolfram, Tavily
+- Cloud CLIs: AWS (+ auth), gcloud (+ auth), Railway (+ login)
+- Docker images: postgres:16, redis:7, node:20
 
-### Health & Status
-- `GET /health` - Health check
-- `GET /status` - System status
+---
 
-### Agents
-- `GET /agents` - List all agents
-- `GET /agents/:id` - Get agent details
+## Batch Jobs
 
-### Workflows
-- `GET /workflows` - List workflows
-- `POST /workflows/:id/start` - Start a workflow
+Agent tasks run on a schedule via `batch-run.sh`:
 
-### Tutoring (Sage)
-- `POST /tutoring/sessions` - Start session
-- `POST /tutoring/sessions/:id/ask` - Ask question
-- `GET /tutoring/sessions/:id` - Get session
+```bash
+./scripts/batch-run.sh                        # run all DUE jobs
+./scripts/batch-run.sh all                    # run ALL jobs now
+./scripts/batch-run.sh atlas:content-gen      # run one specific job
+./scripts/batch-run.sh status                 # show all job statuses
+./scripts/batch-run.sh atlas:content-gen --dry-run
+```
 
-### Students (Mentor)
-- `GET /students/:id/engagement` - Get engagement
-- `POST /students/:id/nudge` - Send nudge
+**Built-in jobs:**
 
-### Campaigns (Herald)
-- `POST /campaigns` - Create campaign
-- `GET /campaigns` - List campaigns
+| Job | Agent | Default Schedule |
+|-----|-------|-----------------|
+| `atlas:content-gen` | Atlas | Daily 2am |
+| `scout:market-scan` | Scout | Monday 6am |
+| `oracle:analytics` | Oracle | Every 6 hours |
+| `herald:campaign` | Herald | Daily 8am |
+| `mentor:engagement` | Mentor | Daily 9am |
+| `forge:health` | Forge | Every 30 min |
 
-### Deployments (Forge)
-- `POST /deploy` - Start deployment
-- `GET /deploy/:id` - Get status
-- `GET /health-check` - System health
+---
 
-### Analytics (Oracle)
-- `GET /analytics/report` - Get report
-- `GET /analytics/funnel` - Funnel analysis
-- `GET /analytics/cohorts` - Cohort analysis
-- `POST /analytics/metrics` - Record metric
+## Project Structure
 
-## Workflows
+```
+edugenius/
+├── src/                    # Backend TypeScript source
+│   ├── agents/             # 7 AI domain agents
+│   ├── api/                # REST API (Express)
+│   ├── autonomy/           # BatchRunner + self-improvement
+│   ├── deployment/         # DeploymentManager + options registry
+│   ├── llm/                # LLM abstraction (Gemini, Anthropic)
+│   ├── orchestrator/       # Agent coordinator
+│   ├── workflows/          # End-to-end workflows
+│   └── index.ts
+├── frontend/               # React + Vite frontend
+│   └── src/
+│       ├── components/     # UI components
+│       ├── pages/          # Route pages (CEO, Student, Teacher...)
+│       ├── services/       # API clients, LLM, knowledge router
+│       ├── stores/         # Zustand state
+│       └── types/
+├── manim-service/          # Python FastAPI — math animation renderer
+│   ├── main.py             # FastAPI app (port 7341)
+│   └── start.sh
+├── agents/                 # Agent workspace files (SOUL.md etc.)
+├── scripts/                # Deploy + maintenance scripts
+│   ├── check-deps.sh       # Dependency audit + install
+│   ├── deploy-local.sh     # Docker Compose local
+│   ├── deploy-hybrid.sh    # Local + Supabase
+│   ├── deploy-railway.sh   # Railway PaaS
+│   ├── deploy-aws.sh       # AWS ECS Fargate
+│   ├── deploy-gcp.sh       # GCP Cloud Run
+│   ├── batch-run.sh        # Agent batch job runner
+│   └── _install_common.sh  # Shared OS-aware installer library
+├── deploy/                 # Environment templates
+│   ├── local.env.example
+│   ├── hybrid.env.example
+│   ├── railway.env.example
+│   ├── aws.env.example
+│   └── gcp.env.example
+├── supabase/               # DB migrations + seeds
+│   ├── migrations/         # pgvector RAG schema
+│   └── seeds/              # GATE EM + CAT PYQs
+├── docs/                   # Full documentation (20 docs)
+├── Dockerfile
+├── docker-compose.yml
+└── railway.json
+```
 
-### Exam Launch
-Complete workflow for launching a new exam:
-1. Market research (Scout)
-2. Content planning (Atlas)
-3. Content creation (Atlas)
-4. Marketing prep (Herald)
-5. Deployment (Forge)
-6. Launch marketing (Herald)
-7. Monitor (Oracle)
+---
 
-### Daily Operations
-Daily automated operations:
-1. Morning market scan (Scout)
-2. Process content queue (Atlas)
-3. Check engagement (Mentor)
-4. Process scheduled posts (Herald)
-5. System health check (Forge)
-6. Generate daily report (Oracle)
+## Key API Endpoints
 
-### Student Session
-Student learning workflow:
-1. Initialize session (Sage)
-2. Tutoring interaction (Sage)
-3. End session (Sage)
-4. Update progress (Mentor)
-5. Track analytics (Oracle)
+```bash
+GET  /health                    # System health
+GET  /status                    # Agent status
+POST /tutoring/sessions         # Start a tutoring session
+POST /tutoring/sessions/:id/ask # Ask a question
+GET  /analytics/report          # Analytics report
+POST /api/batch/:agent/:job     # Trigger batch job (cloud schedulers)
+```
+
+---
+
+## API Keys Required
+
+| Key | Where to Get | Required? |
+|-----|-------------|-----------|
+| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com/app/apikey) | ✅ Yes |
+| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com/) | ✅ Yes |
+| `SUPABASE_URL` + keys | [supabase.com/dashboard](https://supabase.com/dashboard) | For cloud DB |
+| `VITE_WOLFRAM_APP_ID` | [developer.wolframalpha.com](https://developer.wolframalpha.com/) | For math engine |
+| `TAVILY_API_KEY` | [tavily.com](https://tavily.com/) | For Scout search |
+
+---
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development mode
+# Backend dev (hot reload)
 npm run dev
 
-# Build
-npm run build
+# Frontend dev (Vite HMR)
+cd frontend && npm run dev
 
-# Run tests
-npm test
+# Manim service (Python)
+cd manim-service && ./start.sh
 
 # Type check
 npm run typecheck
+
+# Tests
+npm test
+npm run test:coverage
 ```
 
-## Statistics
+---
 
-- **Lines of Code:** ~20,000 TypeScript
-- **Total Size:** ~500KB
-- **Agents:** 7 domain agents
-- **Sub-agents:** 45 specialized workers
-- **Test Coverage:** Comprehensive integration tests
+## Documentation
 
-## License
+| Doc | Description |
+|-----|-------------|
+| [01-quick-start.md](docs/01-quick-start.md) | Installation + first run |
+| [02-agent-architecture.md](docs/02-agent-architecture.md) | 7-agent system design |
+| [09-deployment.md](docs/09-deployment.md) | Deployment reference |
+| [19-deployment-options.md](docs/19-deployment-options.md) | Deploy options + cost guide |
+| [11-multi-agent-setup.md](docs/11-multi-agent-setup.md) | OpenClaw multi-agent config |
+| [17-master-design-documentation.md](docs/17-master-design-documentation.md) | Full system specs (1500+ lines) |
+| [CEO-INTEGRATIONS-GUIDE.md](docs/CEO-INTEGRATIONS-GUIDE.md) | CEO portal integrations |
 
-MIT
+---
+
+## Current Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18 · Vite 5 · TailwindCSS 3 · Zustand · Framer Motion |
+| Backend | Node.js 20 · TypeScript 5 · Express 5 · ESM |
+| Database | Supabase (PostgreSQL 16 + pgvector) |
+| Cache | Redis 7 |
+| AI | Google Gemini · Anthropic Claude · Wolfram Alpha |
+| Visualisation | Manim 0.20 · FastAPI · ffmpeg |
+| Auth | Supabase Auth (OTP + Google) |
+| Hosting | Netlify (frontend) · local/Railway/GCP (backend) |
+
+---
+
+*EduGenius v2.0 — Built with OpenClaw multi-agent framework*
