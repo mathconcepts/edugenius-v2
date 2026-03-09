@@ -35,6 +35,8 @@ export interface ExamSubscription {
   startedAt: string;
   expiresAt?: string;
   features: ExamFeatures;
+  /** User-set or system-defaulted exam date (ISO date string: YYYY-MM-DD) */
+  examDate?: string;
 }
 
 export interface ExamFeatures {
@@ -183,6 +185,8 @@ export interface ExamCatalogEntry {
   emoji: string;
   description: string;
   targetYear?: string;
+  /** Typical exam window description (used as hint when no date is set) */
+  defaultDateHint?: string;
 }
 
 export const EXAM_CATALOG: ExamCatalogEntry[] = [
@@ -193,6 +197,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['Physics', 'Chemistry', 'Mathematics'],
     emoji: '⚛️',
     description: 'Gateway to NITs, IIITs, and GFTIs',
+    defaultDateHint: 'Typically January & April sessions',
   },
   {
     id: 'jee-advanced',
@@ -201,6 +206,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['Physics', 'Chemistry', 'Mathematics'],
     emoji: '🏆',
     description: 'Gateway to IITs — India\'s premier engineering institutes',
+    defaultDateHint: 'Typically late May',
   },
   {
     id: 'neet',
@@ -209,6 +215,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['Physics', 'Chemistry', 'Biology'],
     emoji: '🩺',
     description: 'Medical entrance for MBBS, BDS, and allied courses',
+    defaultDateHint: 'Typically first Sunday of May',
   },
   {
     id: 'gate-em',
@@ -217,6 +224,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['Engineering Mathematics', 'Technical Subjects', 'General Aptitude'],
     emoji: '🔬',
     description: 'Postgraduate engineering admissions and PSU recruitment',
+    defaultDateHint: 'Typically first two weekends of February',
   },
   {
     id: 'cat',
@@ -225,6 +233,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['Verbal Ability', 'Data Interpretation', 'Logical Reasoning', 'Quantitative Aptitude'],
     emoji: '📊',
     description: 'MBA admissions to IIMs and top B-schools',
+    defaultDateHint: 'Typically last Sunday of November',
   },
   {
     id: 'upsc',
@@ -233,6 +242,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['GS Paper I-IV', 'CSAT', 'Optional Subject', 'Essay'],
     emoji: '🏛️',
     description: 'IAS, IPS, IFS and other central government services',
+    defaultDateHint: 'Prelims typically early June',
   },
   {
     id: 'cbse-12',
@@ -241,6 +251,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English'],
     emoji: '📚',
     description: 'Central Board senior secondary examination',
+    defaultDateHint: 'Typically February–April',
   },
   {
     id: 'gmat',
@@ -249,6 +260,7 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     subjects: ['Analytical Writing', 'Integrated Reasoning', 'Quantitative', 'Verbal'],
     emoji: '🌐',
     description: 'Global MBA admissions test for top business schools',
+    defaultDateHint: 'Rolling — book your preferred date',
   },
 ];
 

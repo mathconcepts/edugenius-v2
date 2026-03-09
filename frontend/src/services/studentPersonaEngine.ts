@@ -140,25 +140,65 @@ export function detectEmotion(message: string, persona: StudentPersona): Emotion
 
 const PERSONA_KEY = 'edugenius_student_persona';
 
+// ── ExamType → examDateService ID mapper ──────────────────────────────────────
+// studentPersonaEngine uses snake_case; examDateService uses kebab-case catalog IDs.
+
+const EXAM_TYPE_TO_CATALOG_ID: Record<ExamType, string> = {
+  JEE_MAIN:     'jee-main',
+  JEE_ADVANCED: 'jee-advanced',
+  NEET:         'neet',
+  CBSE_12:      'cbse-12',
+  CAT:          'cat',
+  UPSC:         'upsc',
+  GATE:         'gate-em',
+};
+
+/**
+ * getLiveDaysToExam(exam)
+ * Returns live-computed days to exam from examDateService.
+ * Falls back to stored persona value if service returns a negative number (passed).
+ */
+function getLiveDaysToExam(exam: ExamType, storedDays?: number): number {
+  try {
+    // Dynamic import at call-time to avoid circular deps at module load
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { getDaysToExam } = require('./examDateService') as typeof import('./examDateService');
+    const catalogId = EXAM_TYPE_TO_CATALOG_ID[exam] ?? 'gate-em';
+    const live = getDaysToExam(catalogId);
+    // If exam has passed (negative), use stored value as fallback
+    return live >= 0 ? live : (storedDays ?? 90);
+  } catch {
+    return storedDays ?? 90;
+  }
+}
+
 export function loadPersona(): StudentPersona {
   try {
     const stored = localStorage.getItem(PERSONA_KEY);
     if (stored) {
       const raw = JSON.parse(stored);
-      return buildPersona({ ...raw, lastActive: new Date(raw.lastActive), sessionStartedAt: new Date() });
+      // Override stored daysToExam with live-computed value from examDateService
+      const liveDays = getLiveDaysToExam(raw.exam as ExamType, raw.daysToExam);
+      return buildPersona({
+        ...raw,
+        lastActive: new Date(raw.lastActive),
+        sessionStartedAt: new Date(),
+        daysToExam: liveDays,
+      });
     }
   } catch {
     // ignore parse errors
   }
 
   // Default persona for demo/new user
+  const defaultExam: ExamType = 'JEE_MAIN';
   return buildPersona({
     studentId: 'demo',
     name: 'Student',
-    exam: 'JEE_MAIN',
+    exam: defaultExam,
     targetScore: 85,
     currentScore: 62,
-    daysToExam: 67,
+    daysToExam: getLiveDaysToExam(defaultExam, 90),
     weakSubjects: ['Organic Chemistry', 'Integration'],
     strongSubjects: ['Mechanics', 'Algebra'],
     syllabusCompletion: 54,

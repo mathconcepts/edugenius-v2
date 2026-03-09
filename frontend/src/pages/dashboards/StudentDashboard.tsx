@@ -18,6 +18,8 @@ import { WhatsAppOptInModal } from '@/components/WhatsAppOptInModal';
 import { hasWhatsAppOptIn, shouldShowWhatsAppPrompt } from '@/services/whatsappOptIn';
 // Wire 5 — P1: Notebook Engine + Persona Engine for dynamic todayPlan
 import { loadPersona } from '@/services/studentPersonaEngine';
+import { getDaysToExam, getExamDateFormatted, getUrgencyLevel } from '@/services/examDateService';
+import { ExamDatePicker } from '@/components/ExamDatePicker';
 import { loadNotebookState, getDueRevisions, type ExamScope } from '@/services/notebookEngine';
 
 // ── Dynamic today plan from persona + notebook (P1 Wire 5) ─────────────────
@@ -76,16 +78,25 @@ function buildTodayPlan(
   return plan.slice(0, 3);
 }
 
-// ── Dynamic exam countdown from persona ──────────────────────────────────────
+// ── Dynamic exam countdown — live from examDateService ────────────────────────
+
+const EXAM_TYPE_TO_CATALOG: Record<string, string> = {
+  JEE_MAIN: 'jee-main', JEE_ADVANCED: 'jee-advanced', NEET: 'neet',
+  CBSE_12: 'cbse-12', CAT: 'cat', UPSC: 'upsc', GATE: 'gate-em',
+};
+const EXAM_LABELS: Record<string, string> = {
+  JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Advanced', NEET: 'NEET',
+  CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
+};
 
 function buildExamCountdown(persona: ReturnType<typeof loadPersona>) {
-  const examLabels: Record<string, string> = {
-    JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Advanced', NEET: 'NEET',
-    CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC', GATE: 'GATE',
-  };
+  const catalogId = EXAM_TYPE_TO_CATALOG[persona.exam] ?? 'gate-em';
   return {
-    exam: examLabels[persona.exam] ?? 'Exam',
-    daysLeft: persona.daysToExam ?? 47,
+    exam: EXAM_LABELS[persona.exam] ?? 'Exam',
+    daysLeft: getDaysToExam(catalogId),
+    examDate: getExamDateFormatted(catalogId),
+    urgency: getUrgencyLevel(catalogId),
+    catalogId,
   };
 }
 
@@ -224,7 +235,13 @@ export function StudentDashboard() {
 
   // Wire 5 — P1: Dynamic today plan from persona + notebook engine
   const [todayPlan, setTodayPlan] = useState<ReturnType<typeof buildTodayPlan>>([]);
-  const [examCountdown, setExamCountdown] = useState<ReturnType<typeof buildExamCountdown>>({ exam: 'JEE Main', daysLeft: 47 });
+  const [examCountdown, setExamCountdown] = useState<ReturnType<typeof buildExamCountdown>>({
+    exam: 'JEE Main',
+    daysLeft: getDaysToExam('jee-main'),
+    examDate: '',
+    urgency: getUrgencyLevel('jee-main'),
+    catalogId: 'jee-main',
+  });
   const [weekProgress] = useState<number[]>([40, 65, 50, 80, 70, 30, 60]);
 
   useEffect(() => {
@@ -566,14 +583,20 @@ export function StudentDashboard() {
           <p className="text-xs text-surface-500 mt-3">5 of 7 days active · Great work!</p>
         </motion.div>
 
-        {/* Exam countdown */}
+        {/* Exam countdown — live + user-settable */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-2">
             <Trophy className="w-4 h-4 text-amber-400" />
             <h2 className="font-semibold text-sm text-amber-300">{examCountdown.exam}</h2>
           </div>
           <p className="text-3xl font-bold text-amber-200">{examCountdown.daysLeft}</p>
-          <p className="text-xs text-amber-400/70">days remaining</p>
+          <p className="text-xs text-amber-400/70 mb-2">days remaining · {examCountdown.examDate}</p>
+          {/* Inline date picker (compact) */}
+          <ExamDatePicker
+            examId={examCountdown.catalogId}
+            examName={examCountdown.exam}
+            compact={true}
+          />
           <Link to="/insights" className="mt-3 text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors">
             View topper strategies <ArrowRight className="w-3 h-3" />
           </Link>

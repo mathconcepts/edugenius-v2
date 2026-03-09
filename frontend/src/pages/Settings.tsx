@@ -10,6 +10,8 @@
  */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ExamDatePicker } from '@/components/ExamDatePicker';
+import { loadPersona } from '@/services/studentPersonaEngine';
 import {
   User, Shield, Bell, CreditCard, Sliders,
   Mail, Phone, Globe, Sun, Moon, Volume2, VolumeX,
@@ -358,6 +360,40 @@ function PreferencesTab() {
           <Toggle value={examCountdown} onChange={setExamCountdown} label="Exam Countdown" sub="Daily countdown to your next exam" />
         </div>
       </div>
+
+      {/* Exam Date */}
+      <ExamDateSection />
+    </div>
+  );
+}
+
+function ExamDateSection() {
+  const persona = loadPersona();
+  // Map persona exam type to catalog ID
+  const examIdMap: Record<string, string> = {
+    JEE_MAIN: 'jee-main', JEE_ADVANCED: 'jee-advanced', NEET: 'neet',
+    CBSE_12: 'cbse-12', CAT: 'cat', UPSC: 'upsc', GATE: 'gate-em',
+  };
+  const examNameMap: Record<string, string> = {
+    JEE_MAIN: 'JEE Main', JEE_ADVANCED: 'JEE Advanced', NEET: 'NEET',
+    CBSE_12: 'CBSE 12', CAT: 'CAT', UPSC: 'UPSC CSE', GATE: 'GATE',
+  };
+  const examId = examIdMap[persona.exam] ?? 'gate-em';
+  const examName = examNameMap[persona.exam] ?? persona.exam;
+
+  return (
+    <div className="card-inner">
+      <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
+        📅 Exam Date
+      </h3>
+      <p className="text-xs text-surface-500 mb-4">
+        System defaults are set automatically. Override with your actual exam date for precise countdowns.
+      </p>
+      <ExamDatePicker
+        examId={examId}
+        examName={examName}
+        showCountdown={true}
+      />
     </div>
   );
 }
