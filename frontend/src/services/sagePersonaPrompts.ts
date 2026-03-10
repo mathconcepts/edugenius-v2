@@ -518,6 +518,9 @@ export function buildSagePersonaConfig(
 // ── Lens-Integrated Prompt Builder ────────────────────────────────────────────
 
 import { lensContextToPrompt, type LensContext } from './lensEngine';
+import { buildStaticRagContext as _gateRagContext } from './gateEmPyqContext';
+import { buildStaticCatRagContext as _catRagContext } from './catPyqContext';
+import { getTopperPromptAddendum } from './topperIntelligence';
 
 /**
  * Build the final Sage system prompt using LensContext.
@@ -537,12 +540,10 @@ export function buildLensPrompt(
   // ── PYQ context ──
   let pyqSection = '';
   if (lens.hasPYQContext && lens.examId === 'gate-engineering-maths') {
-    const { buildStaticRagContext } = require('./gateEmPyqContext');
-    const pyqCtx = buildStaticRagContext(lens.topicId);
+    const pyqCtx = _gateRagContext(lens.topicId);
     pyqSection = `\n\n## GATE EM PYQ CONTEXT\n${pyqCtx}`;
   } else if (lens.hasPYQContext && lens.examId === 'cat') {
-    const { buildStaticCatRagContext } = require('./catPyqContext');
-    const pyqCtx = buildStaticCatRagContext(lens.topicId);
+    const pyqCtx = _catRagContext(lens.topicId);
     pyqSection = `\n\n## CAT PYQ CONTEXT\n${pyqCtx}`;
   }
 
@@ -551,7 +552,6 @@ export function buildLensPrompt(
   // This is the bi-directional link: TopperIntel → Sage.
   let topperSection = '';
   if (lens.topicId && lens.examId) {
-    const { getTopperPromptAddendum } = require('./topperIntelligence');
     const phase = lens.examUrgency === 'critical'
       ? 'exam_ready'
       : lens.currentEmotion === 'frustrated' || lens.currentEmotion === 'anxious'
@@ -596,8 +596,6 @@ export function buildLensPrompt(
 
 // ── RAG-Enhanced Prompt Builder ────────────────────────────────────────────────
 
-import { buildStaticRagContext } from './gateEmPyqContext';
-
 /**
  * Build a Sage prompt with GATE EM PYQ context injected.
  * Uses static in-bundle PYQ data — no Supabase or external DB required.
@@ -610,7 +608,7 @@ export function buildGateRagPrompt(
   topicHint: string | undefined,
   baseSystemPrompt: string
 ): string {
-  const pyqContext = buildStaticRagContext(topicHint);
+  const pyqContext = _gateRagContext(topicHint);
 
   return `${baseSystemPrompt}
 
@@ -646,8 +644,6 @@ export function shouldUseRag(query: string): boolean {
 
 // ── CAT PYQ RAG ──────────────────────────────────────────────────────────────
 
-import { buildStaticCatRagContext } from './catPyqContext';
-
 /**
  * Build a Sage prompt with CAT PYQ context injected.
  * Mirrors buildGateRagPrompt — same pattern, different exam.
@@ -657,7 +653,7 @@ export function buildCatRagPrompt(
   topicHint: string | undefined,
   baseSystemPrompt: string
 ): string {
-  const ragContext = buildStaticCatRagContext(topicHint);
+  const ragContext = _catRagContext(topicHint);
 
   return `${baseSystemPrompt}
 

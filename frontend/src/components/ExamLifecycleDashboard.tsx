@@ -7,6 +7,9 @@
  * Props: { examId?: string }
  *   - If examId is provided → shows that one exam in detail
  *   - Otherwise → shows all active lifecycles in a summary list
+ *
+ * AUDIT NOTE: No active route imports this component yet — kept intentionally.
+ * // DEBT: add to CEOBriefing or create /lifecycle route for CEO
  */
 
 import { useState, useEffect, useCallback } from 'react';

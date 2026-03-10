@@ -252,7 +252,9 @@ function parseContentToSections(content: string): BlogSection[] {
   return sections;
 }
 
-// ─── AI Generation (mock until real LLM is wired) ────────────────────────────
+// ─── AI Generation (stub — real LLM wiring pending) ──────────────────────────
+// DEBT: replace generatePostContent() with a real Atlas agent call via
+//       atlasTaskService.enqueueTask() or contentGenerationService.generateContent()
 
 function generatePostContent(req: GenerateRequest): Partial<BlogPost> {
   const wordCount = req.targetWordCount || 800;

@@ -6,6 +6,10 @@
  * deployment status badge.
  *
  * Used on: CEO Dashboard / Settings / Infrastructure page
+ *
+ * AUDIT NOTE: Currently has no active route importer — kept intentionally.
+ * Wire into Settings (Advanced tab) or a /deployment route when ready.
+ * // DEBT: add a route or import this panel in CEOBriefing/Settings
  */
 
 import React, { useState } from 'react';

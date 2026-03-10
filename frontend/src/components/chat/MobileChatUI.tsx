@@ -204,7 +204,8 @@ function MobileChatInput({ onSend, onAttach, disabled = false, placeholder = 'As
     setIsRecording(false);
     if (recordTimer.current) clearInterval(recordTimer.current);
     setRecordDuration(0);
-    // TODO: transcribe audio and call onSend with transcript
+    // DEBT: transcribe audio blob via voiceSkill.ts and call onSend with transcript
+    // See: src/services/skills/voiceSkill.ts → transcribeAudio()
   };
 
   const canSend = text.trim().length > 0 && !disabled;

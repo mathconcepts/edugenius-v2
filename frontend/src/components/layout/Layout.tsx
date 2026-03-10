@@ -105,7 +105,7 @@ function MobileTopBar({ role }: { role: 'student' | 'teacher' }) {
   // Read exam + days from persona if available (graceful fallback)
   const examChip = (() => {
     try {
-      const raw = localStorage.getItem('edugenius_persona');
+      const raw = localStorage.getItem('edugenius_student_persona');
       if (!raw) return null;
       const p = JSON.parse(raw) as { exam?: string; daysToExam?: number };
       const labels: Record<string, string> = {

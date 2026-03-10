@@ -1,8 +1,19 @@
 # Agent Connection Map — Bidirectional Signal Reference
 
-> **Last updated:** 2026-03-08  
-> **Audit status:** ✅ Complete — all 7 core agents fully connected  
-> **Source files:** `services/signalBus.ts`, `services/examOrchestrator.ts`, `services/persistenceDB.ts`
+> **Last updated:** 2026-03-10  
+> **Audit status:** ✅ Complete — all 7 core agents fully connected; connection fixes applied 2026-03-10  
+> **Source files:** `services/signalBus.ts`, `services/examOrchestrator.ts`, `services/persistenceDB.ts`  
+> **See also:** `docs/19-audit-report.md` — Phase 3 for full connection inconsistency details
+
+---
+
+## Connection Fixes Applied (2026-03-10)
+
+| Issue | File | Fix |
+|-------|------|-----|
+| `sagePersonaPrompts.ts` used `require()` (CJS) to load `gateEmPyqContext`, `catPyqContext`, `topperIntelligence` | `services/sagePersonaPrompts.ts` | Converted to static ESM imports |
+| Duplicate module load: `buildStaticRagContext`/`buildStaticCatRagContext` imported twice | `services/sagePersonaPrompts.ts` | Removed duplicate bottom-of-file imports |
+| `Layout.tsx` read `edugenius_persona` key but `studentPersonaEngine` writes `edugenius_student_persona` | `components/layout/Layout.tsx` | Fixed key to `edugenius_student_persona` |
 
 ---
 

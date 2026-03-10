@@ -41,6 +41,14 @@ Frontend opens at **http://localhost:80** · API at **http://localhost:3000**
 │  TailwindCSS + Zustand        TypeScript ESM + pg            │
 │  KaTeX · Recharts · Framer    Supabase · Redis               │
 ├──────────────────────────────────────────────────────────────┤
+│              Frontend Routes (50+ pages)                     │
+│  /                 Dashboard (role-adaptive)                 │
+│  /settings         Settings (Profile · Security · Billing)  │
+│  /chat             Sage Tutor Chat (Gemini-powered)          │
+│  /connections      API Connection Registry                   │
+│  /agent-skills     VoltAgent Skills Dashboard                │
+│  ...and 45+ more (see docs/19-audit-report.md)               │
+├──────────────────────────────────────────────────────────────┤
 │                     7 AI Agents                              │
 │  Scout    Atlas    Sage     Mentor  Herald  Forge   Oracle   │
 │  Market   Content  Tutor    Engage  Market  DevOps  Analytics│
@@ -223,12 +231,15 @@ npm run test:coverage
 
 | Doc | Description |
 |-----|-------------|
+| [**00-index.md**](docs/00-index.md) | **Master doc index (start here)** |
 | [01-quick-start.md](docs/01-quick-start.md) | Installation + first run |
 | [02-agent-architecture.md](docs/02-agent-architecture.md) | 7-agent system design |
 | [09-deployment.md](docs/09-deployment.md) | Deployment reference |
 | [19-deployment-options.md](docs/19-deployment-options.md) | Deploy options + cost guide |
 | [11-multi-agent-setup.md](docs/11-multi-agent-setup.md) | OpenClaw multi-agent config |
 | [17-master-design-documentation.md](docs/17-master-design-documentation.md) | Full system specs (1500+ lines) |
+| [18-agent-connection-map.md](docs/18-agent-connection-map.md) | Bidirectional agent signal reference |
+| [**19-audit-report.md**](docs/19-audit-report.md) | **Full codebase audit 2026-03-10** |
 | [CEO-INTEGRATIONS-GUIDE.md](docs/CEO-INTEGRATIONS-GUIDE.md) | CEO portal integrations |
 
 ---

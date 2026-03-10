@@ -47,6 +47,9 @@ const UserAdmin = lazy(() => import('@/pages/UserAdmin'));
 const UserManagementPortal = lazy(() => import('@/pages/UserManagementPortal'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 
+// Lazy load Settings (real page, not stub)
+const SettingsPage = lazy(() => import('@/pages/Settings'));
+
 // Lazy load connection registry
 const ConnectionRegistry = lazy(() => import('@/pages/ConnectionRegistry').then(m => ({ default: m.ConnectionRegistry })));
 
@@ -100,12 +103,9 @@ const Events = () => (
   </div>
 );
 
-const Settings = () => (
-  <div className="card">
-    <h1 className="text-2xl font-bold mb-4">Settings</h1>
-    <p className="text-surface-400">Platform configuration and preferences.</p>
-  </div>
-);
+// NOTE: Settings route uses lazy-loaded SettingsPage — see import above.
+// The Events route still uses an inline stub (no dedicated EventBus page yet).
+// DEBT: create a real EventBus page at src/pages/Events.tsx
 
 export default function App() {
   return (
@@ -144,7 +144,7 @@ export default function App() {
           <Route path="users" element={<UserAdmin />} />
           <Route path="user-portal" element={<UserManagementPortal />} />
           <Route path="events" element={<Events />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
           <Route path="integrations" element={<CEOIntegrations />} />
           <Route path="connections" element={<ConnectionRegistry />} />
           <Route path="user-attributes" element={<UserAttributeRegistry />} />

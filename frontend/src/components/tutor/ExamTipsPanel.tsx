@@ -1,6 +1,9 @@
 /**
  * Exam Tips Panel Component
  * Shows contextual exam tips, shortcuts, and patterns
+ *
+ * AUDIT NOTE: No active importer found — kept intentionally as a utility component.
+ * // DEBT: wire into ExamInsights.tsx or Chat.tsx sidebar when ready
  */
 
 import { useState } from 'react';
