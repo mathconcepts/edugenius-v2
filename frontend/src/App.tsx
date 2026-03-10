@@ -68,6 +68,9 @@ const SystemStatus = lazy(() => import('@/pages/SystemStatus').then(m => ({ defa
 // Lazy load Market Intelligence (CEO only)
 const MarketIntelligence = lazy(() => import('@/pages/MarketIntelligence'));
 
+// Lazy load Atlas Workbench (CEO only)
+const AtlasWorkbench = lazy(() => import('@/pages/AtlasWorkbench'));
+
 // Lazy load trace viewer
 const TraceViewer = lazy(() => import('@/pages/TraceViewer').then(m => ({ default: m.TraceViewer })));
 
@@ -176,6 +179,9 @@ export default function App() {
 
           {/* Market Intelligence — Scout pipeline — CEO only */}
           <Route path="market-intel" element={<Suspense fallback={<PageLoader />}><MarketIntelligence /></Suspense>} />
+
+          {/* Atlas Workbench — content generation — CEO only */}
+          <Route path="atlas-workbench" element={<Suspense fallback={<PageLoader />}><AtlasWorkbench /></Suspense>} />
           
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

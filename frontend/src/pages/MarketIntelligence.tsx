@@ -4,7 +4,7 @@
  * Shows Google Trends pulse, Reddit content gaps, and Atlas priority queue
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp,
@@ -22,6 +22,9 @@ import {
   Clock,
   Target,
   FileText,
+  CheckCircle,
+  Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
@@ -43,6 +46,13 @@ import {
   getHotPosts,
   TARGET_SUBREDDITS,
 } from '@/services/redditIntelService';
+import {
+  createAtlasTask,
+  queueTask,
+  getQueue,
+  clearCompletedTasks,
+  type AtlasContentTask,
+} from '@/services/atlasTaskService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -227,13 +237,17 @@ function TrendPulseSection({ trends, loading }: { trends: TrendResult[]; loading
 
 // ── Content Gap Radar ─────────────────────────────────────────────────────────
 
-function GapRadarSection({ gaps, loading }: { gaps: ContentGap[]; loading: boolean }) {
-  const handleCreateContent = (gap: ContentGap) => {
-    console.log('[Scout] Create content task for gap:', gap);
-    // In production: missioncontrolhq_tasks_create would be called here
-    alert(`📝 Content task queued for: "${gap.topic}"\n\nIn production, this creates an Atlas task in Mission Control.`);
-  };
-
+function GapRadarSection({
+  gaps,
+  loading,
+  queuedGaps,
+  onQueue,
+}: {
+  gaps: ContentGap[];
+  loading: boolean;
+  queuedGaps: Set<string>;
+  onQueue: (gap: ContentGap) => void;
+}) {
   return (
     <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
       <SectionHeader
@@ -253,6 +267,7 @@ function GapRadarSection({ gaps, loading }: { gaps: ContentGap[]; loading: boole
         <div className="space-y-3">
           {gaps.slice(0, 10).map((gap, i) => {
             const uc = urgencyConfig[gap.urgency];
+            const isQueued = queuedGaps.has(gap.topic);
             return (
               <motion.div
                 key={gap.topic}
@@ -277,13 +292,20 @@ function GapRadarSection({ gaps, loading }: { gaps: ContentGap[]; loading: boole
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleCreateContent(gap)}
-                  className="flex-shrink-0 text-xs bg-primary-600/20 hover:bg-primary-600/40 border border-primary-500/30 text-primary-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
-                >
-                  <Zap className="w-3 h-3" />
-                  Create
-                </button>
+                {isQueued ? (
+                  <span className="flex-shrink-0 text-xs bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-xl flex items-center gap-1 font-medium">
+                    <CheckCircle className="w-3 h-3" />
+                    ✓ Queued
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onQueue(gap)}
+                    className="flex-shrink-0 text-xs bg-primary-600/20 hover:bg-primary-600/40 border border-primary-500/30 text-primary-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                  >
+                    <Zap className="w-3 h-3" />
+                    Create Content
+                  </button>
+                )}
               </motion.div>
             );
           })}
@@ -295,7 +317,17 @@ function GapRadarSection({ gaps, loading }: { gaps: ContentGap[]; loading: boole
 
 // ── Priority Content Queue ────────────────────────────────────────────────────
 
-function PriorityQueueSection({ items, loading }: { items: PriorityContentItem[]; loading: boolean }) {
+function PriorityQueueSection({
+  items,
+  loading,
+  queuedItems,
+  onQueue,
+}: {
+  items: PriorityContentItem[];
+  loading: boolean;
+  queuedItems: Set<string>;
+  onQueue: (item: PriorityContentItem) => void;
+}) {
   return (
     <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
       <SectionHeader
@@ -311,36 +343,166 @@ function PriorityQueueSection({ items, loading }: { items: PriorityContentItem[]
         </div>
       ) : (
         <div className="space-y-3">
-          {items.slice(0, 10).map((item, i) => (
-            <motion.div
-              key={item.topic}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="bg-surface-900 border border-surface-800 rounded-2xl p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-xs font-bold text-primary-300">
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className={clsx('text-xs px-2 py-0.5 rounded-full border', examBadgeColor[item.examFocus] ?? examBadgeColor.General)}>
-                      {item.examFocus}
-                    </span>
-                    <span className="text-xs bg-surface-800 text-surface-400 px-2 py-0.5 rounded-full border border-surface-700">
-                      {item.suggestedAtomType.replace(/_/g, ' ')}
-                    </span>
-                    <span className="text-xs text-surface-500 ml-auto">
-                      Score: <span className="text-white font-medium">{item.priority}</span>
-                    </span>
+          {items.slice(0, 10).map((item, i) => {
+            const isQueued = queuedItems.has(item.topic);
+            return (
+              <motion.div
+                key={item.topic}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="bg-surface-900 border border-surface-800 rounded-2xl p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-xs font-bold text-primary-300">
+                    {i + 1}
                   </div>
-                  <h3 className="text-white font-medium text-sm leading-snug">{item.topic}</h3>
-                  <p className="text-xs text-surface-500 mt-1 leading-relaxed">{item.reasoning}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className={clsx('text-xs px-2 py-0.5 rounded-full border', examBadgeColor[item.examFocus] ?? examBadgeColor.General)}>
+                        {item.examFocus}
+                      </span>
+                      <span className="text-xs bg-surface-800 text-surface-400 px-2 py-0.5 rounded-full border border-surface-700">
+                        {item.suggestedAtomType.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-xs text-surface-500 ml-auto">
+                        Score: <span className="text-white font-medium">{item.priority}</span>
+                      </span>
+                    </div>
+                    <h3 className="text-white font-medium text-sm leading-snug">{item.topic}</h3>
+                    <p className="text-xs text-surface-500 mt-1 leading-relaxed">{item.reasoning}</p>
+                  </div>
+                  <div className="flex-shrink-0 mt-0.5">
+                    {isQueued ? (
+                      <span className="text-xs bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-xl flex items-center gap-1 font-medium">
+                        <CheckCircle className="w-3 h-3" />
+                        ✓ Queued
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => onQueue(item)}
+                        className="text-xs bg-primary-600/20 hover:bg-primary-600/40 border border-primary-500/30 text-primary-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                      >
+                        <Zap className="w-3 h-3" />
+                        Create Content
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Atlas Task Queue Panel ────────────────────────────────────────────────────
+
+const statusConfig = {
+  queued:      { emoji: '🟡', label: 'Queued',      class: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' },
+  in_progress: { emoji: '🔵', label: 'In Progress', class: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
+  done:        { emoji: '✅', label: 'Done',         class: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+  failed:      { emoji: '❌', label: 'Failed',       class: 'text-red-400 bg-red-500/10 border-red-500/30' },
+};
+
+function AtlasQueuePanel({ taskQueue, onRefresh }: { taskQueue: AtlasContentTask[]; onRefresh: () => void }) {
+  const handleClearCompleted = () => {
+    clearCompletedTasks();
+    onRefresh();
+  };
+
+  const hasTasks = taskQueue.length > 0;
+  const hasCompleted = taskQueue.some(t => t.status === 'done' || t.status === 'failed');
+
+  return (
+    <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+      <div className="flex items-center justify-between mb-5">
+        <SectionHeader
+          icon={Sparkles}
+          title="Atlas Task Queue"
+          subtitle="Content generation jobs queued for Atlas — auto-refreshes every 30s"
+          color="text-violet-400"
+        />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {hasCompleted && (
+            <button
+              onClick={handleClearCompleted}
+              className="text-xs flex items-center gap-1 text-surface-400 hover:text-red-400 border border-surface-700 hover:border-red-500/40 px-3 py-1.5 rounded-xl transition-all"
+            >
+              <Trash2 className="w-3 h-3" />
+              Clear Completed
+            </button>
+          )}
+          <button
+            onClick={onRefresh}
+            className="text-xs flex items-center gap-1 text-surface-400 hover:text-white border border-surface-700 hover:border-surface-600 px-3 py-1.5 rounded-xl transition-all"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {!hasTasks ? (
+        <div className="text-center py-10">
+          <p className="text-surface-500 text-sm">Queue empty — run a scan and create content tasks</p>
+          <p className="text-surface-600 text-xs mt-1">Click "Create Content" on any gap or priority item above</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-surface-500 border-b border-surface-800">
+                <th className="text-left pb-3 pr-4 font-medium">Topic</th>
+                <th className="text-left pb-3 pr-4 font-medium">Exam</th>
+                <th className="text-left pb-3 pr-4 font-medium">Atom Type</th>
+                <th className="text-left pb-3 pr-4 font-medium">Status</th>
+                <th className="text-right pb-3 font-medium">Priority</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-800">
+              {taskQueue.map(task => {
+                const sc = statusConfig[task.status];
+                return (
+                  <motion.tr
+                    key={task.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="group"
+                  >
+                    <td className="py-3 pr-4">
+                      <p className="text-white font-medium text-xs leading-snug max-w-[200px] truncate" title={task.topic}>
+                        {task.topic}
+                      </p>
+                      <p className="text-surface-600 text-[10px] mt-0.5 truncate max-w-[200px]" title={task.reasoning}>
+                        {task.reasoning}
+                      </p>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span className={clsx('text-xs px-2 py-0.5 rounded-full border', examBadgeColor[task.examFocus] ?? examBadgeColor.General)}>
+                        {task.examFocus}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span className="text-xs bg-surface-800 text-surface-400 px-2 py-0.5 rounded-full border border-surface-700">
+                        {task.atomType.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span className={clsx('text-xs px-2 py-0.5 rounded-full border font-medium', sc.class)}>
+                        {sc.emoji} {sc.label}
+                      </span>
+                    </td>
+                    <td className="py-3 text-right">
+                      <span className="text-xs font-bold text-white">{task.priority}</span>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -583,6 +745,27 @@ function SummaryStats({ report }: { report: ScoutWeeklyReport | null }) {
   );
 }
 
+// ── Toast notification ────────────────────────────────────────────────────────
+
+function Toast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 3500);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-surface-800 border border-emerald-500/40 text-emerald-300 text-sm px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2"
+    >
+      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+      {message}
+    </motion.div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function MarketIntelligence() {
@@ -594,6 +777,42 @@ export default function MarketIntelligence() {
   const [scanning, setScanning] = useState(false);
   const [loadState, setLoadState] = useState<LoadState>('idle');
   const [usingSimulated, setUsingSimulated] = useState(false);
+
+  // Atlas queue state
+  const [queuedGaps, setQueuedGaps] = useState<Set<string>>(new Set());
+  const [queuedItems, setQueuedItems] = useState<Set<string>>(new Set());
+  const [atlasTaskQueue, setAtlasTaskQueue] = useState<AtlasContentTask[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const refreshAtlasQueue = useCallback(() => {
+    setAtlasTaskQueue(getQueue().tasks);
+  }, []);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    refreshAtlasQueue();
+    autoRefreshRef.current = setInterval(refreshAtlasQueue, 30_000);
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
+  }, [refreshAtlasQueue]);
+
+  const handleQueueGap = useCallback((gap: ContentGap) => {
+    const task = createAtlasTask(gap, 'gap_radar');
+    queueTask(task);
+    setQueuedGaps(prev => new Set(prev).add(gap.topic));
+    setAtlasTaskQueue(getQueue().tasks);
+    setToast(`✅ Queued for Atlas — ${gap.topic}`);
+  }, []);
+
+  const handleQueueItem = useCallback((item: PriorityContentItem) => {
+    const task = createAtlasTask(item, 'priority_queue');
+    queueTask(task);
+    setQueuedItems(prev => new Set(prev).add(item.topic));
+    setAtlasTaskQueue(getQueue().tasks);
+    setToast(`✅ Queued for Atlas — ${item.topic}`);
+  }, []);
 
   const applyReport = (r: ScoutWeeklyReport, simulated: boolean) => {
     setReport(r);
@@ -629,6 +848,7 @@ export default function MarketIntelligence() {
       setUsingSimulated(true);
       setLoadState('success');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScan = useCallback(async () => {
@@ -664,6 +884,13 @@ export default function MarketIntelligence() {
 
   return (
     <div className="space-y-6 max-w-7xl">
+      {/* Toast notifications */}
+      <AnimatePresence>
+        {toast && (
+          <Toast message={toast} onDismiss={() => setToast(null)} />
+        )}
+      </AnimatePresence>
+
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -697,10 +924,23 @@ export default function MarketIntelligence() {
 
         {/* Right column */}
         <div className="space-y-6">
-          <GapRadarSection gaps={gaps} loading={isLoading || scanning} />
-          <PriorityQueueSection items={queue} loading={isLoading || scanning} />
+          <GapRadarSection
+            gaps={gaps}
+            loading={isLoading || scanning}
+            queuedGaps={queuedGaps}
+            onQueue={handleQueueGap}
+          />
+          <PriorityQueueSection
+            items={queue}
+            loading={isLoading || scanning}
+            queuedItems={queuedItems}
+            onQueue={handleQueueItem}
+          />
         </div>
       </div>
+
+      {/* Atlas Task Queue — full width */}
+      <AtlasQueuePanel taskQueue={atlasTaskQueue} onRefresh={refreshAtlasQueue} />
 
       {/* Reddit Feed — full width */}
       <RedditFeedSection />
