@@ -243,7 +243,7 @@ function GenerationConsole() {
         {/* Surface */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-surface-300 mb-2">Delivery Surface</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {SURFACES.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
@@ -387,7 +387,7 @@ function GenerationConsole() {
                 <span className="text-sm font-medium text-surface-300">🎨 Image Prompt</span>
                 <CopyButton text={result.imagePrompt} />
               </div>
-              <div className="px-4 py-3 bg-surface-900 border border-surface-700 rounded-lg text-xs text-surface-300 font-mono">
+              <div className="px-4 py-3 bg-surface-900 border border-surface-700 rounded-lg text-xs text-surface-300 font-mono max-h-[200px] sm:max-h-none overflow-y-auto">
                 {result.imagePrompt}
               </div>
             </div>
@@ -504,7 +504,7 @@ function TierStatusPanel() {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-surface-700">
@@ -589,6 +589,27 @@ function TierStatusPanel() {
           </tbody>
         </table>
       </div>
+      {/* Mobile stacked tier cards */}
+      <div className="sm:hidden space-y-2">
+        {(Object.keys(TIER_CONFIGS) as ContentTier[]).map((tier) => {
+          const cfg = TIER_CONFIGS[tier];
+          const isAvail = available.includes(tier);
+          return (
+            <div key={tier} className="bg-surface-800/50 border border-surface-700/50 rounded-xl p-3 flex items-center gap-3">
+              <span className="text-2xl">{cfg.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-surface-200">{cfg.name}</span>
+                  {isAvail
+                    ? <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    : <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                </div>
+                <p className="text-xs text-surface-500 truncate">{cfg.description}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -664,7 +685,7 @@ function OrchestratorSettings() {
         </div>
 
         {/* Toggles row */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="flex items-center justify-between p-4 bg-surface-800 rounded-lg border border-surface-700">
             <div>
               <div className="text-sm font-medium text-surface-200">Auto-Escalate</div>
@@ -745,7 +766,7 @@ function OrchestratorSettings() {
         {/* Agent Signal Toggles */}
         <div>
           <label className="block text-sm font-medium text-surface-300 mb-3">Agent Signals</label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {Object.entries(AGENT_LABELS).map(([agentId, label]) => (
               <div
                 key={agentId}
@@ -821,56 +842,82 @@ function RecentGenerations() {
           <p className="text-sm">No generations yet. Use the console above to generate content.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-surface-700">
-                <th className="text-left py-2 px-3 text-surface-400 font-medium">Topic</th>
-                <th className="text-left py-2 px-3 text-surface-400 font-medium">Tier</th>
-                <th className="text-left py-2 px-3 text-surface-400 font-medium">Surface</th>
-                <th className="text-left py-2 px-3 text-surface-400 font-medium">Status</th>
-                <th className="text-left py-2 px-3 text-surface-400 font-medium">Time</th>
-                <th className="text-left py-2 px-3 text-surface-400 font-medium">Formats</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-700/50">
-              {log.map((entry) => (
-                <tr key={entry.requestId} className="hover:bg-surface-800/50 transition-colors">
-                  <td className="py-2.5 px-3 text-surface-200 max-w-[200px] truncate">{entry.topic}</td>
-                  <td className="py-2.5 px-3">
-                    <span className="text-xs font-mono text-surface-400">
-                      {TIER_CONFIGS[entry.tier]?.emoji} {entry.tier}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-xs text-surface-400">{entry.surface}</td>
-                  <td className="py-2.5 px-3">
-                    <Badge
-                      label={entry.status}
-                      className={
-                        entry.status === 'success' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                        : entry.status === 'partial' ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
-                        : entry.status === 'fallback' ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
-                        :                              'text-red-400 bg-red-500/10 border-red-500/30'
-                      }
-                    />
-                  </td>
-                  <td className="py-2.5 px-3 text-xs text-surface-500 font-mono">{entry.generationMs}ms</td>
-                  <td className="py-2.5 px-3">
-                    <div className="flex flex-wrap gap-1">
-                      {entry.formats.map((f) => (
-                        <Badge
-                          key={f}
-                          label={f}
-                          className="text-xs text-surface-400 bg-surface-700 border-surface-600"
-                        />
-                      ))}
-                    </div>
-                  </td>
+        <>
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-surface-700">
+                  <th className="text-left py-2 px-3 text-surface-400 font-medium">Topic</th>
+                  <th className="text-left py-2 px-3 text-surface-400 font-medium">Tier</th>
+                  <th className="text-left py-2 px-3 text-surface-400 font-medium">Surface</th>
+                  <th className="text-left py-2 px-3 text-surface-400 font-medium">Status</th>
+                  <th className="text-left py-2 px-3 text-surface-400 font-medium">Time</th>
+                  <th className="text-left py-2 px-3 text-surface-400 font-medium">Formats</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-surface-700/50">
+                {log.map((entry) => (
+                  <tr key={entry.requestId} className="hover:bg-surface-800/50 transition-colors">
+                    <td className="py-2.5 px-3 text-surface-200 max-w-[200px] truncate">{entry.topic}</td>
+                    <td className="py-2.5 px-3">
+                      <span className="text-xs font-mono text-surface-400">
+                        {TIER_CONFIGS[entry.tier]?.emoji} {entry.tier}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-xs text-surface-400">{entry.surface}</td>
+                    <td className="py-2.5 px-3">
+                      <Badge
+                        label={entry.status}
+                        className={
+                          entry.status === 'success' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                          : entry.status === 'partial' ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
+                          : entry.status === 'fallback' ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+                          :                              'text-red-400 bg-red-500/10 border-red-500/30'
+                        }
+                      />
+                    </td>
+                    <td className="py-2.5 px-3 text-xs text-surface-500 font-mono">{entry.generationMs}ms</td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex flex-wrap gap-1">
+                        {entry.formats.map((f) => (
+                          <Badge
+                            key={f}
+                            label={f}
+                            className="text-xs text-surface-400 bg-surface-700 border-surface-600"
+                          />
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Mobile stacked log cards */}
+          <div className="sm:hidden divide-y divide-surface-700/50">
+            {log.map((entry) => (
+              <div key={entry.requestId} className="py-3 flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-surface-200 truncate">{entry.topic}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-xs font-mono text-surface-500">{TIER_CONFIGS[entry.tier]?.emoji} {entry.tier}</span>
+                    <span className="text-xs text-surface-500">{entry.surface}</span>
+                    <span className="text-xs text-surface-500 font-mono">{entry.generationMs}ms</span>
+                  </div>
+                </div>
+                <Badge
+                  label={entry.status}
+                  className={
+                    entry.status === 'success' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                    : entry.status === 'partial' ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
+                    : entry.status === 'fallback' ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+                    :                              'text-red-400 bg-red-500/10 border-red-500/30'
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -880,7 +927,7 @@ function RecentGenerations() {
 
 export default function ContentOrchestrator() {
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="flex items-start gap-4">
         <div className="p-3 rounded-xl bg-gradient-to-br from-primary-500/20 to-violet-500/20 border border-primary-500/30">
@@ -907,7 +954,7 @@ export default function ContentOrchestrator() {
       <TierStatusPanel />
 
       {/* Sections 3 & 4 — side by side on large screens */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         <OrchestratorSettings />
         <RecentGenerations />
       </div>

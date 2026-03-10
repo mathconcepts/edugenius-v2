@@ -107,11 +107,11 @@ function GenerateTab() {
   const rawText = result ? renderContent(result) : '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Form */}
-      <div className="card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Generate Content</h2>
-        <div className="grid grid-cols-2 gap-4">
+      <div className="card p-3 sm:p-6 space-y-4">
+        <h2 className="text-base sm:text-lg font-semibold">Generate Content</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="text-xs text-surface-400 mb-1 block">Exam</label>
             <select value={exam} onChange={e => setExam(e.target.value as SupportedExam)}
@@ -140,13 +140,11 @@ function GenerateTab() {
               className="w-full bg-surface-800 border border-surface-700 rounded-xl px-3 py-2 text-sm text-white placeholder-surface-500 focus:outline-none focus:border-primary-500" />
           </div>
         </div>
-        <div className="flex gap-3">
-          <button onClick={handleGenerate} disabled={loading || !topic.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-            {loading ? 'Generating...' : 'Generate'}
-          </button>
-        </div>
+        <button onClick={handleGenerate} disabled={loading || !topic.trim()}
+          className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto justify-center min-h-[44px]">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+          {loading ? 'Generating...' : 'Generate'}
+        </button>
       </div>
 
       {/* Strategy preview */}
@@ -262,10 +260,10 @@ function RepurposeTab() {
   const viewContent = result?.byChannel.get(selectedView);
 
   return (
-    <div className="space-y-6">
-      <div className="card p-6 space-y-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="card p-3 sm:p-6 space-y-4">
         <h2 className="text-lg font-semibold">Repurpose Content</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="text-xs text-surface-400 mb-1 block">Exam</label>
             <select value={exam} onChange={e => setExam(e.target.value as SupportedExam)}
@@ -280,13 +278,13 @@ function RepurposeTab() {
               {CHANNELS.map(c => <option key={c} value={c}>{CHANNEL_LABELS[c]}</option>)}
             </select>
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="text-xs text-surface-400 mb-1 block">Topic</label>
             <input value={topic} onChange={e => setTopic(e.target.value)}
               placeholder="e.g. Fourier Transform"
               className="w-full bg-surface-800 border border-surface-700 rounded-xl px-3 py-2 text-sm text-white placeholder-surface-500 focus:outline-none focus:border-primary-500" />
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="text-xs text-surface-400 mb-1 block">Source Content (optional — paste existing content)</label>
             <textarea value={sourceText} onChange={e => setSourceText(e.target.value)} rows={4}
               placeholder="Paste your existing blog post, video script, or social post here..."
@@ -294,7 +292,7 @@ function RepurposeTab() {
           </div>
         </div>
         <button onClick={handleRepurpose} disabled={loading || (!topic.trim() && !sourceText.trim())}
-          className="flex items-center gap-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-500 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
+          className="flex items-center gap-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-500 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto justify-center min-h-[44px]">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           {loading ? 'Repurposing...' : 'Repurpose for All Channels'}
         </button>
@@ -370,10 +368,10 @@ function CampaignTab() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="card p-6 space-y-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="card p-3 sm:p-6 space-y-4">
         <h2 className="text-lg font-semibold">Campaign Orchestrator</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="text-xs text-surface-400 mb-1 block">Exam</label>
             <select value={exam} onChange={e => setExam(e.target.value as SupportedExam)}
@@ -413,7 +411,7 @@ function CampaignTab() {
           </div>
         </div>
         <button onClick={handleOrchestrate} disabled={loading || !topic.trim() || !targetDate}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50">
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 w-full sm:w-auto justify-center min-h-[44px]">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
           {loading ? 'Orchestrating Campaign...' : 'Launch Campaign'}
         </button>
@@ -503,7 +501,7 @@ function SyncStatusTab() {
     report?.overallHealth === 'degraded' ? 'text-yellow-400' : 'text-red-400';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -556,18 +554,18 @@ export default function ContentHub() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-surface-700/50">
-        <h1 className="text-xl font-bold gradient-text">Content Hub</h1>
-        <p className="text-sm text-surface-400 mt-0.5">Multi-channel generation, repurposing engine, campaign orchestrator</p>
+      <div className="flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 border-b border-surface-700/50">
+        <h1 className="text-lg sm:text-xl font-bold gradient-text">Content Hub</h1>
+        <p className="text-xs sm:text-sm text-surface-400 mt-0.5">Multi-channel generation, repurposing engine, campaign orchestrator</p>
       </div>
 
-      {/* Tab nav */}
-      <div className="flex-shrink-0 flex gap-1 px-6 pt-3 border-b border-surface-700/30 pb-0">
+      {/* Tab nav — horizontally scrollable on mobile, icon-only on small screens */}
+      <div className="flex-shrink-0 flex gap-1 overflow-x-auto scrollbar-none px-3 sm:px-6 pt-3 border-b border-surface-700/30 pb-0">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-xl transition-colors border-b-2 ${activeTab === tab.id ? 'text-primary-400 border-primary-500 bg-primary-500/5' : 'text-surface-400 border-transparent hover:text-white'}`}>
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-sm font-medium rounded-t-xl transition-colors border-b-2 shrink-0 min-h-[44px] ${activeTab === tab.id ? 'text-primary-400 border-primary-500 bg-primary-500/5' : 'text-surface-400 border-transparent hover:text-white'}`}>
             <tab.icon className="w-4 h-4" />
-            {tab.label}
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -585,7 +583,7 @@ export default function ContentHub() {
       )}
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         {activeTab === 'generate' && <GenerateTab />}
         {activeTab === 'repurpose' && <RepurposeTab />}
         {activeTab === 'campaign' && <CampaignTab />}

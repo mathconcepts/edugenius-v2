@@ -104,7 +104,7 @@ function PendingTaskCard({ task, onGenerate, isGenerating }: TaskCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-surface-900 border border-surface-800 rounded-2xl p-5 hover:border-surface-700 transition-colors"
+      className="bg-surface-900 border border-surface-800 rounded-2xl p-3 sm:p-5 hover:border-surface-700 transition-colors"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
@@ -140,7 +140,7 @@ function PendingTaskCard({ task, onGenerate, isGenerating }: TaskCardProps) {
               onClick={() => onGenerate(task)}
               disabled={isGenerating}
               className={clsx(
-                'flex items-center gap-2 text-xs px-4 py-2 rounded-xl font-medium transition-all border',
+                'flex items-center gap-1.5 text-xs px-3 py-2.5 rounded-xl font-medium transition-all border min-h-[40px]',
                 isGenerating
                   ? 'bg-surface-800 text-surface-500 border-surface-700 cursor-not-allowed'
                   : 'bg-violet-600/20 hover:bg-violet-600/40 border-violet-500/30 text-violet-300 hover:text-violet-200',
@@ -291,9 +291,9 @@ export default function AtlasWorkbench() {
   const doneCount = doneTasks.length;
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-4 sm:space-y-8 max-w-5xl">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold gradient-text flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-violet-400" />
@@ -306,7 +306,7 @@ export default function AtlasWorkbench() {
 
         <div className="flex items-center gap-3">
           {/* Stats pills */}
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs flex-wrap">
             <span className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-3 py-1.5 rounded-full">
               🟡 {pendingCount} pending
             </span>
@@ -343,14 +343,14 @@ export default function AtlasWorkbench() {
 
       {/* Regeneration Requests */}
       {regenQueue.length > 0 && (
-        <div className="bg-red-500/5 border border-red-500/30 rounded-3xl p-6">
+        <div className="bg-red-500/5 border border-red-500/30 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
           <SectionHeader
             icon={AlertCircle}
             title="Regeneration Requests"
             subtitle="Low-performing atoms flagged by the feedback loop — score < 40"
             color="text-red-400"
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             {regenQueue.map(perf => (
               <div
                 key={perf.atomId}
@@ -378,7 +378,7 @@ export default function AtlasWorkbench() {
       )}
 
       {/* Pending Tasks */}
-      <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+      <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
         <SectionHeader
           icon={Target}
           title="Pending Tasks"
@@ -397,7 +397,7 @@ export default function AtlasWorkbench() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {pendingTasks.map(task => (
               <PendingTaskCard
                 key={task.id}
@@ -412,7 +412,7 @@ export default function AtlasWorkbench() {
 
       {/* Generated Content */}
       {doneCount > 0 && (
-        <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+        <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
           <SectionHeader
             icon={BookOpen}
             title="Generated Content"
@@ -430,7 +430,7 @@ export default function AtlasWorkbench() {
 
       {/* Empty generated state */}
       {doneCount === 0 && (
-        <div className="bg-surface-900/30 border border-dashed border-surface-700 rounded-3xl p-8 text-center">
+        <div className="bg-surface-900/30 border border-dashed border-surface-700 rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center">
           <BarChart3 className="w-10 h-10 text-surface-700 mx-auto mb-3" />
           <p className="text-surface-500 text-sm">Generated ContentAtoms will appear here</p>
           <p className="text-surface-600 text-xs mt-1">Click "Generate" on a pending task above to create your first atom.</p>

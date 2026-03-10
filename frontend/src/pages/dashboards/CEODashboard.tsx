@@ -348,7 +348,7 @@ export function CEODashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Modals */}
       <AnimatePresence>
         {showLaunchModal && <LaunchExamModal onClose={() => setShowLaunchModal(false)} />}
@@ -379,12 +379,12 @@ export function CEODashboard() {
       </motion.div>
 
       {/* ── Hero Revenue Strip ── */}
-      <div className="bg-gradient-to-r from-primary-600/20 to-emerald-600/20 border border-primary-500/30 rounded-2xl p-6">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-primary-600/20 to-emerald-600/20 border border-primary-500/30 rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-surface-400 text-sm font-medium uppercase tracking-wider">Monthly Recurring Revenue</p>
             <div className="flex items-baseline gap-3 mt-1">
-              <span className="text-5xl font-bold text-white">₹4,82,000</span>
+              <span className="text-3xl sm:text-5xl font-bold text-white">₹4,82,000</span>
               <span className="text-emerald-400 text-lg font-semibold">+23% ↑</span>
             </div>
             <p className="text-surface-400 text-sm mt-1">1,240 active students · 89 new this month</p>
@@ -398,7 +398,7 @@ export function CEODashboard() {
             <p className="text-surface-400 text-xs mt-1">48% there</p>
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-surface-700">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-surface-700">
           {[
             {label:'Today\'s Revenue', value:'₹16,400', change:'+12%'},
             {label:'Churn Rate', value:'2.1%', change:'-0.3%'},
@@ -429,7 +429,7 @@ export function CEODashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Today's MRR"
           value="₹7.24L"
@@ -462,7 +462,7 @@ export function CEODashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Revenue Chart */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -558,7 +558,7 @@ export function CEODashboard() {
               {activeAgents}/{agents.length} active
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {agents.map((agent) => (
               <div
                 key={agent.id}

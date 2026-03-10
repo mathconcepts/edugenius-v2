@@ -183,7 +183,7 @@ function TrendPulseSection({ trends, loading }: { trends: TrendResult[]; loading
       );
 
   return (
-    <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+    <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
       <SectionHeader
         icon={TrendingUp}
         title="Trend Pulse"
@@ -192,7 +192,7 @@ function TrendPulseSection({ trends, loading }: { trends: TrendResult[]; loading
       />
 
       {/* Exam filter tabs */}
-      <div className="flex gap-2 flex-wrap mb-5">
+      <div className="flex gap-2 flex-wrap mb-4">
         {['All', ...examGroups].map(exam => (
           <button
             key={exam}
@@ -249,7 +249,7 @@ function GapRadarSection({
   onQueue: (gap: ContentGap) => void;
 }) {
   return (
-    <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+    <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
       <SectionHeader
         icon={AlertTriangle}
         title="Content Gap Radar"
@@ -329,7 +329,7 @@ function PriorityQueueSection({
   onQueue: (item: PriorityContentItem) => void;
 }) {
   return (
-    <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+    <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
       <SectionHeader
         icon={Target}
         title="Priority Content Queue"
@@ -417,7 +417,7 @@ function AtlasQueuePanel({ taskQueue, onRefresh }: { taskQueue: AtlasContentTask
   const hasCompleted = taskQueue.some(t => t.status === 'done' || t.status === 'failed');
 
   return (
-    <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+    <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <SectionHeader
           icon={Sparkles}
@@ -451,59 +451,78 @@ function AtlasQueuePanel({ taskQueue, onRefresh }: { taskQueue: AtlasContentTask
           <p className="text-surface-600 text-xs mt-1">Click "Create Content" on any gap or priority item above</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs text-surface-500 border-b border-surface-800">
-                <th className="text-left pb-3 pr-4 font-medium">Topic</th>
-                <th className="text-left pb-3 pr-4 font-medium">Exam</th>
-                <th className="text-left pb-3 pr-4 font-medium">Atom Type</th>
-                <th className="text-left pb-3 pr-4 font-medium">Status</th>
-                <th className="text-right pb-3 font-medium">Priority</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {taskQueue.map(task => {
-                const sc = statusConfig[task.status];
-                return (
-                  <motion.tr
-                    key={task.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="group"
-                  >
-                    <td className="py-3 pr-4">
-                      <p className="text-white font-medium text-xs leading-snug max-w-[200px] truncate" title={task.topic}>
-                        {task.topic}
-                      </p>
-                      <p className="text-surface-600 text-[10px] mt-0.5 truncate max-w-[200px]" title={task.reasoning}>
-                        {task.reasoning}
-                      </p>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <span className={clsx('text-xs px-2 py-0.5 rounded-full border', examBadgeColor[task.examFocus] ?? examBadgeColor.General)}>
-                        {task.examFocus}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <span className="text-xs bg-surface-800 text-surface-400 px-2 py-0.5 rounded-full border border-surface-700">
-                        {task.atomType.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <span className={clsx('text-xs px-2 py-0.5 rounded-full border font-medium', sc.class)}>
-                        {sc.emoji} {sc.label}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right">
-                      <span className="text-xs font-bold text-white">{task.priority}</span>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-surface-500 border-b border-surface-800">
+                  <th className="text-left pb-3 pr-4 font-medium">Topic</th>
+                  <th className="text-left pb-3 pr-4 font-medium">Exam</th>
+                  <th className="text-left pb-3 pr-4 font-medium">Atom Type</th>
+                  <th className="text-left pb-3 pr-4 font-medium">Status</th>
+                  <th className="text-right pb-3 font-medium">Priority</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-800">
+                {taskQueue.map(task => {
+                  const sc = statusConfig[task.status];
+                  return (
+                    <motion.tr
+                      key={task.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="group"
+                    >
+                      <td className="py-3 pr-4">
+                        <p className="text-white font-medium text-xs leading-snug max-w-[200px] truncate" title={task.topic}>
+                          {task.topic}
+                        </p>
+                        <p className="text-surface-600 text-[10px] mt-0.5 truncate max-w-[200px]" title={task.reasoning}>
+                          {task.reasoning}
+                        </p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span className={clsx('text-xs px-2 py-0.5 rounded-full border', examBadgeColor[task.examFocus] ?? examBadgeColor.General)}>
+                          {task.examFocus}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span className="text-xs bg-surface-800 text-surface-400 px-2 py-0.5 rounded-full border border-surface-700">
+                          {task.atomType.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span className={clsx('text-xs px-2 py-0.5 rounded-full border font-medium', sc.class)}>
+                          {sc.emoji} {sc.label}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right">
+                        <span className="text-xs font-bold text-white">{task.priority}</span>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* Mobile stacked cards */}
+          <div className="sm:hidden space-y-2">
+            {taskQueue.map(task => {
+              const sc = statusConfig[task.status];
+              return (
+                <div key={task.id} className="bg-surface-900 border border-surface-800 rounded-xl p-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{task.topic}</p>
+                    <p className="text-surface-500 text-xs mt-0.5">{task.atomType.replace(/_/g, ' ')}</p>
+                  </div>
+                  <span className={clsx('text-xs px-2 py-0.5 rounded-full border font-medium shrink-0', sc.class)}>
+                    {sc.emoji} {sc.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
@@ -551,7 +570,7 @@ function RedditFeedSection() {
   };
 
   return (
-    <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+    <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
       <SectionHeader
         icon={MessageSquare}
         title="Raw Reddit Feed"
@@ -621,7 +640,7 @@ function RedditFeedSection() {
 
 function CompetitorSignalsSection({ signals, loading }: { signals: string[]; loading: boolean }) {
   return (
-    <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+    <div className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
       <SectionHeader
         icon={Search}
         title="Competitor Signals"
@@ -669,7 +688,7 @@ function ScanStatusBar({
 
   return (
     <div className={clsx(
-      'flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl border',
+      'flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl border',
       stale
         ? 'bg-yellow-500/5 border-yellow-500/20'
         : 'bg-surface-900/50 border-surface-800',
@@ -915,7 +934,7 @@ export default function MarketIntelligence() {
       {report && <SummaryStats report={report} />}
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Left column */}
         <div className="space-y-6">
           <TrendPulseSection trends={trends} loading={isLoading || scanning} />

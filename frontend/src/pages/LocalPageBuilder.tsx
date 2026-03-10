@@ -79,13 +79,13 @@ function BuildForm({ onBuilt }: BuildFormProps) {
   };
 
   return (
-    <div className="card p-6 space-y-4">
+    <div className="card p-3 sm:p-6 space-y-4">
       <h2 className="text-lg font-semibold flex items-center gap-2"><Plus className="w-5 h-5" /> Build New Page</h2>
 
       {/* Page type selector */}
       <div>
         <label className="text-xs text-surface-400 mb-2 block">Page Type</label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {PAGE_TYPES.map(pt => (
             <button key={pt.value} onClick={() => updateForm({ type: pt.value })}
               className={`text-left p-3 rounded-xl border text-sm transition-colors ${form.type === pt.value ? 'border-primary-500/50 bg-primary-500/10' : 'border-surface-700 hover:border-surface-600'}`}>
@@ -96,7 +96,7 @@ function BuildForm({ onBuilt }: BuildFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
           <label className="text-xs text-surface-400 mb-1 block">Exam</label>
           <select value={form.exam} onChange={e => updateForm({ exam: e.target.value as SupportedExam })}
@@ -110,13 +110,13 @@ function BuildForm({ onBuilt }: BuildFormProps) {
             placeholder="e.g. Electromagnetics"
             className="w-full bg-surface-800 border border-surface-700 rounded-xl px-3 py-2 text-sm text-white placeholder-surface-500 focus:outline-none focus:border-primary-500" />
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="text-xs text-surface-400 mb-1 block">Headline</label>
           <input value={form.headline} onChange={e => updateForm({ headline: e.target.value })}
             placeholder="e.g. Crack GATE 2025 with AI-Powered Preparation"
             className="w-full bg-surface-800 border border-surface-700 rounded-xl px-3 py-2 text-sm text-white placeholder-surface-500 focus:outline-none focus:border-primary-500" />
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="text-xs text-surface-400 mb-1 block">Sub-headline</label>
           <input value={form.subHeadline} onChange={e => updateForm({ subHeadline: e.target.value })}
             placeholder="e.g. Join 50,000+ students who trust EduGenius"
@@ -137,7 +137,7 @@ function BuildForm({ onBuilt }: BuildFormProps) {
       </div>
 
       <button onClick={handleBuild} disabled={building || !form.topic || !form.headline}
-        className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
+        className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto justify-center min-h-[44px]">
         {building ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
         {building ? 'Building page...' : 'Build Page'}
       </button>
@@ -185,7 +185,7 @@ function PagePreview({ page, onClose }: { page: BuiltPage; onClose: () => void }
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleDownload}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs text-white transition-colors">
+            className="flex items-center gap-1.5 px-3 py-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs text-white transition-colors min-h-[36px]">
             <Download className="w-3.5 h-3.5" /> Download HTML
           </button>
           <button onClick={onClose}
@@ -250,9 +250,9 @@ function PageListItem({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-2 flex-shrink-0">
+        <div className="flex flex-col sm:flex-col gap-2 flex-shrink-0">
           <button onClick={onPreview}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs text-white transition-colors">
+            className="flex items-center gap-1.5 px-3 py-2 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs text-white transition-colors min-h-[36px]">
             <Eye className="w-3.5 h-3.5" /> Preview
           </button>
           {page.deployStatus !== 'deployed' && (
@@ -309,7 +309,7 @@ export default function LocalPageBuilderView() {
   const syncStatus = getSyncStatus();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Sync status bar */}
       <div className="flex items-center gap-4 text-xs">
         <div className="flex items-center gap-1.5 text-surface-400">

@@ -136,7 +136,7 @@ function NextTaskCard({ task, todayDone, todayTotal, onStart }: NextTaskCardProp
 
   if (!task) {
     return (
-      <div className="rounded-2xl bg-surface-900 border border-green-600 p-6 flex flex-col items-center justify-center gap-3 min-h-[220px]">
+      <div className="rounded-2xl bg-surface-900 border border-green-600 p-4 sm:p-6 flex flex-col items-center justify-center gap-3 min-h-[220px]">
         <span className="text-5xl">🎉</span>
         <p className="text-lg font-semibold text-white">All done for today</p>
         <p className="text-sm text-surface-400">Incredible focus. See you tomorrow!</p>
@@ -145,7 +145,7 @@ function NextTaskCard({ task, todayDone, todayTotal, onStart }: NextTaskCardProp
   }
 
   return (
-    <div className="rounded-2xl bg-surface-900 border border-surface-700 p-6 space-y-4">
+    <div className="rounded-2xl bg-surface-900 border border-surface-700 p-4 sm:p-6 space-y-4">
       {/* Subject pill */}
       <span className="inline-flex items-center bg-surface-800 text-xs px-2 py-0.5 rounded-full text-surface-300">
         {task.subject} · {task.duration}
@@ -190,7 +190,7 @@ const HATCHES = [
 
 function EscapeHatches() {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-3 gap-2 sm:gap-3">
       {HATCHES.map(({ to, icon: Icon, label }) => (
         <Link
           key={to}

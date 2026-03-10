@@ -141,7 +141,7 @@ function SignalCard({
   crafting: boolean;
 }) {
   return (
-    <div className={`card p-4 transition-all ${signal.processed ? 'opacity-50' : ''}`}>
+    <div className={`card p-3 sm:p-4 transition-all ${signal.processed ? 'opacity-50' : ''}`}>
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div className="flex flex-wrap gap-1.5 items-center">
           <span className="text-base">{PLATFORM_EMOJIS[signal.platform]}</span>
@@ -154,7 +154,7 @@ function SignalCard({
           <span className={`px-2 py-0.5 rounded-full text-[11px] ${URGENCY_BADGE[signal.urgency]}`}>
             {signal.urgency === 'high' ? '🔴' : signal.urgency === 'medium' ? '🟡' : '🟢'} {signal.urgency}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[11px] bg-surface-800 text-surface-400">
+          <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[11px] bg-surface-800 text-surface-400">
             {INTENT_LABELS[signal.intentType]}
           </span>
         </div>
@@ -164,27 +164,27 @@ function SignalCard({
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-surface-200 leading-relaxed">
+      <p className="mt-2 text-sm text-surface-200 leading-relaxed line-clamp-2 sm:line-clamp-none">
         &ldquo;{signal.originalText}&rdquo;
       </p>
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-2 flex items-center justify-between">
         <div className="text-xs text-surface-500">
-          {signal.authorHandle && <span className="mr-3">{signal.authorHandle}</span>}
-          <span>Topic: <em>{signal.topic}</em></span>
+          {signal.authorHandle && <span className="mr-3 hidden sm:inline">{signal.authorHandle}</span>}
+          <span className="hidden sm:inline">Topic: <em>{signal.topic}</em></span>
         </div>
         {!signal.processed ? (
           <button
             onClick={() => onCraft(signal.id)}
             disabled={crafting}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors disabled:opacity-50 min-h-[36px]"
           >
             {crafting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-            Craft Answer
+            Craft
           </button>
         ) : (
           <span className="text-xs text-green-400 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> Processed
+            <CheckCircle2 className="w-3 h-3" /> Done
           </span>
         )}
       </div>
@@ -225,8 +225,8 @@ function AnswerCard({
   return (
     <div className={`card border transition-all ${selected ? 'border-primary-500/50' : 'border-surface-700/50'}`}>
       {/* Header */}
-      <div className="p-4">
-        <div className="flex items-start gap-3">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
           {isPending && (
             <input
               type="checkbox" checked={selected}
@@ -240,7 +240,7 @@ function AnswerCard({
               <span className="px-2 py-0.5 rounded-full text-[11px] bg-primary-500/20 text-primary-300">
                 {EXAM_LABELS[answer.exam as ExamCode]}
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[11px] bg-surface-700 text-surface-300">
+              <span className="px-2 py-0.5 rounded-full text-[11px] bg-surface-700 text-surface-300 hidden sm:inline">
                 {answer.topic}
               </span>
               <span className={`px-2 py-0.5 rounded-full text-[11px] ${STATUS_BADGE[answer.status]}`}>
@@ -248,22 +248,25 @@ function AnswerCard({
               </span>
             </div>
             {signal && (
-              <p className="text-xs text-surface-500 italic mb-2">
-                Q: &ldquo;{signal.originalText.slice(0, 100)}&hellip;&rdquo;
+              <p className="text-xs text-surface-500 italic mb-2 line-clamp-1">
+                Q: &ldquo;{signal.originalText.slice(0, 80)}&hellip;&rdquo;
               </p>
             )}
-            <p className="text-sm text-surface-200 font-medium">{answer.hook}</p>
+            <p className="text-sm text-surface-200 font-medium line-clamp-2">{answer.hook}</p>
           </div>
-          {/* Scores */}
-          <div className="flex-shrink-0 grid grid-cols-3 gap-2 text-center">
+          {/* Scores — compact on mobile */}
+          <div className="flex-shrink-0 flex gap-2 sm:grid sm:grid-cols-3 sm:gap-2 text-center">
             {[
-              { l: 'Human', v: answer.humanizationScore },
-              { l: 'Anti-Spam', v: answer.antiSpamScore },
-              { l: 'Read', v: answer.readabilityScore },
-            ].map(({ l, v }) => (
-              <div key={l}>
-                <div className={`text-lg font-bold ${SCORE_COLOR(v)}`}>{v}</div>
-                <div className="text-[10px] text-surface-500 leading-tight">{l}</div>
+              { l: 'H', fullL: 'Human', v: answer.humanizationScore },
+              { l: 'S', fullL: 'Anti-Spam', v: answer.antiSpamScore },
+              { l: 'R', fullL: 'Read', v: answer.readabilityScore },
+            ].map(({ l, fullL, v }) => (
+              <div key={fullL}>
+                <div className={`text-base sm:text-lg font-bold ${SCORE_COLOR(v)}`}>{v}</div>
+                <div className="text-[10px] text-surface-500 leading-tight">
+                  <span className="sm:hidden">{l}</span>
+                  <span className="hidden sm:inline">{fullL}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -271,7 +274,7 @@ function AnswerCard({
 
         <button
           onClick={() => setExpanded(e => !e)}
-          className="mt-2 flex items-center gap-1 text-xs text-surface-500 hover:text-surface-300"
+          className="mt-2 flex items-center gap-1 text-xs text-surface-500 hover:text-surface-300 min-h-[32px]"
         >
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           {expanded ? 'Collapse' : 'View full answer'}
@@ -280,21 +283,21 @@ function AnswerCard({
 
       {/* Expanded */}
       {expanded && (
-        <div className="border-t border-surface-700 p-4 space-y-3">
-          <div className="flex gap-1 flex-wrap">
+        <div className="border-t border-surface-700 p-3 sm:p-4 space-y-3">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none pb-1">
             {platforms.map(p => (
               <button
                 key={p} onClick={() => setActiveFmt(p)}
-                className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap shrink-0 min-h-[32px] ${
                   activeFmt === p ? 'bg-primary-600 text-white' : 'bg-surface-800 text-surface-400 hover:text-white'
                 }`}
               >
-                {p === 'x_twitter' ? '𝕏 Twitter' : p.charAt(0).toUpperCase() + p.slice(1)}
+                {p === 'x_twitter' ? '𝕏' : p.charAt(0).toUpperCase() + p.slice(1)}
               </button>
             ))}
           </div>
 
-          <div className="bg-surface-900 rounded-lg p-3 text-sm text-surface-300 whitespace-pre-wrap font-mono leading-relaxed max-h-56 overflow-y-auto">
+          <div className="bg-surface-900 rounded-lg p-3 text-sm text-surface-300 whitespace-pre-wrap font-mono leading-relaxed max-h-48 sm:max-h-56 overflow-y-auto">
             {answer.formatted[activeFmt]}
           </div>
 
@@ -309,8 +312,8 @@ function AnswerCard({
           )}
 
           <div className="flex items-center justify-between text-xs text-surface-500">
-            <span>{answer.wordCount} words · generated {timeAgo(answer.generatedAt)}</span>
-            <button onClick={handleCopy} className="flex items-center gap-1 hover:text-surface-200">
+            <span>{answer.wordCount}w · {timeAgo(answer.generatedAt)}</span>
+            <button onClick={handleCopy} className="flex items-center gap-1 hover:text-surface-200 min-h-[32px]">
               <Copy className="w-3 h-3" />
               {copied ? 'Copied!' : 'Copy'}
             </button>
@@ -320,24 +323,30 @@ function AnswerCard({
 
       {/* Actions */}
       {isPending && (
-        <div className="border-t border-surface-700 p-3 flex gap-2">
+        <div className="border-t border-surface-700 p-2 sm:p-3 flex gap-2">
           <button
             onClick={() => onApprove(queueId)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors min-h-[40px]"
           >
-            <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Approve</span>
+            <span className="sm:hidden">✓</span>
           </button>
           <button
             onClick={() => onEdit(queueId)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg transition-colors min-h-[40px]"
           >
-            <Edit3 className="w-3.5 h-3.5" /> Edit & Approve
+            <Edit3 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Edit & Approve</span>
+            <span className="sm:hidden">✏️</span>
           </button>
           <button
             onClick={() => onReject(queueId)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors min-h-[40px]"
           >
-            <XCircle className="w-3.5 h-3.5" /> Reject
+            <XCircle className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reject</span>
+            <span className="sm:hidden">✕</span>
           </button>
         </div>
       )}
@@ -397,40 +406,40 @@ function IntentFeedTab() {
   const trending = getTrendingQuestions(filterExam === 'all' ? undefined : filterExam, 3);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Scan controls */}
-      <div className="card p-4 flex items-center justify-between gap-4 flex-wrap">
+      <div className="card p-3 sm:p-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-sm font-medium text-white">Social Scanner</p>
           <p className="text-xs text-surface-500">
             {lastScan
-              ? `Last scan: ${timeAgo(lastScan.ts)} · ${lastScan.count} new signals`
-              : 'No scan yet — click Run Scan to start'}
+              ? `Last: ${timeAgo(lastScan.ts)} · ${lastScan.count} signals`
+              : 'No scan yet'}
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => { clearSignals(); load(); }}
-            className="px-3 py-2 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded-lg"
+            className="px-3 py-2 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded-lg min-h-[36px]"
           >
-            Clear All
+            Clear
           </button>
           <button
             onClick={handleScan}
             disabled={scanning}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 hover:bg-primary-500 text-white rounded-lg disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 hover:bg-primary-500 text-white rounded-lg disabled:opacity-50 min-h-[40px]"
           >
             {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
-            {scanning ? 'Scanning...' : 'Run Scan'}
+            {scanning ? 'Scanning…' : 'Scan'}
           </button>
         </div>
       </div>
 
       {/* Trending */}
       {trending.length > 0 && (
-        <div className="card p-4">
+        <div className="card p-3 sm:p-4">
           <p className="text-sm font-semibold text-surface-200 mb-2 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-orange-400" /> Trending Questions
+            <TrendingUp className="w-4 h-4 text-orange-400" /> Trending
           </p>
           <div className="space-y-1.5">
             {trending.map(s => (
@@ -438,7 +447,7 @@ function IntentFeedTab() {
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
                   s.urgency === 'high' ? 'bg-red-400' : s.urgency === 'medium' ? 'bg-yellow-400' : 'bg-green-400'
                 }`} />
-                <span className="truncate">{s.originalText.slice(0, 90)}…</span>
+                <span className="truncate">{s.originalText.slice(0, 80)}…</span>
                 <span className="flex-shrink-0">{PLATFORM_EMOJIS[s.platform]}</span>
               </div>
             ))}
@@ -446,8 +455,8 @@ function IntentFeedTab() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Filters — scrollable row on mobile */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
         {[
           {
             value: filterPlatform, onChange: (v: string) => setFilterPlatform(v as SocialPlatform | 'all'),
@@ -459,7 +468,7 @@ function IntentFeedTab() {
           },
           {
             value: filterUrgency, onChange: (v: string) => setFilterUrgency(v as 'all' | 'high' | 'medium' | 'low'),
-            options: [['all', 'All Urgency'], ['high', '🔴 High'], ['medium', '🟡 Medium'], ['low', '🟢 Low']],
+            options: [['all', 'Urgency'], ['high', '🔴 High'], ['medium', '🟡 Med'], ['low', '🟢 Low']],
           },
           {
             value: filterIntent, onChange: (v: string) => setFilterIntent(v as IntentType | 'all'),
@@ -470,23 +479,23 @@ function IntentFeedTab() {
             key={idx}
             value={sel.value}
             onChange={e => sel.onChange(e.target.value)}
-            className="px-3 py-1.5 text-xs bg-surface-800 border border-surface-700 text-surface-300 rounded-lg"
+            className="px-3 py-2 text-xs bg-surface-800 border border-surface-700 text-surface-300 rounded-lg shrink-0 min-h-[36px]"
           >
             {sel.options.map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
           </select>
         ))}
-        <span className="flex items-center text-xs text-surface-500 px-2">
+        <span className="flex items-center text-xs text-surface-500 px-2 shrink-0">
           {signals.length} signal{signals.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {/* Signals */}
       {signals.length === 0 ? (
-        <div className="card p-10 text-center text-surface-500">
+        <div className="card p-8 sm:p-10 text-center text-surface-500">
           <Radio className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No signals found. Run a scan to detect student questions.</p>
+          <p className="text-sm">No signals. Run a scan to detect student questions.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -557,28 +566,28 @@ function AnswerQueueTab() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Stats row */}
-      <div className="grid grid-cols-4 gap-3">
+    <div className="space-y-3 sm:space-y-4">
+      {/* Stats row — 2×2 on mobile, 4-col on sm+ */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { label: 'Pending', value: stats.pending, color: 'text-yellow-400' },
           { label: 'Approved', value: stats.approved, color: 'text-green-400' },
           { label: 'Rejected', value: stats.rejected, color: 'text-red-400' },
-          { label: 'Auto-approved', value: stats.autoApproved, color: 'text-blue-400' },
+          { label: 'Auto-ok', value: stats.autoApproved, color: 'text-blue-400' },
         ].map(({ label, value, color }) => (
           <div key={label} className="card p-3 text-center">
-            <div className={`text-2xl font-bold ${color}`}>{value}</div>
+            <div className={`text-xl sm:text-2xl font-bold ${color}`}>{value}</div>
             <div className="text-xs text-surface-500 mt-1">{label}</div>
           </div>
         ))}
       </div>
 
       {/* Controls */}
-      <div className="card p-4 flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4 flex-wrap">
+      <div className="card p-3 sm:p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-sm font-medium text-white">Approval Queue</p>
-            <p className="text-xs text-surface-500">{stats.pending} pending review</p>
+            <p className="text-xs text-surface-500">{stats.pending} pending</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-surface-400">Auto-approve</span>
@@ -588,22 +597,22 @@ function AnswerQueueTab() {
                 : <ToggleLeft className="w-5 h-5 text-surface-500" />}
             </button>
           </div>
-          {settings.autoApproveEnabled && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-surface-400">Threshold: {threshold}</span>
-              <input
-                type="range" min={5} max={10} step={0.5} value={threshold}
-                onChange={e => handleThresholdChange(Number(e.target.value))}
-                className="w-24 accent-primary-500"
-              />
-            </div>
-          )}
         </div>
-        <div className="flex gap-2">
+        {settings.autoApproveEnabled && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-surface-400">Threshold: {threshold}</span>
+            <input
+              type="range" min={5} max={10} step={0.5} value={threshold}
+              onChange={e => handleThresholdChange(Number(e.target.value))}
+              className="w-24 accent-primary-500"
+            />
+          </div>
+        )}
+        <div className="flex gap-2 flex-wrap">
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value as CraftedAnswer['status'] | 'all')}
-            className="px-3 py-1.5 text-xs bg-surface-800 border border-surface-700 text-surface-300 rounded-lg"
+            className="px-3 py-2 text-xs bg-surface-800 border border-surface-700 text-surface-300 rounded-lg min-h-[36px]"
           >
             <option value="all">All Status</option>
             <option value="pending_review">Pending Review</option>
@@ -615,7 +624,7 @@ function AnswerQueueTab() {
           {selected.size > 0 && (
             <button
               onClick={handleBulkApprove}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-green-600 hover:bg-green-500 text-white rounded-lg"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs bg-green-600 hover:bg-green-500 text-white rounded-lg min-h-[36px] w-full sm:w-auto justify-center"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               Bulk Approve ({selected.size})
@@ -626,7 +635,7 @@ function AnswerQueueTab() {
 
       {/* Answer cards */}
       {answers.length === 0 ? (
-        <div className="card p-10 text-center text-surface-500">
+        <div className="card p-8 sm:p-10 text-center text-surface-500">
           <Edit3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">No answers yet. Go to Intent Feed and click &quot;Craft Answer&quot;.</p>
         </div>
@@ -675,26 +684,26 @@ function PostScheduleTab() {
   const platforms: SocialPlatform[] = ['reddit', 'quora', 'x_twitter', 'youtube_comments', 'telegram_group', 'whatsapp_group'];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Quota bars */}
-      <div className="card p-4">
-        <p className="text-sm font-semibold text-surface-200 mb-3">Daily Quotas (Today)</p>
+      <div className="card p-3 sm:p-4">
+        <p className="text-sm font-semibold text-surface-200 mb-3">Daily Quotas</p>
         <div className="space-y-2">
           {platforms.map(p => {
             const q = quotas[p] || { used: 0, total: 0, remaining: 0 };
             if (q.total === 0) return null;
             const pct = q.total > 0 ? (q.used / q.total) * 100 : 0;
             return (
-              <div key={p} className="flex items-center gap-3">
-                <span className="text-sm w-6 text-center">{PLATFORM_EMOJIS[p]}</span>
-                <span className="text-xs text-surface-400 w-24">{PLATFORM_LABELS[p]}</span>
+              <div key={p} className="flex items-center gap-2 sm:gap-3">
+                <span className="text-sm w-5 text-center">{PLATFORM_EMOJIS[p]}</span>
+                <span className="text-xs text-surface-400 w-20 sm:w-24 truncate">{PLATFORM_LABELS[p]}</span>
                 <div className="flex-1 h-2 bg-surface-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
                     style={{ width: `${Math.min(100, pct)}%` }}
                   />
                 </div>
-                <span className="text-xs text-surface-500 w-16 text-right">{q.used}/{q.total} used</span>
+                <span className="text-xs text-surface-500 w-12 sm:w-16 text-right">{q.used}/{q.total}</span>
               </div>
             );
           })}
@@ -703,26 +712,26 @@ function PostScheduleTab() {
 
       {/* Timeline by day */}
       {Object.keys(byDay).length === 0 ? (
-        <div className="card p-10 text-center text-surface-500">
+        <div className="card p-8 sm:p-10 text-center text-surface-500">
           <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No posts scheduled yet. Approve answers to add them to the schedule.</p>
+          <p className="text-sm">No posts scheduled. Approve answers to add them.</p>
         </div>
       ) : (
         Object.entries(byDay).sort(([a], [b]) => a.localeCompare(b)).map(([day, dayPosts]) => (
-          <div key={day} className="card p-4">
+          <div key={day} className="card p-3 sm:p-4">
             <p className="text-sm font-semibold text-surface-200 mb-3">
               📅 {new Date(day).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
-              <span className="ml-2 text-xs text-surface-500">({dayPosts.length} posts)</span>
+              <span className="ml-2 text-xs text-surface-500">({dayPosts.length})</span>
             </p>
             <div className="space-y-2">
               {dayPosts.sort((a, b) => a.scheduledFor - b.scheduledFor).map(post => (
-                <div key={post.id} className="flex items-center gap-3 p-2 bg-surface-800/50 rounded-lg">
+                <div key={post.id} className="flex items-center gap-2 sm:gap-3 p-2 bg-surface-800/50 rounded-lg">
                   <span className="text-base">{PLATFORM_EMOJIS[post.platform]}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-surface-300 truncate">{post.content.slice(0, 60)}…</p>
-                    <p className="text-[10px] text-surface-500 mt-0.5">{formatDateTime(post.scheduledFor)} IST</p>
+                    <p className="text-xs text-surface-300 truncate">{post.content.slice(0, 50)}…</p>
+                    <p className="text-[10px] text-surface-500 mt-0.5">{formatDateTime(post.scheduledFor)}</p>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] shrink-0 ${
                     post.status === 'posted' ? 'bg-green-500/15 text-green-400' :
                     post.status === 'failed' ? 'bg-red-500/15 text-red-400' :
                     post.status === 'cancelled' ? 'bg-surface-700 text-surface-500' :
@@ -731,18 +740,18 @@ function PostScheduleTab() {
                     {post.status}
                   </span>
                   {post.status === 'queued' && (
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <button
                         onClick={() => handleSimulatePost(post)}
-                        className="px-2 py-1 text-[11px] bg-primary-600 hover:bg-primary-500 text-white rounded"
+                        className="px-2 py-1 text-[11px] bg-primary-600 hover:bg-primary-500 text-white rounded min-h-[28px]"
                       >
-                        Simulate
+                        Post
                       </button>
                       <button
                         onClick={() => handleCancel(post.id)}
-                        className="px-2 py-1 text-[11px] bg-surface-700 hover:bg-red-600 text-surface-300 hover:text-white rounded"
+                        className="px-2 py-1 text-[11px] bg-surface-700 hover:bg-red-600 text-surface-300 hover:text-white rounded min-h-[28px]"
                       >
-                        Cancel
+                        ✕
                       </button>
                     </div>
                   )}
@@ -770,25 +779,21 @@ function AnalyticsTab() {
   const allSignals = getSavedSignals();
   const allAnswers = getAnswers();
 
-  // Platform breakdown
   const platformCounts: Record<string, number> = {};
   for (const s of allSignals) {
     platformCounts[s.platform] = (platformCounts[s.platform] || 0) + 1;
   }
 
-  // Exam breakdown
   const examCounts: Record<string, number> = {};
   for (const s of allSignals) {
     examCounts[s.exam] = (examCounts[s.exam] || 0) + 1;
   }
 
-  // Intent breakdown
   const intentCounts: Record<string, number> = {};
   for (const s of allSignals) {
     intentCounts[s.intentType] = (intentCounts[s.intentType] || 0) + 1;
   }
 
-  const topIntent = Object.entries(intentCounts).sort(([, a], [, b]) => b - a)[0];
   const approvalRate = stats.queueStats.total > 0
     ? Math.round((stats.queueStats.approved / stats.queueStats.total) * 100)
     : 0;
@@ -797,39 +802,39 @@ function AnalyticsTab() {
     : 0;
 
   return (
-    <div className="space-y-4">
-      {/* KPI row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="space-y-3 sm:space-y-4">
+      {/* KPI row — 2×2 on mobile */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
-          { label: 'Total Signals', value: stats.totalSignals, sub: `${stats.processedSignals} processed`, icon: '📡' },
-          { label: 'Answers Generated', value: stats.totalAnswers, sub: `${stats.pendingReview} pending`, icon: '✍️' },
-          { label: 'Approval Rate', value: `${approvalRate}%`, sub: `${autoApproveRate}% auto`, icon: '✅' },
-          { label: 'Posts Scheduled', value: stats.scheduled, sub: `${stats.posted} posted`, icon: '📅' },
+          { label: 'Signals', value: stats.totalSignals, sub: `${stats.processedSignals} done`, icon: '📡' },
+          { label: 'Answers', value: stats.totalAnswers, sub: `${stats.pendingReview} pending`, icon: '✍️' },
+          { label: 'Approval', value: `${approvalRate}%`, sub: `${autoApproveRate}% auto`, icon: '✅' },
+          { label: 'Scheduled', value: stats.scheduled, sub: `${stats.posted} posted`, icon: '📅' },
         ].map(({ label, value, sub, icon }) => (
-          <div key={label} className="card p-4">
-            <div className="text-2xl mb-1">{icon}</div>
-            <div className="text-2xl font-bold text-white">{value}</div>
+          <div key={label} className="card p-3">
+            <div className="text-xl mb-1">{icon}</div>
+            <div className="text-xl sm:text-2xl font-bold text-white">{value}</div>
             <div className="text-xs text-surface-400 mt-0.5">{label}</div>
             <div className="text-[11px] text-surface-600 mt-0.5">{sub}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Platform breakdown */}
-        <div className="card p-4">
-          <p className="text-sm font-semibold text-surface-200 mb-3">Signals by Platform</p>
+        <div className="card p-3 sm:p-4">
+          <p className="text-sm font-semibold text-surface-200 mb-3">By Platform</p>
           <div className="space-y-2">
             {Object.entries(platformCounts).sort(([, a], [, b]) => b - a).map(([platform, count]) => {
               const pct = allSignals.length > 0 ? (count / allSignals.length) * 100 : 0;
               return (
                 <div key={platform} className="flex items-center gap-2">
-                  <span className="text-sm w-6">{PLATFORM_EMOJIS[platform as SocialPlatform]}</span>
-                  <span className="text-xs text-surface-400 w-28 truncate">{PLATFORM_LABELS[platform as SocialPlatform]}</span>
+                  <span className="text-sm w-5">{PLATFORM_EMOJIS[platform as SocialPlatform]}</span>
+                  <span className="text-xs text-surface-400 w-24 truncate">{PLATFORM_LABELS[platform as SocialPlatform]}</span>
                   <div className="flex-1 h-1.5 bg-surface-800 rounded-full overflow-hidden">
                     <div className="h-full bg-primary-500 rounded-full" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="text-xs text-surface-500 w-6 text-right">{count}</span>
+                  <span className="text-xs text-surface-500 w-5 text-right">{count}</span>
                 </div>
               );
             })}
@@ -837,8 +842,8 @@ function AnalyticsTab() {
         </div>
 
         {/* Exam breakdown */}
-        <div className="card p-4">
-          <p className="text-sm font-semibold text-surface-200 mb-3">Signals by Exam</p>
+        <div className="card p-3 sm:p-4">
+          <p className="text-sm font-semibold text-surface-200 mb-3">By Exam</p>
           <div className="space-y-2">
             {Object.entries(examCounts).sort(([, a], [, b]) => b - a).map(([exam, count]) => {
               const pct = allSignals.length > 0 ? (count / allSignals.length) * 100 : 0;
@@ -848,7 +853,7 @@ function AnalyticsTab() {
                   <div className="flex-1 h-1.5 bg-surface-800 rounded-full overflow-hidden">
                     <div className="h-full bg-accent-500 rounded-full" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="text-xs text-surface-500 w-6 text-right">{count}</span>
+                  <span className="text-xs text-surface-500 w-5 text-right">{count}</span>
                 </div>
               );
             })}
@@ -856,68 +861,49 @@ function AnalyticsTab() {
         </div>
       </div>
 
-      {/* Top intent + avg scores */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="card p-4">
-          <p className="text-sm font-semibold text-surface-200 mb-3">Intent Distribution</p>
-          <div className="space-y-1.5">
-            {Object.entries(intentCounts).sort(([, a], [, b]) => b - a).map(([intent, count]) => (
-              <div key={intent} className="flex items-center justify-between text-xs">
-                <span className="text-surface-400">{INTENT_LABELS[intent as IntentType]}</span>
-                <span className="text-surface-300 font-medium">{count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quality scores */}
-        <div className="card p-4">
-          <p className="text-sm font-semibold text-surface-200 mb-3">Answer Quality (Avg)</p>
-          {allAnswers.length === 0 ? (
-            <p className="text-xs text-surface-500">No answers generated yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {[
-                { label: 'Humanization', key: 'humanizationScore' as const },
-                { label: 'Anti-Spam', key: 'antiSpamScore' as const },
-                { label: 'Readability', key: 'readabilityScore' as const },
-              ].map(({ label, key }) => {
-                const avg = allAnswers.reduce((sum, a) => sum + a[key], 0) / allAnswers.length;
-                return (
-                  <div key={label} className="flex items-center gap-2">
-                    <span className="text-xs text-surface-400 w-24">{label}</span>
-                    <div className="flex-1 h-2 bg-surface-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${avg >= 8 ? 'bg-green-500' : avg >= 6 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        style={{ width: `${avg * 10}%` }}
-                      />
-                    </div>
-                    <span className={`text-xs font-bold w-8 text-right ${SCORE_COLOR(avg)}`}>{avg.toFixed(1)}</span>
+      {/* Quality scores */}
+      <div className="card p-3 sm:p-4">
+        <p className="text-sm font-semibold text-surface-200 mb-3">Answer Quality (Avg)</p>
+        {allAnswers.length === 0 ? (
+          <p className="text-xs text-surface-500">No answers generated yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {[
+              { label: 'Humanization', key: 'humanizationScore' as const },
+              { label: 'Anti-Spam', key: 'antiSpamScore' as const },
+              { label: 'Readability', key: 'readabilityScore' as const },
+            ].map(({ label, key }) => {
+              const avg = allAnswers.reduce((sum, a) => sum + a[key], 0) / allAnswers.length;
+              return (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="text-xs text-surface-400 w-24">{label}</span>
+                  <div className="flex-1 h-2 bg-surface-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${avg >= 8 ? 'bg-green-500' : avg >= 6 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                      style={{ width: `${avg * 10}%` }}
+                    />
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  <span className={`text-xs font-bold w-8 text-right ${SCORE_COLOR(avg)}`}>{avg.toFixed(1)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Cycle log */}
       {cycleLog.length > 0 && (
-        <div className="card p-4">
+        <div className="card p-3 sm:p-4">
           <p className="text-sm font-semibold text-surface-200 mb-3">Recent Scan Cycles</p>
           <div className="space-y-2">
             {cycleLog.slice(0, 5).map(cycle => (
-              <div key={cycle.cycleId} className="flex items-center gap-3 text-xs text-surface-400 py-1 border-b border-surface-800">
-                <span className="text-surface-500 w-28">{timeAgo(cycle.completedAt)}</span>
-                <span>+{cycle.newSignals} signals</span>
-                <span>+{cycle.answersGenerated} answers</span>
-                <span>{cycle.autoApproved} auto-approved</span>
-                {cycle.errors.length > 0 && (
-                  <span className="text-red-400">{cycle.errors.length} errors</span>
-                )}
-                <span className="ml-auto text-surface-600">
-                  {Math.round((cycle.completedAt - cycle.startedAt) / 1000)}s
-                </span>
+              <div key={cycle.cycleId} className="flex flex-wrap items-center gap-2 text-xs text-surface-400 py-1 border-b border-surface-800">
+                <span className="text-surface-500">{timeAgo(cycle.completedAt)}</span>
+                <span>+{cycle.newSignals} sig</span>
+                <span>+{cycle.answersGenerated} ans</span>
+                <span>{cycle.autoApproved} auto</span>
+                {cycle.errors.length > 0 && <span className="text-red-400">{cycle.errors.length} err</span>}
+                <span className="ml-auto text-surface-600">{Math.round((cycle.completedAt - cycle.startedAt) / 1000)}s</span>
               </div>
             ))}
           </div>
@@ -961,37 +947,37 @@ function SettingsTab() {
   };
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-3 sm:space-y-4 max-w-2xl">
       {/* Platform toggles */}
-      <div className="card p-4">
+      <div className="card p-3 sm:p-4">
         <p className="text-sm font-semibold text-surface-200 mb-3">Monitored Platforms</p>
         <div className="grid grid-cols-2 gap-2">
           {ALL_PLATFORMS.map(p => (
             <button
               key={p}
               onClick={() => togglePlatform(p)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-all ${
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm border transition-all min-h-[44px] ${
                 orchSettings.activePlatforms.includes(p)
                   ? 'bg-primary-600/20 border-primary-500/40 text-primary-300'
                   : 'bg-surface-800 border-surface-700 text-surface-400'
               }`}
             >
               <span>{PLATFORM_EMOJIS[p]}</span>
-              <span>{PLATFORM_LABELS[p]}</span>
+              <span className="text-xs">{PLATFORM_LABELS[p]}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Exam filters */}
-      <div className="card p-4">
+      <div className="card p-3 sm:p-4">
         <p className="text-sm font-semibold text-surface-200 mb-3">Target Exams</p>
         <div className="flex flex-wrap gap-2">
           {ALL_EXAMS.map(e => (
             <button
               key={e}
               onClick={() => toggleExam(e)}
-              className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+              className={`px-3 py-2 rounded-lg text-sm border transition-all min-h-[40px] ${
                 orchSettings.activeExams.includes(e)
                   ? 'bg-accent-600/20 border-accent-500/40 text-accent-300'
                   : 'bg-surface-800 border-surface-700 text-surface-400'
@@ -1004,13 +990,13 @@ function SettingsTab() {
       </div>
 
       {/* Auto-approve settings */}
-      <div className="card p-4 space-y-4">
-        <p className="text-sm font-semibold text-surface-200">Auto-Approve Settings</p>
+      <div className="card p-3 sm:p-4 space-y-4">
+        <p className="text-sm font-semibold text-surface-200">Auto-Approve</p>
 
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-surface-300">Enable Auto-Approve</p>
-            <p className="text-xs text-surface-500">Automatically approve answers that meet quality threshold</p>
+            <p className="text-xs text-surface-500">Approve answers meeting quality threshold</p>
           </div>
           <button onClick={() => setQueueSettingsState(prev => ({ ...prev, autoApproveEnabled: !prev.autoApproveEnabled }))}>
             {queueSettings.autoApproveEnabled
@@ -1030,22 +1016,13 @@ function SettingsTab() {
             onChange={e => setQueueSettingsState(prev => ({ ...prev, autoApproveThreshold: Number(e.target.value) }))}
             className="w-full accent-primary-500"
           />
-          <div className="flex justify-between text-[10px] text-surface-600 mt-1">
-            <span>5 — Relaxed</span>
-            <span>10 — Strict</span>
-          </div>
-          <p className="text-xs text-surface-500 mt-2">
-            Answers must score ≥{queueSettings.autoApproveThreshold} on both Humanization and Anti-Spam.
-            Motivation & Anxiety intent types always require manual review.
-          </p>
         </div>
       </div>
 
-      {/* Scan frequency + Brand voice */}
-      <div className="card p-4 space-y-4">
-        <p className="text-sm font-semibold text-surface-200">Scan & Voice Settings</p>
-
-        <div className="grid grid-cols-2 gap-4">
+      {/* Scan & Voice */}
+      <div className="card p-3 sm:p-4 space-y-4">
+        <p className="text-sm font-semibold text-surface-200">Scan & Voice</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-surface-400 block mb-1.5">Scan Frequency</label>
             <select
@@ -1065,16 +1042,16 @@ function SettingsTab() {
               onChange={e => setOrchSettings(prev => ({ ...prev, brandVoice: e.target.value as 'formal' | 'casual' | 'expert' }))}
               className="w-full px-3 py-2 text-sm bg-surface-800 border border-surface-700 text-surface-300 rounded-lg"
             >
-              <option value="casual">Casual (Default — tbh, ngl)</option>
-              <option value="expert">Expert (Authoritative, structured)</option>
-              <option value="formal">Formal (Professional, corporate)</option>
+              <option value="casual">Casual</option>
+              <option value="expert">Expert</option>
+              <option value="formal">Formal</option>
             </select>
           </div>
         </div>
 
         <div>
           <label className="text-xs text-surface-400 block mb-1.5">
-            Max Answers Per Cycle: {orchSettings.maxAnswersPerCycle}
+            Max Answers/Cycle: {orchSettings.maxAnswersPerCycle}
           </label>
           <input
             type="range" min={1} max={20} step={1}
@@ -1085,29 +1062,9 @@ function SettingsTab() {
         </div>
       </div>
 
-      {/* Rate limits info */}
-      <div className="card p-4">
-        <p className="text-sm font-semibold text-surface-200 mb-3">Daily Rate Limits (Anti-Spam)</p>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          {[
-            { p: 'Reddit', limit: '5/day, 2h apart' },
-            { p: 'Quora', limit: '3/day, 3h apart' },
-            { p: 'X/Twitter', limit: '10/day, 30min apart' },
-            { p: 'YouTube', limit: '15/day, 15min apart' },
-            { p: 'Telegram', limit: '20/day, 20min apart' },
-            { p: 'WhatsApp', limit: '10/day, 1h apart' },
-          ].map(({ p, limit }) => (
-            <div key={p} className="flex justify-between text-surface-400 bg-surface-800 px-2 py-1.5 rounded">
-              <span>{p}</span>
-              <span className="text-surface-500">{limit}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <button
         onClick={handleSave}
-        className={`w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
+        className={`w-full py-3 rounded-lg text-sm font-medium transition-all min-h-[48px] ${
           saved ? 'bg-green-600 text-white' : 'bg-primary-600 hover:bg-primary-500 text-white'
         }`}
       >
@@ -1130,22 +1087,22 @@ export default function SocialIntentDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Radio className="w-6 h-6 text-primary-400" />
+            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+              <Radio className="w-5 h-5 sm:w-6 sm:h-6 text-primary-400" />
               Social Intel Hub
             </h1>
-            <p className="text-sm text-surface-400 mt-1">
-              5-agent pipeline: Scout → Answer → Humanize → Approve → Post
+            <p className="text-xs sm:text-sm text-surface-400 mt-1">
+              Scout → Answer → Humanize → Approve → Post
             </p>
           </div>
 
-          {/* Live stats badges */}
-          <div className="flex gap-2 flex-wrap">
+          {/* Live stats badges — 2×2 on mobile */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
             <div className="px-3 py-1.5 bg-surface-800 rounded-lg text-xs text-center">
               <div className="font-bold text-white">{stats.totalSignals}</div>
               <div className="text-surface-500">Signals</div>
@@ -1156,7 +1113,7 @@ export default function SocialIntentDashboard() {
             </div>
             <div className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg text-xs text-center">
               <div className="font-bold text-green-400">{stats.scheduled}</div>
-              <div className="text-surface-500">Scheduled</div>
+              <div className="text-surface-500">Sched.</div>
             </div>
             <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-center">
               <div className="font-bold text-blue-400">{stats.posted}</div>
@@ -1166,15 +1123,15 @@ export default function SocialIntentDashboard() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-surface-800/50 p-1 rounded-xl flex-wrap">
+      {/* Tabs — horizontally scrollable, icon-only on mobile */}
+      <div className="flex gap-1 mb-4 sm:mb-6 overflow-x-auto scrollbar-none bg-surface-800/50 p-1 rounded-xl">
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all flex-1 justify-center ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm transition-all shrink-0 min-h-[44px] ${
               tab === t.id
-                ? 'bg-primary-600 text-white'
+                ? 'bg-primary-600 text-white font-medium'
                 : 'text-surface-400 hover:text-surface-200'
             }`}
           >

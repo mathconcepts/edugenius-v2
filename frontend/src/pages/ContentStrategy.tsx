@@ -252,7 +252,7 @@ export function ContentStrategy() {
     usePlatformDefault ? platformStrategy : (userStrategyId ?? platformStrategy);
 
   return (
-    <div className="space-y-10 max-w-5xl">
+    <div className="space-y-6 sm:space-y-10 max-w-5xl">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2">
@@ -266,7 +266,7 @@ export function ContentStrategy() {
 
       {/* ── SECTION 1: Platform Strategy (CEO only) ─────────────────────── */}
       {isCEO && (
-        <section className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+        <section className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
           <SectionHeader
             icon={Sliders}
             title="Platform-Wide Content Strategy"
@@ -282,7 +282,7 @@ export function ContentStrategy() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {strategies.map(s => (
               <StrategyCard
                 key={s.id}
@@ -297,7 +297,7 @@ export function ContentStrategy() {
       )}
 
       {/* ── SECTION 2: Personal Strategy (all roles) ────────────────────── */}
-      <section className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+      <section className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
         <SectionHeader
           icon={Sliders}
           title="Your Personal Strategy"
@@ -327,7 +327,7 @@ export function ContentStrategy() {
 
         {!usePlatformDefault && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {strategies.map(s => (
                 <StrategyCard
                   key={s.id}
@@ -342,7 +342,7 @@ export function ContentStrategy() {
 
             <button
               onClick={handleSaveUserStrategy}
-              className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition-colors w-full sm:w-auto min-h-[44px]"
             >
               Save My Strategy
             </button>
@@ -363,7 +363,7 @@ export function ContentStrategy() {
 
       {/* ── SECTION 3: Strategy Performance (CEO only) ──────────────────── */}
       {isCEO && (
-        <section className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+        <section className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
           <SectionHeader
             icon={BarChart3}
             title="Strategy Performance"
@@ -375,7 +375,7 @@ export function ContentStrategy() {
               No performance data yet. Generate a report below to populate this table.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-surface-500 border-b border-surface-800">
@@ -430,7 +430,7 @@ export function ContentStrategy() {
       )}
 
       {/* ── SECTION 4: Feedback Loop Status (all, more detail for CEO) ──── */}
-      <section className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">
+      <section className="bg-surface-900/50 border border-surface-800 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
         <SectionHeader
           icon={Activity}
           title="Feedback Loop Status"

@@ -1738,7 +1738,7 @@ function KnowledgeSourcesPanel() {
       {showAddMcp && (
         <div className="p-4 rounded-lg border border-purple-500/30 bg-purple-500/5 space-y-3">
           <h3 className="text-sm font-medium text-purple-400">New Custom MCP Source</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               { label: 'Display Name', key: 'displayName', placeholder: 'My MCP Server' },
               { label: 'MCP Endpoint URL', key: 'mcpEndpoint', placeholder: 'http://localhost:3001/mcp' },
@@ -1767,7 +1767,7 @@ function KnowledgeSourcesPanel() {
       {showAddApi && (
         <div className="p-4 rounded-lg border border-blue-500/30 bg-blue-500/5 space-y-3">
           <h3 className="text-sm font-medium text-blue-400">New External API Source</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               { label: 'Display Name', key: 'displayName', placeholder: 'My Knowledge API' },
               { label: 'API Endpoint URL', key: 'apiEndpoint', placeholder: 'https://api.example.com/search' },
