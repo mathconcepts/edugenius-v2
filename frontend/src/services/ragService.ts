@@ -7,6 +7,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getKey, onConnectionsChanged } from './connectionBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,12 +42,14 @@ export interface RagContext {
 // ─── Supabase Client ──────────────────────────────────────────────────────────
 
 let _supabase: SupabaseClient | null = null;
+// Invalidate cached Supabase client when connections change
+onConnectionsChanged(() => { _supabase = null; });
 
 function getSupabase(): SupabaseClient | null {
   if (_supabase) return _supabase;
 
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const url = getKey('VITE_SUPABASE_URL', 'VITE_SUPABASE_URL');
+  const key = getKey('VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
 
   if (!url || !key) {
     console.warn('[RAG] Supabase not configured — VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY missing');
@@ -67,7 +70,7 @@ const EMBEDDING_DIMENSION = 768;
  * Returns a 768-dimensional vector.
  */
 export async function embedText(text: string): Promise<number[]> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = getKey('VITE_GEMINI_API_KEY', 'VITE_GEMINI_API_KEY');
   if (!apiKey) throw new Error('[RAG] VITE_GEMINI_API_KEY not set');
 
   const response = await fetch(
@@ -96,7 +99,7 @@ export async function embedText(text: string): Promise<number[]> {
  * Embed text for document ingestion (different task type for better retrieval).
  */
 export async function embedDocument(text: string): Promise<number[]> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = getKey('VITE_GEMINI_API_KEY', 'VITE_GEMINI_API_KEY');
   if (!apiKey) throw new Error('[RAG] VITE_GEMINI_API_KEY not set');
 
   const response = await fetch(
@@ -228,7 +231,7 @@ export async function embedPYQs(
   serviceRoleKey: string,
   examId = 'gate-engineering-maths'
 ): Promise<{ processed: number; errors: number }> {
-  const url = import.meta.env.VITE_SUPABASE_URL;
+  const url = getKey('VITE_SUPABASE_URL', 'VITE_SUPABASE_URL');
   if (!url) throw new Error('[RAG] VITE_SUPABASE_URL not set');
 
   const adminClient = createClient(url, serviceRoleKey);

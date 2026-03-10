@@ -16,7 +16,34 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const env = (import.meta as any).env ?? {};
+import { getKey, getExamKey } from './connectionBridge';
+
+// ─── Exam-type resolver (lazy, never throws) ──────────────────────────────────
+
+// Lazy persona loader — avoids circular deps at module-init time
+let _loadPersona: (() => import('./studentPersonaEngine').StudentPersona) | null = null;
+
+import('./studentPersonaEngine')
+  .then((mod) => { _loadPersona = mod.loadPersona; })
+  .catch(() => {});
+
+function resolveCurrentExamType(): string {
+  try {
+    if (!_loadPersona) return '';
+    const examMap: Record<string, string> = {
+      JEE_MAIN: 'JEE',
+      JEE_ADVANCED: 'JEE',
+      NEET: 'NEET',
+      GATE: 'GATE',
+      CAT: 'CAT',
+      UPSC: 'UPSC',
+      CBSE_12: 'CBSE',
+    };
+    return examMap[_loadPersona().exam] ?? '';
+  } catch {
+    return '';
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,11 +86,13 @@ export interface MathVerificationResult {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 export function getWolframConfig(): WolframConfig | null {
-  const appId = env.VITE_WOLFRAM_APP_ID as string | undefined;
+  const currentExamType = resolveCurrentExamType();
+  const appId = getExamKey('WOLFRAM_APP_ID', currentExamType)
+             ?? getKey('VITE_WOLFRAM_APP_ID', 'WOLFRAM_APP_ID');
   if (!appId) return null;
 
-  const mcpEndpoint = env.VITE_WOLFRAM_MCP_ENDPOINT as string | undefined;
-  const modeEnv = env.VITE_WOLFRAM_MODE as WolframMode | undefined;
+  const mcpEndpoint = getKey('VITE_WOLFRAM_MCP_ENDPOINT', 'WOLFRAM_MCP_ENDPOINT');
+  const modeEnv = getKey('VITE_WOLFRAM_MODE', 'WOLFRAM_MODE') as WolframMode | undefined;
 
   // Pick mode: if MCP endpoint is provided and mode says mcp → mcp; otherwise llm_api
   let mode: WolframMode = modeEnv ?? 'llm_api';
@@ -78,7 +107,11 @@ export function getWolframConfig(): WolframConfig | null {
 }
 
 export function isWolframAvailable(): boolean {
-  return !!(env.VITE_WOLFRAM_APP_ID as string | undefined);
+  const currentExamType = resolveCurrentExamType();
+  return !!(
+    getExamKey('WOLFRAM_APP_ID', currentExamType) ??
+    getKey('VITE_WOLFRAM_APP_ID', 'WOLFRAM_APP_ID')
+  );
 }
 
 // ─── Cache helpers ────────────────────────────────────────────────────────────

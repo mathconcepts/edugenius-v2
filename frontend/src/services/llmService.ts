@@ -17,6 +17,7 @@
 
 import type { AgentType, MediaAttachment } from '@/types';
 import type { IntentCategory } from './intentEngine';
+import { getKey } from './connectionBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,23 +51,43 @@ export interface LLMResponse {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const env = (import.meta as any).env ?? {};
-const GEMINI_API_KEY = env.VITE_GEMINI_API_KEY as string | undefined;
-const ANTHROPIC_API_KEY = env.VITE_ANTHROPIC_API_KEY as string | undefined;
-const OPENAI_API_KEY = env.VITE_OPENAI_API_KEY as string | undefined;
-const API_BASE_URL = env.VITE_API_BASE_URL as string | undefined;
+// Keys resolved lazily via connectionBridge (priority: user > platform > env)
+function resolveGeminiKey(): string | undefined {
+  return getKey('VITE_GEMINI_API_KEY', 'VITE_GEMINI_API_KEY');
+}
+function resolveAnthropicKey(): string | undefined {
+  return getKey('VITE_ANTHROPIC_API_KEY', 'VITE_ANTHROPIC_API_KEY');
+}
+function resolveOpenAIKey(): string | undefined {
+  return getKey('VITE_OPENAI_API_KEY', 'VITE_OPENAI_API_KEY');
+}
+// Shims for backward-compat with internal callers that still reference these names
+const GEMINI_API_KEY = (env.VITE_GEMINI_API_KEY as string | undefined)
+  ?? (() => { try { return resolveGeminiKey(); } catch { return undefined; } })();
+const ANTHROPIC_API_KEY = (env.VITE_ANTHROPIC_API_KEY as string | undefined)
+  ?? (() => { try { return resolveAnthropicKey(); } catch { return undefined; } })();
+const OPENAI_API_KEY = (env.VITE_OPENAI_API_KEY as string | undefined)
+  ?? (() => { try { return resolveOpenAIKey(); } catch { return undefined; } })();
+const API_BASE_URL = (env.VITE_API_BASE_URL as string | undefined)
+  ?? getKey('VITE_API_BASE_URL', 'VITE_API_BASE_URL');
 
 /** Wolfram App ID — used by wolframService. Exported for UI visibility checks. */
 export const WOLFRAM_APP_ID = env.VITE_WOLFRAM_APP_ID as string | undefined;
 
 export function isLLMConfigured(): boolean {
-  return !!(GEMINI_API_KEY || ANTHROPIC_API_KEY || OPENAI_API_KEY || API_BASE_URL);
+  return !!(
+    resolveGeminiKey() ||
+    resolveAnthropicKey() ||
+    resolveOpenAIKey() ||
+    getKey('VITE_API_BASE_URL', 'VITE_API_BASE_URL')
+  );
 }
 
 export function getActiveProvider(): string {
-  if (API_BASE_URL) return 'backend';
-  if (GEMINI_API_KEY) return 'gemini';
-  if (ANTHROPIC_API_KEY) return 'anthropic';
-  if (OPENAI_API_KEY) return 'openai';
+  if (getKey('VITE_API_BASE_URL', 'VITE_API_BASE_URL')) return 'backend';
+  if (resolveGeminiKey()) return 'gemini';
+  if (resolveAnthropicKey()) return 'anthropic';
+  if (resolveOpenAIKey()) return 'openai';
   return 'mock';
 }
 
@@ -253,7 +274,7 @@ Response format:
 async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   const startTime = Date.now();
   const model = 'gemini-2.0-flash'; // Fast + cheap, good for edtech
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${resolveGeminiKey()}`;
 
   // Use custom system prompt (e.g. from Student Persona Engine) if provided
   const systemPrompt = req.customSystemPrompt ?? AGENT_SYSTEM_PROMPTS[req.agent];
@@ -345,8 +366,8 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
 
 async function callBackend(req: LLMRequest): Promise<LLMResponse> {
   const startTime = Date.now();
-  
-  const response = await fetch(`${API_BASE_URL}/api/chat`, {
+  const apiBaseUrl = getKey('VITE_API_BASE_URL', 'VITE_API_BASE_URL');
+  const response = await fetch(`${apiBaseUrl}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -383,8 +404,9 @@ async function callAnthropic(req: LLMRequest): Promise<LLMResponse> {
   const startTime = Date.now();
   // Anthropic requires a backend proxy (CORS-restricted)
   // This calls your backend which then calls Anthropic
-  const proxyUrl = API_BASE_URL 
-    ? `${API_BASE_URL}/api/anthropic/chat`
+  const apiBaseUrl = getKey('VITE_API_BASE_URL', 'VITE_API_BASE_URL');
+  const proxyUrl = apiBaseUrl
+    ? `${apiBaseUrl}/api/anthropic/chat`
     : '/api/anthropic/chat';
 
   // Use custom system prompt (e.g. from Student Persona Engine) if provided
@@ -403,7 +425,7 @@ async function callAnthropic(req: LLMRequest): Promise<LLMResponse> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': ANTHROPIC_API_KEY ?? '',
+      'X-API-Key': resolveAnthropicKey() ?? '',
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-20250514',
@@ -442,13 +464,13 @@ async function callAnthropic(req: LLMRequest): Promise<LLMResponse> {
  */
 export async function callLLM(req: LLMRequest): Promise<LLMResponse | null> {
   try {
-    if (API_BASE_URL) {
+    if (getKey('VITE_API_BASE_URL', 'VITE_API_BASE_URL')) {
       return await callBackend(req);
     }
-    if (GEMINI_API_KEY) {
+    if (resolveGeminiKey()) {
       return await callGemini(req);
     }
-    if (ANTHROPIC_API_KEY) {
+    if (resolveAnthropicKey()) {
       return await callAnthropic(req);
     }
     // No credentials configured — caller uses mock
@@ -466,10 +488,11 @@ export async function* streamGemini(
   req: LLMRequest,
   onChunk: (chunk: string) => void
 ): AsyncGenerator<string, void, unknown> {
-  if (!GEMINI_API_KEY) throw new Error('No Gemini API key configured');
+  const geminiKey = resolveGeminiKey();
+  if (!geminiKey) throw new Error('No Gemini API key configured');
   
   const model = 'gemini-2.0-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${geminiKey}&alt=sse`;
   const systemPrompt = AGENT_SYSTEM_PROMPTS[req.agent];
 
   const requestBody = {

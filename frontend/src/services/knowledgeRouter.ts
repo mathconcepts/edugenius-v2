@@ -11,6 +11,7 @@
 import { queryWolfram, isWolframAvailable } from './wolframService';
 import { getRagContext } from './ragService';
 import { callLLM } from './llmService';
+import { getKey } from './connectionBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -218,6 +219,29 @@ export function markQueryEmbedded(id: string): void {
   }
 }
 
+// ─── Credential Resolver ──────────────────────────────────────────────────────
+
+/**
+ * Resolve runtime credentials for a source config.
+ * If a required credential is now available via the bridge, enables the source.
+ */
+function resolveSourceCredentials(source: KnowledgeSourceConfig): KnowledgeSourceConfig {
+  const resolved = { ...source };
+
+  if (source.id === 'wolfram-api-primary' || source.type === 'wolfram_api' || source.type === 'wolfram_mcp') {
+    const key = getKey('VITE_WOLFRAM_APP_ID', 'WOLFRAM_APP_ID');
+    if (key) resolved.enabled = true;
+  }
+
+  if (source.id === 'rag-supabase-primary' || source.type === 'rag_supabase') {
+    const url = getKey('VITE_SUPABASE_URL', 'VITE_SUPABASE_URL');
+    const anonKey = getKey('VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
+    if (url && anonKey) resolved.enabled = true;
+  }
+
+  return resolved;
+}
+
 // ─── Individual Source Resolvers ──────────────────────────────────────────────
 
 async function resolveWolframApi(
@@ -409,7 +433,9 @@ async function queueForRagIndexing(
 
 export async function resolveKnowledge(query: RouterQuery): Promise<KnowledgeResult> {
   const sources = loadSources()
-    .filter((s) => s.enabled && s.type !== 'llm_fallback')
+    .filter((s) => s.type !== 'llm_fallback')
+    .map(resolveSourceCredentials)          // resolve runtime credentials
+    .filter((s) => s.enabled)
     .sort((a, b) => a.priority - b.priority);
 
   let result: KnowledgeResult | null = null;
@@ -498,7 +524,9 @@ async function resolveKnowledgeWithSources(
   sources: KnowledgeSourceConfig[]
 ): Promise<KnowledgeResult> {
   const enabledSources = sources
-    .filter((s) => s.enabled && s.type !== 'llm_fallback')
+    .filter((s) => s.type !== 'llm_fallback')
+    .map(resolveSourceCredentials)
+    .filter((s) => s.enabled)
     .sort((a, b) => a.priority - b.priority);
 
   let result: KnowledgeResult | null = null;

@@ -12,7 +12,7 @@ import {
   Send, Plus, Trash2, User, Sparkles, Copy, Check, RefreshCw,
   ChevronDown, Settings2, Paperclip, Mic, PenTool,
   Image as ImageIcon, FileText, Zap, Brain, Eye,
-  StopCircle,
+  StopCircle, AlertTriangle,
 } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 import { useAppStore } from '@/stores/appStore';
@@ -36,6 +36,7 @@ import { LearningModeSelector } from '@/components/tutor/LearningModeSelector';
 import { SmartMemoryChip } from '@/components/ux/UXEnhancements';
 import { detectIntent, generateOutputBlocks } from '@/services/intentEngine';
 import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmService';
+import { getKey } from '@/services/connectionBridge';
 import { loadPersona, updatePersonaAfterMessage, personaToCustomerProfileRaw } from '@/services/studentPersonaEngine';
 import { inferEmotionalStateFromSignals } from '@/services/behavioralSignals';
 import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext, type UserContext } from '@/services/sagePersonaPrompts';
@@ -1525,6 +1526,14 @@ export function Chat() {
             )}
           </div>
         </div>
+
+        {/* Connection status banner — shown only when Gemini key not configured */}
+        {!getKey('VITE_GEMINI_API_KEY', 'VITE_GEMINI_API_KEY') && (
+          <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-400 flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Sage is running in demo mode. <Link to="/connections" className="underline">Add your Gemini API key</Link> to enable full AI tutoring.</span>
+          </div>
+        )}
 
         {/* Messages */}
         <div
