@@ -11,7 +11,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders,
+  BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders, Cpu,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -33,6 +33,7 @@ const ceoNavItems: NavItem[] = [
   { to: '/market-intel',          icon: Radar,       label: 'Market Intel' },
   { to: '/atlas-workbench',       icon: Sparkles,    label: 'Atlas Workbench' },
   { to: '/content-strategy',      icon: Sliders,     label: 'Content Strategy' },
+  { to: '/content-orchestrator',  icon: Cpu,         label: 'Orchestrator' },
   { to: '/students',              icon: Users,       label: 'People' },
   { to: '/settings',              icon: Settings,    label: 'Settings' },
 ];

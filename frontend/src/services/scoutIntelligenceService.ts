@@ -204,6 +204,24 @@ export async function runWeeklyIntelligenceScan(): Promise<ScoutWeeklyReport> {
 
   console.log(`[Scout] Scan complete. ${trendAlerts.length} trend alerts, ${report.contentGaps.length} content gaps, ${priorityItems.length} queue items`);
 
+  // ── Emit top priorities to orchestrator ──────────────────────────────────
+  try {
+    const topPriorities = report.priorityContentQueue.slice(0, 5);
+    localStorage.setItem(
+      'orchestrator:scout_priorities',
+      JSON.stringify({
+        updatedAt: new Date().toISOString(),
+        topics: topPriorities.map((p) => ({
+          topic: p.topic,
+          examFocus: p.examFocus,
+          suggestedTier: 'T2_llm' as const,
+        })),
+      }),
+    );
+  } catch {
+    // localStorage may be unavailable
+  }
+
   return report;
 }
 

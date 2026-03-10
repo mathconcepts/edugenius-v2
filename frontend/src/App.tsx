@@ -74,6 +74,9 @@ const AtlasWorkbench = lazy(() => import('@/pages/AtlasWorkbench'));
 // Lazy load Content Strategy (CEO + students)
 const ContentStrategyPage = lazy(() => import('@/pages/ContentStrategy').then(m => ({ default: m.ContentStrategy })));
 
+// Lazy load Content Orchestrator (CEO only)
+const ContentOrchestrator = lazy(() => import('@/pages/ContentOrchestrator'));
+
 // Lazy load trace viewer
 const TraceViewer = lazy(() => import('@/pages/TraceViewer').then(m => ({ default: m.TraceViewer })));
 
@@ -188,6 +191,9 @@ export default function App() {
 
           {/* Content Strategy — CEO (platform) + all users (personal) */}
           <Route path="content-strategy" element={<Suspense fallback={<PageLoader />}><ContentStrategyPage /></Suspense>} />
+
+          {/* Content Orchestrator — CEO only */}
+          <Route path="content-orchestrator" element={<Suspense fallback={<PageLoader />}><ContentOrchestrator /></Suspense>} />
           
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

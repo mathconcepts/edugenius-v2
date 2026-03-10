@@ -428,3 +428,20 @@ export function readRegenerationQueue(): AtomPerformance[] {
     return [];
   }
 }
+
+// ── Orchestrator Bridge ───────────────────────────────────────────────────────
+
+/**
+ * Execute an Atlas content task via the master Orchestrator.
+ * Routes through contentOrchestratorService which selects tier + strategy automatically.
+ */
+export async function executeAtlasTask(task: AtlasContentTask): Promise<import('./contentOrchestratorService').ContentOrchestrationResult> {
+  const { orchestrateContent } = await import('./contentOrchestratorService');
+  return orchestrateContent({
+    topic: task.topic,
+    examType: task.examFocus,
+    surface: 'in_app',
+    triggeredBy: 'atlas_task',
+    priority: task.priority > 70 ? 'urgent' : 'normal',
+  });
+}

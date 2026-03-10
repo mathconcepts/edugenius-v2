@@ -287,6 +287,28 @@ export function emitToMentor(lowEngagement: AtomPerformance[]): void {
   }
 }
 
+/**
+ * Emit a feedback summary to the Orchestrator so it can adjust content priorities.
+ * Stored at 'orchestrator:feedback_signal' — read by contentOrchestratorService.
+ */
+export function emitToOrchestrator(report: FeedbackReport): void {
+  try {
+    const bestStrategy = Object.entries(report.strategyEffectiveness)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    localStorage.setItem(
+      'orchestrator:feedback_signal',
+      JSON.stringify({
+        at: new Date().toISOString(),
+        lowPerformers: report.needsRegeneration.map((a) => a.topic),
+        topPerformers: report.topPerformers.map((a) => a.topic),
+        bestStrategy,
+      }),
+    );
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 /**

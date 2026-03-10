@@ -8,6 +8,7 @@
 import type { StudentPersona, EmotionalState, PerformanceTier } from './studentPersonaEngine';
 import { buildSageNetworkContext, type SageNetworkContext } from './networkAgentBridge';
 import { getEffectiveStrategy } from './contentStrategyService';
+import { getAvailableTiers as _getAvailableTiers } from './contentTierService';
 
 export interface SagePersonaConfig {
   systemPrompt: string;
@@ -381,6 +382,18 @@ RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for t
 
   if (strategyDirective) {
     systemPrompt += strategyDirective;
+  }
+
+  // ── Inject tier verification directive ────────────────────────────────────
+  // getAvailableTiers() is synchronous; import is at top of file
+  {
+    const availTiers = _getAvailableTiers();
+    const tierDirective = availTiers.includes('T3_wolfram')
+      ? '\n\nVERIFICATION: You have Wolfram access. For any math calculation, state the formula, compute it, then verify with "Wolfram confirms: [result]".'
+      : availTiers.includes('T2_llm')
+      ? '\n\nVERIFICATION: Show working step-by-step. Flag uncertain answers with "Please verify this result."'
+      : '';
+    if (tierDirective) systemPrompt += tierDirective;
   }
 
   return systemPrompt;
