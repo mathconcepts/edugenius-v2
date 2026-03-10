@@ -364,6 +364,21 @@ function MessageBubble({
                 {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
                 {copied ? 'Copied' : 'Copy'}
               </button>
+              {/* VoltAgent Skill: Voice — 🔊 read aloud button */}
+              {!isUser && (
+                <button
+                  onClick={() => {
+                    import('@/services/skills/voiceSkill').then(({ prepareTextForSpeech, speakWithBrowser }) => {
+                      const cleaned = prepareTextForSpeech(message.content);
+                      speakWithBrowser(cleaned);
+                    }).catch(() => {});
+                  }}
+                  className="flex items-center gap-1 text-xs text-surface-500 hover:text-blue-400 transition-colors px-2 py-1 rounded-md hover:bg-surface-800/60"
+                  title="Read aloud"
+                >
+                  🔊 Listen
+                </button>
+              )}
               <button className="flex items-center gap-1 text-xs text-surface-500 hover:text-green-400 transition-colors px-2 py-1 rounded-md hover:bg-surface-800/60">
                 <Sparkles className="w-3 h-3" /> Good
               </button>
@@ -1084,6 +1099,16 @@ export function Chat() {
           topperExamId: lensContext?.examId,
         },
       });
+
+      // ── VoltAgent Skill: LiveEvals — silently score Sage responses ──────────
+      if (activeAgent === 'sage') {
+        import('@/services/skills/liveEvalsSkill').then(({ evaluateAgentResponse, saveEvalReport }) => {
+          const evalReport = evaluateAgentResponse('sage', userText, responseText, [
+            'clarity', 'pedagogical', 'brevity', 'engagement',
+          ]);
+          saveEvalReport(evalReport);
+        }).catch(() => { /* non-blocking — never breaks chat */ });
+      }
 
       // ── Record interaction in IndexedDB (fires signals, updates BKT) ──────
       if (isStudent && lensContext) {

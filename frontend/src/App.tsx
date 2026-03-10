@@ -35,6 +35,9 @@ const ExamInsights = lazy(() => import('@/pages/ExamInsights'));
 const Practice = lazy(() => import('@/pages/Practice'));
 const ExamAnalytics = lazy(() => import('@/pages/ExamAnalytics'));
 
+// Lazy load Agent Skills page (CEO-only)
+const AgentSkills = lazy(() => import('@/pages/AgentSkills'));
+
 // Lazy load feedback
 const FeedbackPage = lazy(() => import('@/pages/Feedback'));
 const AdminFeedback = lazy(() => import('@/pages/dashboards/AdminFeedback'));
@@ -194,7 +197,10 @@ export default function App() {
 
           {/* Content Orchestrator — CEO only */}
           <Route path="content-orchestrator" element={<Suspense fallback={<PageLoader />}><ContentOrchestrator /></Suspense>} />
-          
+
+          {/* Agent Skills — CEO only */}
+          <Route path="agent-skills" element={<Suspense fallback={<PageLoader />}><AgentSkills /></Suspense>} />
+
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />
         </Route>

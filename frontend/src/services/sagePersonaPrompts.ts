@@ -10,6 +10,30 @@ import { buildSageNetworkContext, type SageNetworkContext } from './networkAgent
 import { getEffectiveStrategy } from './contentStrategyService';
 import { getAvailableTiers as _getAvailableTiers } from './contentTierService';
 
+// ── VoltAgent Skill: GuardRails ───────────────────────────────────────────────
+import { checkInput, checkOutput, type GuardRailReport } from './skills/guardRailsSkill';
+
+/**
+ * Run input guardrails before passing user input to the LLM.
+ * Returns a GuardRailReport. If .blocked is true, do not call the LLM.
+ * If .sanitizedInput is set, use that instead of the original.
+ */
+export function runInputGuardRail(
+  input: string,
+  strategyId: string,
+  context?: { isStudentMode?: boolean }
+): GuardRailReport {
+  return checkInput(input, strategyId, context);
+}
+
+/**
+ * Run output guardrails after receiving the LLM response.
+ * Returns a GuardRailReport. If .sanitizedOutput is set, use that instead of original.
+ */
+export function runOutputGuardRail(output: string, strategyId: string): GuardRailReport {
+  return checkOutput(output, strategyId);
+}
+
 export interface SagePersonaConfig {
   systemPrompt: string;
   responseStyle: {
@@ -395,6 +419,12 @@ RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for t
       : '';
     if (tierDirective) systemPrompt += tierDirective;
   }
+
+  // ── VoltAgent Skill: Thinking Protocol ────────────────────────────────────
+  // Always inject structured thinking for calculations/proofs.
+  // When the specific question isn't available (system prompt build time),
+  // add the protocol as a standing directive.
+  systemPrompt += '\n\nTHINKING PROTOCOL: For any calculation or proof, work through these phases explicitly:\n[UNDERSTAND] → [IDENTIFY formulas] → [PLAN steps] → [EXECUTE] → [VERIFY units/sign] → [SUMMARIZE]';
 
   return systemPrompt;
 }
