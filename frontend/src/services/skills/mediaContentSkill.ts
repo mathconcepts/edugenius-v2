@@ -348,3 +348,218 @@ export function buildStudentRetargetCopy(exam: string, lastTopic: string): Media
     tone: 'friendly',
   };
 }
+
+// ─── Extended format types ────────────────────────────────────────────────────
+
+export interface XThread {
+  platform: 'x_twitter';
+  tweets: string[];          // 5-8 tweets, each under 280 chars
+  standaloneTweet: string;
+  pollOptions: string[];
+  threadHook: string;        // first tweet — the hook
+}
+
+export interface RedditPost {
+  platform: 'reddit';
+  subreddit: string;         // e.g. 'r/GATE', 'r/JEEpreparation'
+  postTitle: string;
+  body: string;
+  tldr: string;
+  flairSuggestion: string;
+}
+
+export interface QuoraQA {
+  platform: 'quora';
+  question: string;
+  answer: string;
+  credentialsLine: string;
+}
+
+export interface InstagramStory {
+  platform: 'instagram';
+  caption: string;
+  hashtags: string[];
+  storySequence: {
+    slide: number;
+    text: string;
+    background?: string;
+    cta?: string;
+  }[];
+}
+
+// ─── X Thread generator ───────────────────────────────────────────────────────
+
+export async function generateXThread(
+  topic: string,
+  exam: string,
+  audience: MediaContentRequest['targetAudience'],
+): Promise<XThread> {
+  const prompt = `You are Herald, EduGenius marketing agent. Generate a Twitter/X thread.
+Topic: "${topic}" | Exam: ${exam} | Audience: ${audience}
+
+Return JSON:
+{
+  "tweets": [
+    "Tweet 1 — hook (under 280 chars)",
+    "Tweet 2",
+    "Tweet 3",
+    "Tweet 4",
+    "Tweet 5",
+    "Tweet 6 — CTA"
+  ],
+  "standaloneTweet": "single best tweet (280 chars)",
+  "pollOptions": ["Option A", "Option B", "Option C", "Option D"]
+}`;
+
+  try {
+    const response = await callLLM({ agent: 'herald', message: prompt, intent: 'generate_content' });
+    const raw = response?.text ?? '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]) as { tweets: string[]; standaloneTweet: string; pollOptions: string[] };
+      return {
+        platform: 'x_twitter',
+        tweets: parsed.tweets ?? [],
+        standaloneTweet: parsed.standaloneTweet ?? '',
+        pollOptions: parsed.pollOptions ?? [],
+        threadHook: parsed.tweets?.[0] ?? '',
+      };
+    }
+  } catch { /* fall through */ }
+
+  return {
+    platform: 'x_twitter',
+    tweets: [`🧵 ${topic} for ${exam} — A Thread`, 'Key concept explained.', '→ edugenius.app'],
+    standaloneTweet: `Master ${topic} for ${exam} with EduGenius → edugenius.app`,
+    pollOptions: ['Very important', 'Somewhat', 'Not sure', 'Not important'],
+    threadHook: `🧵 ${topic} for ${exam} — A Thread`,
+  };
+}
+
+// ─── Reddit post generator ────────────────────────────────────────────────────
+
+const EXAM_SUBREDDIT_MAP: Record<string, string> = {
+  GATE: 'r/GATE',
+  JEE: 'r/JEEpreparation',
+  NEET: 'r/NEET',
+  CAT: 'r/MBA',
+  UPSC: 'r/UPSC',
+  CBSE: 'r/CBSE',
+};
+
+export async function generateRedditPost(
+  topic: string,
+  exam: string,
+  audience: MediaContentRequest['targetAudience'],
+): Promise<RedditPost> {
+  const subreddit = EXAM_SUBREDDIT_MAP[exam.toUpperCase()] ?? 'r/IndianStudents';
+
+  const prompt = `You are Herald, EduGenius marketing agent. Generate a Reddit post for ${subreddit}.
+Topic: "${topic}" | Exam: ${exam} | Audience: ${audience}
+
+Guidelines: value-first, no promotional language, genuinely helpful.
+
+Return JSON:
+{
+  "postTitle": "post title (max 300 chars)",
+  "body": "post body in markdown (400-600 words)",
+  "tldr": "TL;DR (2 sentences)",
+  "flairSuggestion": "post flair (e.g. Tips, Resource, Discussion)"
+}`;
+
+  try {
+    const response = await callLLM({ agent: 'herald', message: prompt, intent: 'generate_content' });
+    const raw = response?.text ?? '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]) as Omit<RedditPost, 'platform' | 'subreddit'>;
+      return { platform: 'reddit', subreddit, ...parsed };
+    }
+  } catch { /* fall through */ }
+
+  return {
+    platform: 'reddit', subreddit,
+    postTitle: `[Study Notes] ${topic} — ${exam} prep resource`,
+    body: `Sharing notes on ${topic} for ${exam} aspirants. Hope this helps the community.`,
+    tldr: `Study ${topic} systematically. EduGenius has free resources.`,
+    flairSuggestion: 'Resource',
+  };
+}
+
+// ─── Quora Q&A generator ──────────────────────────────────────────────────────
+
+export async function generateQuoraQA(
+  topic: string,
+  exam: string,
+  audience: MediaContentRequest['targetAudience'],
+): Promise<QuoraQA> {
+  const prompt = `You are Herald, EduGenius expert. Generate a Quora Q&A.
+Topic: "${topic}" | Exam: ${exam} | Audience: ${audience}
+
+Return JSON:
+{
+  "question": "a genuine question a student would ask on Quora",
+  "answer": "detailed expert answer (600-800 words) with sections, examples, and actionable advice",
+  "credentialsLine": "1-line credentials (e.g. 'GATE AIR 47 | Mentored 5000+ students at EduGenius')"
+}`;
+
+  try {
+    const response = await callLLM({ agent: 'herald', message: prompt, intent: 'generate_content' });
+    const raw = response?.text ?? '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]) as Omit<QuoraQA, 'platform'>;
+      return { platform: 'quora', ...parsed };
+    }
+  } catch { /* fall through */ }
+
+  return {
+    platform: 'quora',
+    question: `How do I master ${topic} for ${exam}?`,
+    answer: `${topic} is a critical topic for ${exam}. Here is a systematic approach...`,
+    credentialsLine: `${exam} expert at EduGenius | Mentored 10,000+ aspirants`,
+  };
+}
+
+// ─── Instagram story generator ────────────────────────────────────────────────
+
+export async function generateInstagramStory(
+  topic: string,
+  exam: string,
+  audience: MediaContentRequest['targetAudience'],
+): Promise<InstagramStory> {
+  const prompt = `You are Herald, EduGenius marketing agent. Generate an Instagram content set.
+Topic: "${topic}" | Exam: ${exam} | Audience: ${audience}
+
+Return JSON:
+{
+  "caption": "Instagram caption (150-200 words, emoji-rich, value-first)",
+  "hashtags": ["#tag1", "#tag2", ...up to 30 hashtags],
+  "storySequence": [
+    {"slide": 1, "text": "hook/question", "background": "gradient suggestion", "cta": null},
+    {"slide": 2, "text": "value/insight"},
+    {"slide": 3, "text": "CTA slide", "cta": "Follow + link in bio"}
+  ]
+}`;
+
+  try {
+    const response = await callLLM({ agent: 'herald', message: prompt, intent: 'generate_content' });
+    const raw = response?.text ?? '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]) as Omit<InstagramStory, 'platform'>;
+      return { platform: 'instagram', ...parsed };
+    }
+  } catch { /* fall through */ }
+
+  return {
+    platform: 'instagram',
+    caption: `📚 ${topic} tips for ${exam}! Save this for your revision. 🔥\n\n#${exam}prep #ExamPrep #EduGenius`,
+    hashtags: [`#${exam}`, '#ExamPrep', '#StudyTips', '#EduGenius'],
+    storySequence: [
+      { slide: 1, text: `Did you know this about ${topic}? 👇`, background: 'blue gradient' },
+      { slide: 2, text: `Key insight: master this concept to boost your ${exam} score.` },
+      { slide: 3, text: 'Get your free study plan at EduGenius!', cta: 'Link in bio 👆' },
+    ],
+  };
+}

@@ -83,6 +83,12 @@ const ContentStrategyPage = lazy(() => import('@/pages/ContentStrategy').then(m 
 // Lazy load Content Orchestrator (CEO only)
 const ContentOrchestrator = lazy(() => import('@/pages/ContentOrchestrator'));
 
+// Lazy load Content Hub (CEO only)
+const ContentHub = lazy(() => import('@/pages/ContentHub'));
+
+// Lazy load Local Page Builder (CEO only)
+const LocalPageBuilder = lazy(() => import('@/pages/LocalPageBuilder'));
+
 // Lazy load trace viewer
 const TraceViewer = lazy(() => import('@/pages/TraceViewer').then(m => ({ default: m.TraceViewer })));
 
@@ -200,6 +206,12 @@ export default function App() {
 
           {/* Agent Skills — CEO only */}
           <Route path="agent-skills" element={<Suspense fallback={<PageLoader />}><AgentSkills /></Suspense>} />
+
+          {/* Content Hub — CEO only */}
+          <Route path="content-hub" element={<Suspense fallback={<PageLoader />}><ContentHub /></Suspense>} />
+
+          {/* Local Page Builder — CEO only */}
+          <Route path="page-builder" element={<Suspense fallback={<PageLoader />}><LocalPageBuilder /></Suspense>} />
 
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

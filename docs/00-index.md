@@ -62,6 +62,7 @@ This is the master index of all documentation in the `docs/` directory, organise
 | 17 | `17-master-design-documentation.md` | Complete system design, data flows |
 | 18 | `18-agent-connection-map.md` | Bidirectional signal reference for all agents |
 | 19 | `19-audit-report.md` | Full dual-direction audit (2026-03-10) — findings + fixes |
+| 20 | `20-content-system.md` | Content generation & delivery system architecture (2026-03-10) |
 
 ---
 

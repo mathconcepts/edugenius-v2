@@ -11,7 +11,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders, Cpu, Zap,
+  BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders, Cpu, Zap, Globe, Layers,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -35,6 +35,8 @@ const ceoNavItems: NavItem[] = [
   { to: '/content-strategy',      icon: Sliders,     label: 'Content Strategy' },
   { to: '/content-orchestrator',  icon: Cpu,         label: 'Orchestrator' },
   { to: '/agent-skills',          icon: Zap,         label: 'Agent Skills' },
+  { to: '/content-hub',           icon: Layers,      label: 'Content Hub',   highlight: true },
+  { to: '/page-builder',          icon: Globe,       label: 'Page Builder' },
   { to: '/students',              icon: Users,       label: 'People' },
   { to: '/settings',              icon: Settings,    label: 'Settings' },
 ];
