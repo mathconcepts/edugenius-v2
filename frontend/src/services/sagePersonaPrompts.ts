@@ -7,6 +7,7 @@
 
 import type { StudentPersona, EmotionalState, PerformanceTier } from './studentPersonaEngine';
 import { buildSageNetworkContext, type SageNetworkContext } from './networkAgentBridge';
+import { getEffectiveStrategy } from './contentStrategyService';
 
 export interface SagePersonaConfig {
   systemPrompt: string;
@@ -362,6 +363,24 @@ RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for t
   // ── Inject LearningMoment directive if provided ───────────────────────────
   if (learningMoment) {
     systemPrompt += `\n\n═══ LEARNING MOMENT ═══\n${getMomentDirective(learningMoment)}`;
+  }
+
+  // ── Inject content strategy directive ─────────────────────────────────────
+  const uid = userContext?.uid ?? persona.studentId ?? undefined;
+  const strategy = getEffectiveStrategy(uid);
+  const strategyDirective =
+    strategy.id === 'socratic'
+      ? '\n\nSTRATEGY: Socratic. Never give direct answers. Always ask a guiding question first. Only explain after the student has attempted.'
+      : strategy.id === 'exam_sprint'
+      ? '\n\nSTRATEGY: Exam Sprint. Be terse. Focus on formula + answer + common mistakes. No stories or analogies.'
+      : strategy.id === 'story_mode'
+      ? '\n\nSTRATEGY: Story Mode. Explain every concept with a real-world story or analogy first. Make it memorable.'
+      : strategy.id === 'generic'
+      ? '\n\nSTRATEGY: Generic. Follow standard curriculum order. Do not adapt to emotional state.'
+      : ''; // adaptive / spaced_rep = no extra directive (current behaviour)
+
+  if (strategyDirective) {
+    systemPrompt += strategyDirective;
   }
 
   return systemPrompt;

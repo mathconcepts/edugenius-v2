@@ -411,3 +411,20 @@ function buildMockExplanation(topic: string, exam: string): string {
 
 **Exam Strategy:** In ${exam}, questions on ${topic} often come paired with a numerical and a conceptual sub-part. Solve the conceptual part first to orient your thinking, then tackle the numerical with confidence.`;
 }
+
+// ── Regeneration queue bridge (reads from contentFeedbackService signal) ──────
+
+import type { AtomPerformance } from './contentFeedbackService';
+
+/**
+ * Read atoms queued for regeneration (emitted by contentFeedbackService.emitToAtlas).
+ * Atlas Workbench reads this to show the regeneration request panel.
+ */
+export function readRegenerationQueue(): AtomPerformance[] {
+  try {
+    const raw = localStorage.getItem('atlas:regen_queue');
+    return raw ? (JSON.parse(raw) as AtomPerformance[]) : [];
+  } catch {
+    return [];
+  }
+}

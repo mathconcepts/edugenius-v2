@@ -13,7 +13,7 @@
  *   CEO content_audit         → quality scores, engagement metrics, full data
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Lightbulb, Target, CheckCircle, XCircle, ChevronDown, ChevronUp,
@@ -23,6 +23,9 @@ import {
 import { clsx } from 'clsx';
 import type { ContentAtom, CustomerProfile, RenderDirective } from '@/services/contentFramework';
 import { resolvePresentation, buildCustomerProfile } from '@/services/contentFramework';
+import { recordFeedback } from '@/services/contentFeedbackService';
+import { getEffectiveStrategy } from '@/services/contentStrategyService';
+import { loadCurrentUser } from '@/services/userService';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -368,7 +371,8 @@ function CTAButton({ cta, onClick }: {
 
 // ── Feedback widget ───────────────────────────────────────────────────────────
 
-function FeedbackWidget({ onFeedback }: { onFeedback: (r: 1 | 2 | 3 | 4 | 5) => void }) {
+/** Legacy widget used by the existing onFeedback prop */
+function LegacyFeedbackWidget({ onFeedback }: { onFeedback: (r: 1 | 2 | 3 | 4 | 5) => void }) {
   const [rated, setRated] = useState<number | null>(null);
   if (rated !== null) {
     return <p className="text-xs text-green-600 dark:text-green-400">Thanks for the feedback! 🙌</p>;
@@ -386,6 +390,85 @@ function FeedbackWidget({ onFeedback }: { onFeedback: (r: 1 | 2 | 3 | 4 | 5) => 
   );
 }
 
+/** Enhanced feedback widget wired into contentFeedbackService */
+interface FeedbackWidgetProps {
+  atomId: string;
+  atomType: import('@/services/contentFramework').ContentAtomType;
+  topic: string;
+  examType: string;
+  strategyId: import('@/services/contentStrategyService').ContentStrategyId;
+}
+
+function FeedbackWidget({ atomId, atomType, topic, examType, strategyId }: FeedbackWidgetProps) {
+  const [given, setGiven] = useState<'up' | 'down' | null>(null);
+  const mountTimeRef = useRef<number>(Date.now());
+  const user = loadCurrentUser();
+  const userId = user?.uid ?? 'anon';
+
+  // On unmount: record implicit signal based on time spent
+  useEffect(() => {
+    return () => {
+      const elapsed = (Date.now() - mountTimeRef.current) / 1000; // seconds
+      // Record time_on_content
+      recordFeedback({
+        atomId,
+        atomType,
+        topic,
+        examType,
+        signal: 'time_on_content',
+        value: elapsed,
+        userId,
+        strategyId,
+      });
+      // If no explicit feedback was given, infer from time
+      if (given === null) {
+        if (elapsed >= 30) {
+          recordFeedback({ atomId, atomType, topic, examType, signal: 'completed', userId, strategyId });
+        } else if (elapsed < 10) {
+          recordFeedback({ atomId, atomType, topic, examType, signal: 'skipped', userId, strategyId });
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [given]);
+
+  const handleThumbsUp = () => {
+    setGiven('up');
+    recordFeedback({ atomId, atomType, topic, examType, signal: 'thumbs_up', userId, strategyId });
+  };
+
+  const handleThumbsDown = () => {
+    setGiven('down');
+    recordFeedback({ atomId, atomType, topic, examType, signal: 'thumbs_down', userId, strategyId });
+  };
+
+  if (given !== null) {
+    return (
+      <p className="text-xs text-emerald-600 dark:text-emerald-400">Thanks! 🙌</p>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-slate-400 dark:text-surface-500">Helpful?</span>
+      <button
+        onClick={handleThumbsUp}
+        className="text-slate-400 hover:text-emerald-500 transition-colors"
+        aria-label="Thumbs up"
+      >
+        <ThumbsUp className="w-4 h-4" />
+      </button>
+      <button
+        onClick={handleThumbsDown}
+        className="text-slate-400 hover:text-red-400 transition-colors"
+        aria-label="Thumbs down"
+      >
+        <ThumbsDown className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════
@@ -393,6 +476,10 @@ function FeedbackWidget({ onFeedback }: { onFeedback: (r: 1 | 2 | 3 | 4 | 5) => 
 export function ContentCard({ atom, profileRaw, renderSurface = 'card', onCTA, onFeedback, className }: ContentCardProps) {
   const customer = buildCustomerProfile(profileRaw);
   const directive = resolvePresentation({ customer, contentAtom: atom, renderSurface, showMetadata: false });
+
+  // Resolve effective strategy for the feedback widget
+  const currentUser = loadCurrentUser();
+  const effectiveStrategy = getEffectiveStrategy(currentUser?.uid);
 
   const handleCTA = useCallback((action: string) => {
     onCTA?.(action as any);
@@ -539,7 +626,17 @@ export function ContentCard({ atom, profileRaw, renderSurface = 'card', onCTA, o
             {/* Right side: feedback / admin actions */}
             <div className="flex items-center gap-3">
               {directive.feedbackWidget && (
-                <FeedbackWidget onFeedback={handleFeedback} />
+                effectiveStrategy.feedbackRequired ? (
+                  <FeedbackWidget
+                    atomId={atom.id}
+                    atomType={atom.type}
+                    topic={atom.topic}
+                    examType={atom.examId}
+                    strategyId={effectiveStrategy.id}
+                  />
+                ) : (
+                  <LegacyFeedbackWidget onFeedback={handleFeedback} />
+                )
               )}
               {directive.showQualityBadge && (
                 <div className="flex items-center gap-2">

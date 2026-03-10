@@ -71,6 +71,9 @@ const MarketIntelligence = lazy(() => import('@/pages/MarketIntelligence'));
 // Lazy load Atlas Workbench (CEO only)
 const AtlasWorkbench = lazy(() => import('@/pages/AtlasWorkbench'));
 
+// Lazy load Content Strategy (CEO + students)
+const ContentStrategyPage = lazy(() => import('@/pages/ContentStrategy').then(m => ({ default: m.ContentStrategy })));
+
 // Lazy load trace viewer
 const TraceViewer = lazy(() => import('@/pages/TraceViewer').then(m => ({ default: m.TraceViewer })));
 
@@ -182,6 +185,9 @@ export default function App() {
 
           {/* Atlas Workbench — content generation — CEO only */}
           <Route path="atlas-workbench" element={<Suspense fallback={<PageLoader />}><AtlasWorkbench /></Suspense>} />
+
+          {/* Content Strategy — CEO (platform) + all users (personal) */}
+          <Route path="content-strategy" element={<Suspense fallback={<PageLoader />}><ContentStrategyPage /></Suspense>} />
           
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

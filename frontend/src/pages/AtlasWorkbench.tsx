@@ -26,8 +26,12 @@ import {
   getQueue,
   updateTaskStatus,
   generateContentAtomForTask,
+  createAtlasTask,
+  queueTask,
+  readRegenerationQueue,
   type AtlasContentTask,
 } from '@/services/atlasTaskService';
+import type { AtomPerformance } from '@/services/contentFeedbackService';
 import type { ContentAtom } from '@/services/contentFramework';
 import { ContentCard } from '@/components/ContentCard';
 
@@ -230,11 +234,13 @@ export default function AtlasWorkbench() {
   const [doneTasks, setDoneTasks] = useState<AtlasContentTask[]>([]);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [regenQueue, setRegenQueue] = useState<AtomPerformance[]>([]);
 
   const refreshTasks = useCallback(() => {
     const allTasks = getQueue().tasks;
     setPendingTasks(allTasks.filter(t => t.status === 'queued'));
     setDoneTasks(allTasks.filter(t => t.status === 'done' && t.contentAtom));
+    setRegenQueue(readRegenerationQueue());
   }, []);
 
   useEffect(() => {
@@ -261,6 +267,24 @@ export default function AtlasWorkbench() {
       setGeneratingId(null);
       refreshTasks();
     }
+  }, [refreshTasks]);
+
+  const handleQueueRegenTask = useCallback((perf: AtomPerformance) => {
+    const task = createAtlasTask(
+      {
+        topic: perf.topic,
+        urgency: 'high',
+        questionCount: perf.totalImpressions,
+        avgScore: perf.performanceScore,
+        sampleQuestions: [],
+        examFocus: perf.examType,
+      } as Parameters<typeof createAtlasTask>[0],
+      'gap_radar',
+    );
+    // Ensure priority >= 90 for regen items
+    (task as AtlasContentTask).priority = Math.max(90, task.priority);
+    queueTask(task);
+    refreshTasks();
   }, [refreshTasks]);
 
   const pendingCount = pendingTasks.length;
@@ -316,6 +340,42 @@ export default function AtlasWorkbench() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Regeneration Requests */}
+      {regenQueue.length > 0 && (
+        <div className="bg-red-500/5 border border-red-500/30 rounded-3xl p-6">
+          <SectionHeader
+            icon={AlertCircle}
+            title="Regeneration Requests"
+            subtitle="Low-performing atoms flagged by the feedback loop — score < 40"
+            color="text-red-400"
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {regenQueue.map(perf => (
+              <div
+                key={perf.atomId}
+                className="bg-surface-900 border border-surface-800 rounded-2xl p-4 flex items-center justify-between gap-4"
+              >
+                <div className="min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{perf.topic}</p>
+                  <p className="text-surface-500 text-xs mt-0.5">
+                    {perf.atomType.replace(/_/g, ' ')} · score: {' '}
+                    <span className="text-red-400 font-semibold">{perf.performanceScore}</span>
+                    {' '}· {perf.totalImpressions} impressions
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleQueueRegenTask(perf)}
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 hover:text-red-200 transition-all"
+                >
+                  <Zap className="w-3 h-3" />
+                  Regenerate
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Pending Tasks */}
       <div className="bg-surface-900/50 border border-surface-800 rounded-3xl p-6">

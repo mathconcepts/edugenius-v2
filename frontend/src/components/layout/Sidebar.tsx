@@ -11,7 +11,7 @@ import { clsx } from 'clsx';
 import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
-  BookMarked, Target, Trophy, Network, Radar, Sparkles,
+  BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -32,6 +32,7 @@ const ceoNavItems: NavItem[] = [
   { to: '/opportunity-discovery', icon: BarChart3,   label: 'Intelligence' },
   { to: '/market-intel',          icon: Radar,       label: 'Market Intel' },
   { to: '/atlas-workbench',       icon: Sparkles,    label: 'Atlas Workbench' },
+  { to: '/content-strategy',      icon: Sliders,     label: 'Content Strategy' },
   { to: '/students',              icon: Users,       label: 'People' },
   { to: '/settings',              icon: Settings,    label: 'Settings' },
 ];
@@ -61,11 +62,12 @@ const roleNavItems = {
     { to: '/analytics', icon: BarChart3,    label: 'Progress' },
   ],
   student: [
-    { to: '/',          icon: Home,         label: 'Home' },
-    { to: '/chat',      icon: MessageSquare, label: 'Ask Tutor', highlight: true },
-    { to: '/learn',     icon: GraduationCap, label: 'Study' },
-    { to: '/notebook',  icon: BookMarked,   label: 'Notebook' },
-    { to: '/progress',  icon: BarChart3,    label: 'Progress' },
+    { to: '/',                  icon: Home,          label: 'Home' },
+    { to: '/chat',              icon: MessageSquare, label: 'Ask Tutor',  highlight: true },
+    { to: '/learn',             icon: GraduationCap, label: 'Study' },
+    { to: '/notebook',          icon: BookMarked,    label: 'Notebook' },
+    { to: '/progress',          icon: BarChart3,     label: 'Progress' },
+    { to: '/content-strategy',  icon: Sliders,       label: 'My Strategy' },
   ],
 };
 
