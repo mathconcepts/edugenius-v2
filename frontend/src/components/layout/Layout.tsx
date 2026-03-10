@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -95,7 +95,8 @@ function MobileTabBar({ role }: { role: 'student' | 'teacher' }) {
 // ── Mobile top bar (student + teacher, replaces Header) ───────────────────
 
 function MobileTopBar({ role }: { role: 'student' | 'teacher' }) {
-  const { theme, toggleTheme } = useAppStore();
+  const { theme, toggleTheme, userRole, setUserRole } = useAppStore();
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
 
   // Read streak from localStorage (kept in sync by StudentDashboard)
   const streak = (() => {
@@ -154,6 +155,42 @@ function MobileTopBar({ role }: { role: 'student' | 'teacher' }) {
             <span>{streak}</span>
           </div>
         )}
+
+        {/* Role switcher — tap avatar to switch roles */}
+        <div className="relative">
+          <button
+            onClick={() => setShowRoleMenu(v => !v)}
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center touch-manipulation border-2 border-surface-700"
+            title="Switch role"
+          >
+            <span className="text-sm leading-none">
+              {userRole === 'ceo' ? '👔' : userRole === 'teacher' ? '🎓' : userRole === 'admin' ? '🛡️' : userRole === 'manager' ? '📊' : '📚'}
+            </span>
+          </button>
+          {showRoleMenu && (
+            <div className="absolute right-0 top-11 bg-surface-900 border border-surface-700 rounded-xl shadow-2xl z-50 min-w-[140px] py-1">
+              {[
+                { role: 'student', icon: '📚', label: 'Student' },
+                { role: 'teacher', icon: '🎓', label: 'Teacher' },
+                { role: 'ceo',     icon: '👔', label: 'CEO' },
+                { role: 'admin',   icon: '🛡️', label: 'Admin' },
+                { role: 'manager', icon: '📊', label: 'Manager' },
+              ].map(({ role: r, icon, label }) => (
+                <button
+                  key={r}
+                  onClick={() => { setUserRole(r as import('@/types').UserRole); setShowRoleMenu(false); }}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${
+                    userRole === r ? 'text-primary-400 bg-primary-500/10' : 'text-surface-300 hover:bg-surface-800'
+                  }`}
+                >
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                  {userRole === r && <span className="ml-auto text-primary-400">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <button onClick={toggleTheme}
           className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-800/80 border border-surface-700/60 touch-manipulation hover:bg-surface-700/80 transition-colors">
