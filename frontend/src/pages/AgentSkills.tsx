@@ -68,6 +68,13 @@ const SKILLS: SkillMeta[] = [
     connectedPrompts: ['sage-mcq-socratic'],
     storageKey: 'edugenius_skill_voice_enabled', status: 'active',
   },
+  {
+    id: 'social_intent_scout', name: 'Social Intent Scout', icon: Users,
+    description: '5-agent social intelligence pipeline: IntentScout monitors Reddit/Quora/X/YouTube for student questions, AnswerCrafter generates humanized answers, HookSmith adds platform-specific CTAs, ApprovalGate routes through admin review, PostScheduler posts at optimal IST times.',
+    agents: ['Scout', 'Atlas', 'Herald', 'Forge'],
+    connectedPrompts: ['atlas-content-gen', 'scout-market-analysis', 'herald-blog-seo'],
+    storageKey: 'edugenius_skill_social_intent_enabled', status: 'active',
+  },
 ];
 
 // ── Main Component ─────────────────────────────────────────────────────────────

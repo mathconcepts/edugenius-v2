@@ -7,6 +7,8 @@
  *   3. Campaign — full campaign orchestrator
  *   4. Pages — LocalPageBuilder integration
  *   5. Sync Status — cross-agent connection health
+ *
+ * Quick links: Social Intel (/social-intent)
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -569,6 +571,18 @@ export default function ContentHub() {
           </button>
         ))}
       </div>
+
+      {/* Quick link: Social Intel */}
+      {activeTab === 'generate' && (
+        <div className="px-6 pt-3">
+          <a
+            href="/social-intent"
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-accent-600/20 border border-accent-500/30 text-accent-300 rounded-lg hover:bg-accent-600/30 transition-colors"
+          >
+            📡 Social Intel Hub — Monitor student questions &amp; auto-answer
+          </a>
+        </div>
+      )}
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto p-6">

@@ -22,7 +22,8 @@ export type SyncConnectionId =
   | 'rag_to_sage'
   | 'strategy_to_atlas'
   | 'oracle_to_feedback'
-  | 'page_builder_to_oracle';
+  | 'page_builder_to_oracle'
+  | 'social_to_content'; // Social Intel → Content pipeline
 
 export type SyncStatus = 'live' | 'broken' | 'degraded' | 'unconfigured';
 
@@ -85,6 +86,10 @@ const SIGNAL_KEYS: Record<SyncConnectionId, { key: string; maxAgeMs: number }> =
     key: 'edugenius_content_built_pages',
     maxAgeMs: 86400000,
   },
+  social_to_content: {
+    key: 'content:social_intel_topics',
+    maxAgeMs: 21600000, // 6 hours
+  },
 };
 
 // Connection metadata
@@ -136,6 +141,12 @@ const CONNECTION_META: Record<SyncConnectionId, { label: string; from: string; t
     from: 'localPageBuilderService',
     to: 'Oracle analytics',
     description: 'Deployed landing pages feed conversion metrics to Oracle.',
+  },
+  social_to_content: {
+    label: 'Social Intel → Content',
+    from: 'socialAgentOrchestrator',
+    to: 'masterContentAgent / Atlas',
+    description: 'Social listening signals (trending topics, student confusion patterns) feed Atlas content generation queue.',
   },
 };
 

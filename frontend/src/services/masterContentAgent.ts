@@ -444,6 +444,24 @@ export function getBatchQueue(): unknown[] {
   }
 }
 
+// ─── Social Intel Integration ─────────────────────────────────────────────────
+
+/**
+ * Trigger a social intel scan as part of the content campaign pipeline.
+ * IntentScout → AnswerCrafter → ApprovalGate → PostScheduler.
+ * Called optionally at the start of orchestrateContentCampaign.
+ */
+export async function runSocialIntelPass(): Promise<void> {
+  try {
+    // Dynamic import to avoid circular deps
+    const { runSocialIntelCycle } = await import('./socialAgentOrchestrator');
+    await runSocialIntelCycle();
+    emitSignal('social:intel_cycle_complete', { ts: Date.now() });
+  } catch {
+    // Non-fatal — social intel is additive, not blocking
+  }
+}
+
 // ─── Quick generate (no full pipeline) ───────────────────────────────────────
 
 export async function quickGenerate(

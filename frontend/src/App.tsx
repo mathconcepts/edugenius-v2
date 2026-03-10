@@ -86,8 +86,13 @@ const ContentOrchestrator = lazy(() => import('@/pages/ContentOrchestrator'));
 // Lazy load Content Hub (CEO only)
 const ContentHub = lazy(() => import('@/pages/ContentHub'));
 
+// Lazy load Social Intent Dashboard (CEO only)
+const SocialIntentDashboard = lazy(() => import('@/pages/SocialIntentDashboard'));
+
 // Lazy load Local Page Builder (CEO only)
 const LocalPageBuilder = lazy(() => import('@/pages/LocalPageBuilder'));
+
+// Lazy load Social Intent Dashboard (CEO only)
 
 // Lazy load trace viewer
 const TraceViewer = lazy(() => import('@/pages/TraceViewer').then(m => ({ default: m.TraceViewer })));
@@ -209,9 +214,12 @@ export default function App() {
 
           {/* Content Hub — CEO only */}
           <Route path="content-hub" element={<Suspense fallback={<PageLoader />}><ContentHub /></Suspense>} />
+          <Route path="social-intent" element={<Suspense fallback={<PageLoader />}><SocialIntentDashboard /></Suspense>} />
 
           {/* Local Page Builder — CEO only */}
           <Route path="page-builder" element={<Suspense fallback={<PageLoader />}><LocalPageBuilder /></Suspense>} />
+
+          {/* Social Intent Dashboard — CEO only */}
 
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />
