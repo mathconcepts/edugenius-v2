@@ -17,6 +17,7 @@ import { loadPersona } from '@/services/studentPersonaEngine';
 // Customer-centric content framework
 import { ContentFeed } from '@/components/ContentFeed';
 import type { ContentAtom } from '@/services/contentFramework';
+import { Sparkles } from 'lucide-react';
 
 interface Topic {
   id: string;
@@ -62,6 +63,7 @@ export default function Learn() {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(subjectId || null);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showFeed, setShowFeed] = useState(false);
 
   // Wire 2 — Traceability: create root trace on page load, store on unmount
   const learnTrace = useRef<TraceTree | null>(null);
@@ -414,19 +416,30 @@ export default function Learn() {
         </div>
       </div>
 
-      {/* Content Feed — customer-centric, shows when a subject is selected */}
+      {/* Content Feed — hidden by default, toggled by user */}
       {selectedSubject && sampleAtoms.length > 0 && (
-        <div className="card p-5">
-          <ContentFeed
-            atoms={sampleAtoms}
-            profileRaw={contentProfileRaw}
-            onAtomAction={(atomId, action) => {
-              if (action === 'ask_sage') {
-                window.location.href = `/chat?topic=${encodeURIComponent(selectedSubject)}`;
-              }
-            }}
-          />
-        </div>
+        <>
+          <button
+            onClick={() => setShowFeed(p => !p)}
+            className="text-sm text-surface-400 hover:text-white flex items-center gap-1.5 mt-4 mb-2 transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            {showFeed ? 'Hide' : 'Show'} AI recommendations
+          </button>
+          {showFeed && (
+            <div className="card p-5">
+              <ContentFeed
+                atoms={sampleAtoms}
+                profileRaw={contentProfileRaw}
+                onAtomAction={(atomId, action) => {
+                  if (action === 'ask_sage') {
+                    window.location.href = `/chat?topic=${encodeURIComponent(selectedSubject)}`;
+                  }
+                }}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Quick Actions */}
