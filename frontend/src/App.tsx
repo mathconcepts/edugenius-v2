@@ -65,6 +65,9 @@ const RevenueDashboard = lazy(() => import('@/pages/dashboards/RevenueDashboard'
 // Lazy load system status
 const SystemStatus = lazy(() => import('@/pages/SystemStatus').then(m => ({ default: m.SystemStatus })));
 
+// Lazy load Market Intelligence (CEO only)
+const MarketIntelligence = lazy(() => import('@/pages/MarketIntelligence'));
+
 // Lazy load trace viewer
 const TraceViewer = lazy(() => import('@/pages/TraceViewer').then(m => ({ default: m.TraceViewer })));
 
@@ -170,6 +173,9 @@ export default function App() {
           {/* Prism — Journey Intelligence — CEO/Admin only */}
           <Route path="prism" element={<Suspense fallback={<PageLoader />}><PrismDashboard /></Suspense>} />
           <Route path="revenue" element={<Suspense fallback={<PageLoader />}><RevenueDashboard /></Suspense>} />
+
+          {/* Market Intelligence — Scout pipeline — CEO only */}
+          <Route path="market-intel" element={<Suspense fallback={<PageLoader />}><MarketIntelligence /></Suspense>} />
           
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />
