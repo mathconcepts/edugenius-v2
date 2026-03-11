@@ -712,6 +712,19 @@ export function shouldUseCatRag(query: string): boolean {
  *   const prompt = buildPersonaSystemPrompt(persona, topicId);
  *   callLLM({ agent: 'sage', customSystemPrompt: prompt, ... });
  */
+/**
+ * Alias for {@link buildSageSystemPrompt} — provided for backward compatibility.
+ *
+ * IMPORTANT: This is the SAME function as buildSageSystemPrompt.
+ * Prefer calling buildSageSystemPrompt directly in new code.
+ * This alias exists so older callers that imported buildPersonaSystemPrompt
+ * continue to work without changes.
+ *
+ * @param persona          Student's persona object
+ * @param topicId          Optional topic being discussed
+ * @param knowledgeContext Optional RAG context to inject
+ * @returns Full Sage system prompt string
+ */
 export function buildPersonaSystemPrompt(
   persona: StudentPersona,
   topicId?: string,

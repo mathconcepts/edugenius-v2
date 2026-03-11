@@ -25,7 +25,17 @@ export type SignalType = AgentSignal['type'];
 
 // ─── Typed emitters (one per signal type) ────────────────────────────────────
 
-/** Sage → Atlas: student couldn't understand a topic */
+/**
+ * Sage → Atlas: student couldn't understand a topic — specific content type missing.
+ * Atlas should generate the requested content variant (analogy, visual, etc.) for this topic.
+ *
+ * @param params.studentId    Student who encountered the gap
+ * @param params.topicId      Topic where the gap exists
+ * @param params.examId       Exam the topic belongs to
+ * @param params.missingType  What type of content would help most
+ * @param params.learningStyle  Student's detected learning style (optional)
+ * @returns Promise<void>
+ */
 export async function emitContentGap(params: {
   studentId: string;
   topicId: string;
@@ -43,7 +53,17 @@ export async function emitContentGap(params: {
   });
 }
 
-/** Sage → Atlas: multiple students struggling on same concept */
+/**
+ * Sage → Atlas: multiple students struggling on the same concept (cohort signal).
+ * Atlas should create clearer or simpler explanations for this topic.
+ *
+ * @param params.topicId       Topic with the struggle pattern
+ * @param params.examId        Exam context
+ * @param params.studentId     Student triggering this particular signal
+ * @param params.incorrectCount  Number of consecutive incorrect attempts
+ * @param params.masteryScore  Current BKT mastery score (0–1)
+ * @returns Promise<void>
+ */
 export async function emitStrugglePattern(params: {
   topicId: string;
   examId: string;
@@ -61,7 +81,18 @@ export async function emitStrugglePattern(params: {
   });
 }
 
-/** Sage/Oracle → Oracle+Mentor: student mastered a concept */
+/**
+ * Sage → Oracle + Mentor: student has mastered a concept.
+ * Oracle should record the mastery event for analytics.
+ * Mentor should send a congratulatory nudge to maintain momentum.
+ *
+ * @param params.studentId        Student who achieved mastery
+ * @param params.topicId          Mastered topic
+ * @param params.examId           Exam context
+ * @param params.masteryScore     Final BKT mastery score (should be ≥ 0.85)
+ * @param params.sessionDurationMs  Total session time in milliseconds
+ * @returns Promise<void>
+ */
 export async function emitMasteryAchieved(params: {
   studentId: string;
   topicId: string;
@@ -90,7 +121,17 @@ export async function emitMasteryAchieved(params: {
   ]);
 }
 
-/** Sage → Mentor: student showing frustration */
+/**
+ * Sage → Mentor: student is showing frustration signals.
+ * Mentor should send an empathy nudge and optionally alert a teacher.
+ *
+ * @param params.studentId            Frustrated student
+ * @param params.topicId              Topic causing frustration
+ * @param params.examId               Exam context
+ * @param params.severity             1 (mild) to 5 (severe) frustration level
+ * @param params.sessionMessageCount  Number of messages in the current session
+ * @returns Promise<void>
+ */
 export async function emitFrustrationAlert(params: {
   studentId: string;
   topicId: string;
@@ -108,7 +149,17 @@ export async function emitFrustrationAlert(params: {
   });
 }
 
-/** Oracle → Mentor: student hasn't logged in */
+/**
+ * Oracle → Mentor: student shows churn risk based on inactivity / engagement drop.
+ * Mentor should trigger a personalised re-engagement sequence immediately.
+ *
+ * @param params.studentId    At-risk student
+ * @param params.examId       Exam context
+ * @param params.daysInactive  Days since last login
+ * @param params.lastTopicId  Last topic the student was working on
+ * @param params.riskScore    Churn probability (0–1)
+ * @returns Promise<void>
+ */
 export async function emitChurnRisk(params: {
   studentId: string;
   examId: string;
@@ -125,7 +176,17 @@ export async function emitChurnRisk(params: {
   });
 }
 
-/** Sage → Oracle+Mentor: a breakthrough moment ("I get it now!") */
+/**
+ * Sage → Oracle + Mentor: student experienced a breakthrough moment ("I get it now!").
+ * Oracle records the event for learning analytics.
+ * Mentor should celebrate the moment with a badge or encouraging message.
+ *
+ * @param params.studentId      Student who had the breakthrough
+ * @param params.topicId        Topic that clicked
+ * @param params.examId         Exam context
+ * @param params.sessionMinutes  How long it took (total session minutes)
+ * @returns Promise<void>
+ */
 export async function emitBreakthrough(params: {
   studentId: string;
   topicId: string;
@@ -154,7 +215,17 @@ export async function emitBreakthrough(params: {
 
 // ─── Hyper-personalization signal emitters (v2) ───────────────────────────────
 
-/** Lens → Atlas: request specific content format for a topic */
+/**
+ * Lens → Atlas: student needs a specific content format for a topic.
+ * Atlas should generate content in the requested format as soon as possible.
+ *
+ * @param params.studentId       Student making the implicit format request
+ * @param params.topicId         Topic that needs the format
+ * @param params.examId          Exam context
+ * @param params.requestedFormat  Specific content format needed
+ * @param params.reason          Why this format was selected (Lens reasoning)
+ * @returns Promise<void>
+ */
 export async function emitFormatRequest(params: {
   studentId: string;
   topicId: string;
@@ -172,7 +243,16 @@ export async function emitFormatRequest(params: {
   });
 }
 
-/** Lens → Mentor: SR topic overdue — trigger review nudge */
+/**
+ * Lens → Mentor: spaced repetition review is overdue for one or more topics.
+ * Mentor should send a review nudge (push, WhatsApp, or in-app).
+ *
+ * @param params.studentId     Student with overdue reviews
+ * @param params.overdueTopics  List of topic slugs that are overdue
+ * @param params.examId        Exam context
+ * @param params.daysOverdue   How many days past the scheduled review date
+ * @returns Promise<void>
+ */
 export async function emitSROverdue(params: {
   studentId: string;
   overdueTopics: string[];
@@ -188,7 +268,18 @@ export async function emitSROverdue(params: {
   });
 }
 
-/** Lens → Oracle: behavioral signal snapshot for analytics */
+/**
+ * Lens → Oracle: behavioral signal snapshot captured during a session.
+ * Oracle should use this data to update the student's learning profile.
+ *
+ * @param params.studentId             Student being observed
+ * @param params.examId                Exam context
+ * @param params.signals               Full behavioral signals object from the session
+ * @param params.contentFormat         Format the student was engaging with
+ * @param params.deliveryPersona       Persona Sage was using for delivery
+ * @param params.sessionMessageCount   Total messages in the session
+ * @returns Promise<void>
+ */
 export async function emitBehavioralSnapshot(params: {
   studentId: string;
   examId: string;
@@ -221,7 +312,17 @@ export async function emitBehavioralSnapshot(params: {
   });
 }
 
-/** Sage → Atlas: a delivery format got positive engagement — learn from it */
+/**
+ * Sage → Atlas: a content format got strong positive engagement — reinforce and replicate.
+ * Atlas should note this format preference and apply it to similar topics for this student.
+ *
+ * @param params.studentId        Student who responded positively
+ * @param params.topicId          Topic where the format worked
+ * @param params.examId           Exam context
+ * @param params.format           Format that was effective
+ * @param params.engagementSignal  Type of positive signal detected
+ * @returns Promise<void>
+ */
 export async function emitFormatSuccess(params: {
   studentId: string;
   topicId: string;
@@ -331,7 +432,17 @@ export async function recordSageInteraction(params: {
 
 // ─── Exam Lifecycle Emitters ──────────────────────────────────────────────────
 
-/** CEO → All agents: exam approved, begin your jobs */
+/**
+ * CEO → All agents: exam has been approved — each agent should begin its role in the launch pipeline.
+ * This is the starting gun for the full exam launch workflow.
+ *
+ * @param params.examId         Unique exam identifier
+ * @param params.examName       Human-readable exam name
+ * @param params.topics         List of topic slugs included in this exam
+ * @param params.isPilot        Whether this is a limited pilot launch
+ * @param params.targetAgents   Which agents should receive this signal
+ * @returns Promise<void>
+ */
 export async function emitExamApproved(params: {
   examId: string;
   examName: string;
@@ -357,7 +468,17 @@ export async function emitExamApproved(params: {
   );
 }
 
-/** Atlas → Sage+Forge+Herald: content batch is ready for verification */
+/**
+ * Atlas → Sage + Forge + Herald: content batch is ready for downstream processing.
+ * Sage should verify accuracy, Forge should prepare deployment, Herald should plan promotion.
+ *
+ * @param params.examId        Exam the batch belongs to
+ * @param params.batchId       Unique batch identifier
+ * @param params.topicIds      Topics included in this batch
+ * @param params.contentCount  Total number of content pieces
+ * @param params.formats       Content formats included (e.g. ['lesson', 'mcq'])
+ * @returns Promise<void>
+ */
 export async function emitContentReady(params: {
   examId: string;
   batchId: string;
@@ -378,7 +499,17 @@ export async function emitContentReady(params: {
   );
 }
 
-/** Sage → Forge+Herald: content verified, deploy + promote */
+/**
+ * Sage → Forge + Herald: content accuracy verified — safe to deploy and promote.
+ * Forge should push to CDN. Herald should begin scheduling promotions.
+ *
+ * @param params.examId          Exam the batch belongs to
+ * @param params.batchId         Batch that was verified
+ * @param params.verifiedCount   Number of pieces that passed verification
+ * @param params.avgAccuracy     Average accuracy score (0–100)
+ * @param params.failedTopicIds  Topics that failed and need Atlas to regenerate
+ * @returns Promise<void>
+ */
 export async function emitContentVerified(params: {
   examId: string;
   batchId: string;
@@ -399,7 +530,17 @@ export async function emitContentVerified(params: {
   );
 }
 
-/** Forge → Oracle+Herald+Mentor: exam is live on CDN */
+/**
+ * Forge → Oracle + Herald + Mentor: exam is live on CDN and ready for students.
+ * Oracle should start analytics tracking. Herald should launch campaigns. Mentor should notify enrolled students.
+ *
+ * @param params.examId        Deployed exam identifier
+ * @param params.deployedAt    ISO timestamp of deployment
+ * @param params.url           Public URL where the exam is accessible
+ * @param params.contentCount  Total content pieces deployed
+ * @param params.regions       CDN regions where content is now live
+ * @returns Promise<void>
+ */
 export async function emitExamDeployed(params: {
   examId: string;
   deployedAt: string;
@@ -420,7 +561,18 @@ export async function emitExamDeployed(params: {
   );
 }
 
-/** Oracle → Scout+Atlas+Mentor: performance insights for feedback loop */
+/**
+ * Oracle → Scout + Atlas + Mentor: performance insights to close the feedback loop.
+ * Scout should research stale topics. Atlas should regenerate low-performing content. Mentor should re-engage at-risk students.
+ *
+ * @param params.examId                Exam the insights relate to
+ * @param params.staleTopicIds         Topics with outdated or low-quality content
+ * @param params.churnRiskCount        Number of students showing churn signals
+ * @param params.lowEngagementTopics   Topics with below-threshold engagement
+ * @param params.highPerformingTopics  Topics driving the most retention and conversions
+ * @param params.weeklyDAU             Daily active users for the week
+ * @returns Promise<void>
+ */
 export async function emitPerformanceInsight(params: {
   examId: string;
   staleTopicIds: string[];
@@ -442,7 +594,15 @@ export async function emitPerformanceInsight(params: {
   );
 }
 
-/** User service → Mentor+Sage+Oracle: student enrolled */
+/**
+ * User service → Mentor + Sage + Oracle: a student has enrolled for an exam.
+ * Mentor should send the welcome sequence. Sage should run the diagnostic. Oracle should start tracking.
+ *
+ * @param params.examId          Exam the student enrolled in
+ * @param params.studentId       Newly enrolled student
+ * @param params.isFirstForExam  True if this is the first student for this exam (milestone)
+ * @returns Promise<void>
+ */
 export async function emitStudentEnrolled(params: {
   examId: string;
   studentId: string;
@@ -465,26 +625,46 @@ export async function emitStudentEnrolled(params: {
 // ─── Agent inbox processors ───────────────────────────────────────────────────
 
 /**
- * Atlas processes its signal inbox.
+ * Atlas processes its full signal inbox.
  * In production, Atlas agent's heartbeat calls this.
- * In browser context, it's a no-op that logs pending work.
+ * Handles all signals routed to Atlas: CONTENT_GAP, STRUGGLE_PATTERN,
+ * FORMAT_REQUEST, FORMAT_SUCCESS, ENGAGEMENT_GAP, and TREND_SIGNAL.
  */
 export async function processAtlasInbox(): Promise<{
   contentGaps: AgentSignal[];
   strugglePatterns: AgentSignal[];
+  formatRequests: AgentSignal[];
+  formatSuccesses: AgentSignal[];
+  engagementGaps: AgentSignal[];
+  trendSignals: AgentSignal[];
 }> {
   const signals = await drainPendingSignals('atlas');
-  const contentGaps = signals.filter((s) => s.type === 'CONTENT_GAP');
-  const strugglePatterns = signals.filter((s) => s.type === 'STRUGGLE_PATTERN');
+  return {
+    contentGaps:     signals.filter((s) => s.type === 'CONTENT_GAP'),
+    strugglePatterns: signals.filter((s) => s.type === 'STRUGGLE_PATTERN'),
+    formatRequests:   signals.filter((s) => s.type === 'FORMAT_REQUEST'),
+    formatSuccesses:  signals.filter((s) => s.type === 'FORMAT_SUCCESS'),
+    engagementGaps:   signals.filter((s) => s.type === 'ENGAGEMENT_GAP'),
+    trendSignals:     signals.filter((s) => s.type === 'TREND_SIGNAL'),
+  };
+}
 
-  if (contentGaps.length > 0) {
-    console.log(`[Atlas] ${contentGaps.length} content gaps to address:`, contentGaps.map(s => s.payload));
-  }
-  if (strugglePatterns.length > 0) {
-    console.log(`[Atlas] ${strugglePatterns.length} struggle patterns detected:`, strugglePatterns.map(s => s.payload));
-  }
-
-  return { contentGaps, strugglePatterns };
+/**
+ * Sage processes its full signal inbox.
+ * Handles STUDENT_STRUGGLING from Mentor and CONTENT_READY from Atlas.
+ * On each heartbeat, Sage should act on these to adjust tutoring behaviour.
+ */
+export async function processSageInbox(): Promise<{
+  studentStruggling: AgentSignal[];
+  contentReady: AgentSignal[];
+  examApproved: AgentSignal[];
+}> {
+  const signals = await drainPendingSignals('sage');
+  return {
+    studentStruggling: signals.filter((s) => s.type === 'STUDENT_STRUGGLING'),
+    contentReady:      signals.filter((s) => s.type === 'CONTENT_READY'),
+    examApproved:      signals.filter((s) => s.type === 'EXAM_APPROVED'),
+  };
 }
 
 /**
@@ -541,7 +721,18 @@ export async function checkCohortAlert(topicId: string): Promise<{
 // ─── Gap-fill connections — bidirectional audit 2026-03-08 ───────────────────
 // 7 missing agent→agent links identified and wired below.
 
-/** Scout → Atlas: trending keyword / new PYQ pattern found — generate content */
+/**
+ * Scout → Atlas: trending keyword or new PYQ pattern found — trigger content generation.
+ * Atlas should prioritise this topic in its next generation queue.
+ *
+ * @param params.examId       Exam the trend relates to
+ * @param params.topicId      Topic slug that is trending
+ * @param params.trendType    Nature of the trend (keyword spike, PYQ pattern, etc.)
+ * @param params.keyword      Specific keyword if trendType is 'keyword'
+ * @param params.urgency      How quickly Atlas should respond
+ * @param params.suggestedFormats  Formats Scout recommends for maximum impact
+ * @returns Promise<void>
+ */
 export async function emitTrendSignal(params: {
   examId: string;
   topicId: string;
@@ -560,7 +751,17 @@ export async function emitTrendSignal(params: {
   });
 }
 
-/** Scout → Herald: trending keyword opportunity — launch a campaign or blog post */
+/**
+ * Scout → Herald: a keyword opportunity has been identified — launch a campaign or blog post.
+ * Herald should act on high-volume, low-difficulty opportunities immediately.
+ *
+ * @param params.examId             Exam the keyword is associated with
+ * @param params.keyword            The target keyword
+ * @param params.searchVolume       Monthly search volume estimate
+ * @param params.difficulty         Keyword difficulty score (0–100)
+ * @param params.recommendedAction  What Herald should create
+ * @returns Promise<void>
+ */
 export async function emitKeywordOpportunity(params: {
   examId: string;
   keyword: string;
@@ -577,7 +778,17 @@ export async function emitKeywordOpportunity(params: {
   });
 }
 
-/** Forge → Scout: exam deployed — monitor SEO rankings + CDN performance */
+/**
+ * Forge → Scout: exam successfully deployed — monitor SEO rankings + CDN performance.
+ * Scout should begin tracking search rankings and CDN latency for the deployed URL.
+ *
+ * @param params.examId      Exam that was deployed
+ * @param params.url         Public URL of the deployed exam
+ * @param params.deployedAt  ISO timestamp of deployment
+ * @param params.topicsLive  List of topic slugs now live
+ * @param params.regions     CDN regions where content is available
+ * @returns Promise<void>
+ */
 export async function emitDeployMetrics(params: {
   examId: string;
   url: string;
@@ -594,7 +805,18 @@ export async function emitDeployMetrics(params: {
   });
 }
 
-/** Mentor → Sage: student struggling for N days — trigger doubt-clearing session */
+/**
+ * Mentor → Sage: a student has been struggling for multiple days — trigger a targeted doubt-clearing session.
+ * Sage should prioritise this student on next interaction, using a softer, encouraging tone.
+ *
+ * @param params.studentId      The struggling student's ID
+ * @param params.examId         Exam the student is preparing for
+ * @param params.topicId        Topic the student is stuck on
+ * @param params.dayStruggling  Number of consecutive days the student has struggled
+ * @param params.mistakeTypes   Patterns of errors (e.g. ['sign_error', 'formula_recall'])
+ * @param params.lastSessionAt  ISO timestamp of student's last session
+ * @returns Promise<void>
+ */
 export async function emitStudentStruggling(params: {
   studentId: string;
   examId: string;
@@ -613,7 +835,18 @@ export async function emitStudentStruggling(params: {
   });
 }
 
-/** Mentor → Atlas: topic has persistent low engagement — generate fresh variant */
+/**
+ * Mentor → Atlas: a topic has persistent low engagement — generate a fresh content variant.
+ * Atlas should create a different format (analogy, diagram, story) to re-engage students.
+ *
+ * @param params.examId               Exam the topic belongs to
+ * @param params.topicId              The low-engagement topic
+ * @param params.engagementScore      Current engagement score (0–100)
+ * @param params.avgSessionDurationSec  Average time spent on this topic per session
+ * @param params.dropoffPoint         Step in the lesson where students typically leave
+ * @param params.suggestedFormat      Format Mentor recommends for re-engagement
+ * @returns Promise<void>
+ */
 export async function emitEngagementGap(params: {
   examId: string;
   topicId: string;
@@ -631,7 +864,19 @@ export async function emitEngagementGap(params: {
   });
 }
 
-/** Oracle → Herald: campaign CTR / ROAS feedback — adjust or kill campaigns */
+/**
+ * Oracle → Herald: campaign performance data — scale, hold, adjust copy, or kill.
+ * Herald should act on the verdict immediately to avoid wasting ad budget.
+ *
+ * @param params.examId          Exam the campaign promotes
+ * @param params.campaignId      Campaign identifier
+ * @param params.ctr             Click-through rate (%)
+ * @param params.roas            Return on ad spend (optional)
+ * @param params.impressions     Total impressions served
+ * @param params.verdict         Oracle's recommendation
+ * @param params.suggestedChange  Specific change if verdict is 'adjust_copy'
+ * @returns Promise<void>
+ */
 export async function emitCampaignPerformance(params: {
   examId: string;
   campaignId: string;
@@ -650,7 +895,18 @@ export async function emitCampaignPerformance(params: {
   });
 }
 
-/** Herald → Scout: campaign underperformed — research why and find alternatives */
+/**
+ * Herald → Scout: a campaign underperformed — research why and identify alternatives.
+ * Scout should investigate the search landscape and suggest better keywords or angles.
+ *
+ * @param params.examId          Exam the campaign was for
+ * @param params.campaignId      Campaign that underperformed
+ * @param params.ctr             Actual CTR achieved
+ * @param params.expectedCtr     Baseline CTR that was targeted
+ * @param params.hypothesis      Herald's best guess for the underperformance
+ * @param params.researchRequest  Specific question Scout should answer
+ * @returns Promise<void>
+ */
 export async function emitCampaignResult(params: {
   examId: string;
   campaignId: string;
@@ -668,7 +924,18 @@ export async function emitCampaignResult(params: {
   });
 }
 
-/** Atlas → Oracle: new content published — set up performance tracking */
+/**
+ * Atlas → Oracle: new content batch published — set up performance tracking.
+ * Oracle should create a content-performance funnel for the published batch.
+ *
+ * @param params.examId          Exam the content belongs to
+ * @param params.topicId         Topic slug that was published
+ * @param params.contentIds      List of content IDs now live
+ * @param params.formats         Formats included (e.g. ['lesson', 'mcq', 'infographic'])
+ * @param params.publishedAt     ISO timestamp of publication
+ * @param params.estimatedReach  Estimated number of students who will see this content
+ * @returns Promise<void>
+ */
 export async function emitContentPublished(params: {
   examId: string;
   topicId: string;
@@ -728,4 +995,45 @@ export async function processForgeInbox(): Promise<{
     contentVerified: signals.filter(s => s.type === 'CONTENT_VERIFIED'),
     examApproved:    signals.filter(s => s.type === 'EXAM_APPROVED'),
   };
+}
+
+// ─── Prism Journey Intelligence (bidirectional) ───────────────────────────────
+
+/**
+ * Prism → targetAgent: funnel leak or journey anomaly detected.
+ * Prism analyses cross-agent journey traces and emits targeted insights
+ * to whichever agent owns the leaking stage.
+ *
+ * @param params.targetAgent  The agent responsible for fixing the leak
+ * @param params.funnelStage  AARRR stage where the leak occurs
+ * @param params.leakType     Short identifier for the leak type (e.g. 'cta_copy', 'slow_load')
+ * @param params.affectedSegment  Student/user segment experiencing the leak
+ * @param params.recommendation  Specific, actionable fix recommendation
+ * @param params.urgency      How quickly this should be addressed
+ * @returns Promise<void>
+ */
+export async function emitFunnelInsight(params: {
+  targetAgent: string;
+  funnelStage: 'discovery' | 'activation' | 'retention' | 'revenue' | 'referral';
+  leakType: string;
+  affectedSegment: string;
+  recommendation: string;
+  urgency: 'low' | 'medium' | 'high';
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'FUNNEL_INSIGHT',
+    sourceAgent: 'prism',
+    targetAgent: params.targetAgent,
+    payload: params,
+  });
+}
+
+/**
+ * Prism drains its inbox — receives journey event summaries from all other agents.
+ * Prism is a pure analysis agent: it reads everything, emits FUNNEL_INSIGHT back.
+ *
+ * @returns All pending signals queued for Prism
+ */
+export async function processPrismInbox(): Promise<AgentSignal[]> {
+  return drainPendingSignals('prism');
 }

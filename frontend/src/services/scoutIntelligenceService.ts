@@ -137,7 +137,7 @@ function generateCompetitorSignals(): string[] {
  * Runs the full weekly intelligence scan combining Trends + Reddit
  */
 export async function runWeeklyIntelligenceScan(): Promise<ScoutWeeklyReport> {
-  console.log('[Scout] Starting weekly intelligence scan...');
+  console.info('[Scout] Starting weekly intelligence scan...');
 
   let trendResults: TrendResult[];
   let redditReport: RedditIntelReport;
@@ -202,7 +202,7 @@ export async function runWeeklyIntelligenceScan(): Promise<ScoutWeeklyReport> {
   // Auto-save to localStorage
   saveReportToStorage(report);
 
-  console.log(`[Scout] Scan complete. ${trendAlerts.length} trend alerts, ${report.contentGaps.length} content gaps, ${priorityItems.length} queue items`);
+  console.info(`[Scout] Scan complete. ${trendAlerts.length} trend alerts, ${report.contentGaps.length} content gaps, ${priorityItems.length} queue items`);
 
   // ── Emit top priorities to orchestrator ──────────────────────────────────
   try {

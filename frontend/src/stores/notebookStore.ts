@@ -795,8 +795,8 @@ export const useNotebookStore = create<NotebookState>()(
       },
       
       importFromChannel: (channel, data) => {
-        // Placeholder for channel-specific import logic
-        console.log(`Importing from ${channel}:`, data);
+        // Placeholder for channel-specific import logic — implement per-channel handlers
+        void channel; void data; // TODO: implement channel import handlers
       },
     }),
     {

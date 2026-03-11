@@ -225,7 +225,6 @@ ${buildSchemaOrgLD(spec)}
     e.preventDefault();
     const email = document.getElementById('email-input').value;
     // TODO: Replace with actual lead capture endpoint
-    console.log('Lead captured:', email);
     window.location.href = 'https://edugenius.app/signup?email=' + encodeURIComponent(email);
   }
   </script>

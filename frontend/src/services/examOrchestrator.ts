@@ -868,7 +868,7 @@ export async function triggerExamApproval(params: {
   // Check if lifecycle already exists (idempotent)
   const existing = loadLifecycle(examId);
   if (existing) {
-    console.log('[Orchestrator] Lifecycle already exists for', examId, '— skipping re-approval');
+    console.info('[Orchestrator] Lifecycle already exists for', examId, '— skipping re-approval');
     return existing;
   }
 
@@ -933,7 +933,7 @@ export async function triggerExamApproval(params: {
 
   persistLifecycle(state);
 
-  console.log(`[Orchestrator] ✅ Exam lifecycle started: ${examId} (${examName})`);
+  console.info(`[Orchestrator] ✅ Exam lifecycle started: ${examId} (${examName})`);
   return state;
 }
 

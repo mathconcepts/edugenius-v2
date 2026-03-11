@@ -103,23 +103,141 @@ export type {
   AgentLifecycleStatus,
   AgentInboxResult,
   SignalLogEntry,
-  AgentId,
+  // Note: AgentId is the canonical export from './agentWorkflows' (includes 'prism')
 } from './examOrchestrator';
 
-// Signal Bus — Exam Lifecycle Emitters
+// ── Signal Bus — all emitters + inbox processors ─────────────────────────────
 export {
+  // Lifecycle emitters
   emitExamApproved,
   emitContentReady,
   emitContentVerified,
   emitExamDeployed,
   emitPerformanceInsight,
   emitStudentEnrolled,
+  // Learning signal emitters
+  emitContentGap,
+  emitStrugglePattern,
+  emitMasteryAchieved,
+  emitFrustrationAlert,
+  emitChurnRisk,
+  emitBreakthrough,
+  // Hyper-personalisation emitters
+  emitFormatRequest,
+  emitSROverdue,
+  emitBehavioralSnapshot,
+  emitFormatSuccess,
+  // Interaction recorder
+  recordSageInteraction,
+  // Gap-fill bidirectional emitters
+  emitTrendSignal,
+  emitKeywordOpportunity,
+  emitDeployMetrics,
+  emitStudentStruggling,
+  emitEngagementGap,
+  emitCampaignPerformance,
+  emitCampaignResult,
+  emitContentPublished,
+  // Prism journey-intelligence
+  emitFunnelInsight,
+  // Inbox processors
+  processAtlasInbox,
+  processSageInbox,
+  processMentorInbox,
+  processOracleInbox,
+  processScoutInbox,
+  processHeraldInbox,
+  processForgeInbox,
+  processPrismInbox,
+  // Cohort alert
+  checkCohortAlert,
 } from './signalBus';
 
-// ── Growth Layer ──────────────────────────────────────────────────────────────
+// ── Agent Workflows ───────────────────────────────────────────────────────────
+export {
+  WORKFLOWS,
+  AGENT_META,
+  runWorkflow,
+  isPrismAgent,
+} from './agentWorkflows';
+export type {
+  AgentId,
+  AgentMeta,
+  AgentWorkflow,
+  WorkflowStep,
+  WorkflowStepState,
+  StepStatus,
+} from './agentWorkflows';
+
+// ── LLM Service ───────────────────────────────────────────────────────────────
+export {
+  callLLM,
+  isLLMConfigured,
+  getActiveProvider,
+  WOLFRAM_APP_ID,
+} from './llmService';
+export type {
+  LLMRequest,
+  LLMMessage,
+  LLMResponse,
+} from './llmService';
+
+// ── Knowledge Router ──────────────────────────────────────────────────────────
+export {
+  resolveKnowledge,
+  resolveKnowledgeForUser,
+  registerSource,
+  removeSource,
+  toggleSource,
+  loadSources,
+  logQuery,
+  loadQueryLog,
+  getQueryLogStats,
+  getUnembeddedQueries,
+  markQueryEmbedded,
+} from './knowledgeRouter';
+export type {
+  KnowledgeSourceType,
+  KnowledgeSourceConfig,
+  KnowledgeResult,
+  RouterQuery,
+  QueryLogEntry,
+} from './knowledgeRouter';
+
+// ── Content Orchestrator ──────────────────────────────────────────────────────
+export {
+  orchestrateContent,
+  orchestrateBatch,
+  getOrchestratorConfig,
+  updateOrchestratorConfig,
+  getOrchestrationLog,
+} from './contentOrchestratorService';
+export type {
+  ContentOrchestrationRequest,
+  ContentOrchestrationResult,
+  BatchOrchestrationRequest,
+  OrchestratorConfig,
+  VideoScript,
+  ThumbnailBrief,
+  InfographicSpec,
+} from './contentOrchestratorService';
+
+// ── Growth Orchestrator ───────────────────────────────────────────────────────
 export { growthOrchestrator } from './growthOrchestrator';
 export type { GrowthTrigger, GrowthCycleStatus, GrowthStrategy, PagePriorityItem, ContentFreshnessAlert } from './growthOrchestrator';
 
+// ── Sage Persona Prompts ──────────────────────────────────────────────────────
+export {
+  buildSageSystemPrompt,
+  buildPersonaSystemPrompt,
+  runInputGuardRail,
+  runOutputGuardRail,
+} from './sagePersonaPrompts';
+export type {
+  SagePersonaConfig,
+} from './sagePersonaPrompts';
+
+// ── Growth Layer (additional services) ───────────────────────────────────────
 export { websiteSeoService } from './websiteSeoService';
 export type { PageType, PageMeta, SitemapEntry, SeoScore, KeywordSet, SchemaMarkup, SchemaType, ExamPageContext, BlogPostContext, PageContext } from './websiteSeoService';
 

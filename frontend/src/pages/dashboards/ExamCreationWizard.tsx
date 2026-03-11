@@ -297,7 +297,7 @@ export function ExamCreationWizard() {
             isPilot: pilotMode,
           },
         });
-        console.log('[Orchestrator] Exam lifecycle started:', examName);
+        console.info('[Orchestrator] Exam lifecycle started:', examName);
       } catch (err) {
         console.error('[Orchestrator] Failed to start lifecycle:', err);
         // Non-blocking — wizard completion is not gated on orchestrator

@@ -4,7 +4,7 @@
  * Simulates the real backend agent pipeline in the frontend service layer.
  */
 
-export type AgentId = 'scout' | 'atlas' | 'sage' | 'mentor' | 'herald' | 'forge' | 'oracle';
+export type AgentId = 'scout' | 'atlas' | 'sage' | 'mentor' | 'herald' | 'forge' | 'oracle' | 'prism';
 
 export interface WorkflowStep {
   agentId: AgentId;
@@ -16,6 +16,12 @@ export interface WorkflowStep {
   estimatedMs: number;
   description: string;
   sampleOutput: (inputs: Record<string, unknown>, prevOutputs: Record<string, unknown>) => string;
+}
+
+// ─── Prism type guard ─────────────────────────────────────────────────────────
+/** Returns true if the given AgentId is the Prism journey-intelligence agent */
+export function isPrismAgent(id: AgentId): id is 'prism' {
+  return id === 'prism';
 }
 
 export interface AgentWorkflow {
@@ -400,6 +406,61 @@ export const WORKFLOWS: Record<string, AgentWorkflow> = {
     onComplete: 'Analytics complete. Report surfaced to CEO Dashboard.',
   },
 
+  prism_analysis: {
+    id: 'prism_analysis',
+    name: 'Journey Analysis',
+    description: 'Prism analyses full user journeys to detect funnel leaks and emit targeted insights to responsible agents',
+    triggerRole: 'ceo',
+    steps: [
+      {
+        agentId: 'oracle',
+        agentName: 'Oracle',
+        agentEmoji: '📊',
+        action: 'Export Journey Events',
+        outputTo: 'prism',
+        estimatedMs: 2000,
+        description: 'Exporting raw user journey traces: page visits, session starts, drop-offs, conversions',
+        sampleOutput: () =>
+          '✅ Journey data exported:\n• 14,820 journey events (last 30 days)\n• Entry points: /blog (42%), /home (28%), /exams (18%), direct (12%)\n• Avg journey depth: 3.2 pages before drop-off\n• Conversion to sign-up: 6.4%\n• Conversion to paid: 12.1% of sign-ups\n• Top drop-off: pricing page (67% exit rate)\n• Data ready for Prism analysis',
+      },
+      {
+        agentId: 'prism',
+        agentName: 'Prism',
+        agentEmoji: '🌈',
+        action: 'Analyse Funnel Leaks',
+        inputFrom: 'oracle',
+        outputTo: 'atlas',
+        estimatedMs: 4000,
+        description: 'Mapping journey traces, detecting leak points, segmenting by entry path and user type',
+        sampleOutput: () =>
+          '✅ Funnel analysis complete:\n\n🔴 CRITICAL LEAK: Blog → Sign-up (82% abandon at CTA)\n• Segment: JEE aspirants from organic search\n• Hypothesis: CTA copy doesn\'t speak to exam anxiety\n• → Emitting FUNNEL_INSIGHT to Herald: rewrite CTA copy\n\n🟡 MEDIUM LEAK: Onboarding → First practice (41% don\'t start)\n• Students drop off after diagnostic assessment\n• → Emitting FUNNEL_INSIGHT to Mentor: send encouragement nudge\n\n🟢 WIN: Students who complete mock test → subscribe (34% conversion)\n• Best activation event is mock test completion\n• → Emitting FUNNEL_INSIGHT to Atlas: prioritise mock test content',
+      },
+      {
+        agentId: 'herald',
+        agentName: 'Herald',
+        agentEmoji: '📢',
+        action: 'Fix Acquisition Leaks',
+        inputFrom: 'prism',
+        estimatedMs: 2500,
+        description: 'Rewriting CTAs, adjusting campaign targeting based on Prism\'s funnel insights',
+        sampleOutput: () =>
+          '✅ Acquisition fixes applied based on Prism insights:\n• Blog CTA rewritten: "Take your free 5-minute JEE diagnostic" (from "Sign up free")\n• A/B test launched: 50/50 split on 3 blog pages\n• Email retargeting campaign: targeting blog readers who bounced\n• Social ad copy updated to address exam anxiety\n• Expected: +2.1% blog→sign-up conversion in 14 days',
+      },
+      {
+        agentId: 'mentor',
+        agentName: 'Mentor',
+        agentEmoji: '👨‍🏫',
+        action: 'Fix Activation Leaks',
+        inputFrom: 'prism',
+        estimatedMs: 2000,
+        description: 'Reducing drop-off between onboarding and first practice session',
+        sampleOutput: () =>
+          '✅ Activation nudge deployed based on Prism insights:\n• Students who completed diagnostic but haven\'t started practice: 847\n• WhatsApp nudge sent: "Your personalised JEE plan is ready"\n• In-app prompt added: quick-start card on dashboard\n• First-session friction reduced: pre-selected topic based on diagnostic\n• Expected: +18% same-day activation rate',
+      },
+    ],
+    onComplete: 'Journey analysis complete. Funnel insights dispatched to Herald and Mentor. Monitor conversion improvements in 14 days.',
+  },
+
   user_onboarding: {
     id: 'user_onboarding',
     name: 'User Onboarding',
@@ -515,10 +576,12 @@ export const AGENT_META: Record<AgentId, AgentMeta> = {
     role: 'Market Intelligence',
     color: '#0ea5e9',
     bgColor: 'bg-sky-500/10 border-sky-500/30',
-    inputsFrom: ['oracle'],
+    // Inputs: DEPLOY_METRICS ← forge | CAMPAIGN_RESULT ← herald | PERFORMANCE_INSIGHT ← oracle
+    inputsFrom: ['oracle', 'herald', 'forge'],
+    // Outputs: TREND_SIGNAL → atlas | KEYWORD_OPPORTUNITY → herald | data → oracle
     outputsTo: ['atlas', 'herald', 'oracle'],
     workflows: ['launch_exam', 'run_daily_ops', 'growth_strategy', 'exam_analytics'],
-    description: 'Monitors trends, competitors, and exam updates. Feeds intelligence to Atlas and Herald.',
+    description: 'Monitors trends, competitors, and exam updates. Emits TREND_SIGNAL to Atlas and KEYWORD_OPPORTUNITY to Herald. Receives DEPLOY_METRICS from Forge, CAMPAIGN_RESULT from Herald, and PERFORMANCE_INSIGHT from Oracle.',
     subAgents: ['TrendSpotter', 'CompetitorTracker', 'ExamMonitor', 'KeywordHunter', 'SentimentScanner'],
   },
   atlas: {
@@ -528,10 +591,13 @@ export const AGENT_META: Record<AgentId, AgentMeta> = {
     role: 'Content Engine',
     color: '#d946ef',
     bgColor: 'bg-fuchsia-500/10 border-fuchsia-500/30',
-    inputsFrom: ['scout', 'herald'],
-    outputsTo: ['sage', 'forge'],
+    // Inputs: TREND_SIGNAL ← scout | STRUGGLE_PATTERN ← sage | FORMAT_REQUEST ← lens
+    //         FORMAT_SUCCESS ← sage | ENGAGEMENT_GAP ← mentor | CONTENT_GAP ← sage
+    inputsFrom: ['scout', 'mentor', 'herald', 'sage'],
+    // Outputs: CONTENT_READY → sage+forge+herald | CONTENT_PUBLISHED → oracle
+    outputsTo: ['sage', 'forge', 'oracle'],
     workflows: ['launch_exam', 'generate_content', 'blog_post', 'user_onboarding'],
-    description: 'Creates, manages, and publishes educational content. Receives keywords from Scout.',
+    description: 'Creates, manages, and publishes educational content. Receives TREND_SIGNAL from Scout, STRUGGLE_PATTERN/FORMAT_SUCCESS/CONTENT_GAP from Sage, FORMAT_REQUEST from Lens, and ENGAGEMENT_GAP from Mentor. Emits CONTENT_READY and CONTENT_PUBLISHED.',
     subAgents: ['Curator', 'Writer', 'QuizMaster', 'Visualizer', 'SEOOptimizer', 'Translator', 'FactChecker'],
   },
   sage: {
@@ -541,22 +607,29 @@ export const AGENT_META: Record<AgentId, AgentMeta> = {
     role: 'AI Tutor',
     color: '#22c55e',
     bgColor: 'bg-green-500/10 border-green-500/30',
+    // Inputs: CONTENT_READY ← atlas | STUDENT_STRUGGLING ← mentor | EXAM_APPROVED ← ceo
     inputsFrom: ['atlas', 'mentor'],
-    outputsTo: ['herald', 'forge'],
+    // Outputs: CONTENT_GAP/STRUGGLE_PATTERN/FORMAT_SUCCESS → atlas | MASTERY_ACHIEVED/FRUSTRATION_ALERT/BREAKTHROUGH → mentor+oracle
+    //          CONTENT_VERIFIED → forge+herald
+    outputsTo: ['atlas', 'oracle', 'mentor', 'forge', 'herald'],
     workflows: ['generate_content', 'student_engagement', 'user_onboarding'],
-    description: 'Provides personalised tutoring via Socratic method. Verifies content accuracy.',
+    description: 'Provides personalised tutoring via Socratic method and verifies content accuracy. Receives CONTENT_READY from Atlas and STUDENT_STRUGGLING from Mentor. Emits CONTENT_GAP/STRUGGLE_PATTERN/FORMAT_SUCCESS to Atlas, MASTERY_ACHIEVED/FRUSTRATION_ALERT/BREAKTHROUGH to Mentor+Oracle, and CONTENT_VERIFIED to Forge+Herald.',
     subAgents: ['Socratic', 'Explainer', 'ProblemSolver', 'ConceptMapper', 'PracticeCoach', 'EmotionReader'],
   },
   mentor: {
     id: 'mentor',
-    name: 'Mentor',    emoji: '👨‍🏫',
+    name: 'Mentor',
+    emoji: '👨‍🏫',
     role: 'Student Engagement',
     color: '#f59e0b',
     bgColor: 'bg-amber-500/10 border-amber-500/30',
-    inputsFrom: ['herald'],
-    outputsTo: ['sage'],
+    // Inputs: MASTERY_ACHIEVED/FRUSTRATION_ALERT/BREAKTHROUGH ← sage | CHURN_RISK ← oracle
+    //         EXAM_DEPLOYED ← forge | SR_OVERDUE ← lens | EXAM_DEPLOYED ← forge
+    inputsFrom: ['oracle', 'sage', 'herald', 'atlas'],
+    // Outputs: STUDENT_STRUGGLING → sage | ENGAGEMENT_GAP → atlas
+    outputsTo: ['sage', 'atlas'],
     workflows: ['run_daily_ops', 'student_engagement', 'user_onboarding'],
-    description: 'Manages retention, gamification, and parent communication. Detects at-risk students.',
+    description: 'Manages retention, gamification, and parent communication. Receives MASTERY_ACHIEVED/FRUSTRATION_ALERT/BREAKTHROUGH from Sage, CHURN_RISK from Oracle, EXAM_DEPLOYED from Forge, SR_OVERDUE from Lens. Emits STUDENT_STRUGGLING to Sage and ENGAGEMENT_GAP to Atlas.',
     subAgents: ['ChurnPredictor', 'NudgeEngine', 'StreakTracker', 'MilestoneManager', 'ReEngager', 'ParentReporter'],
   },
   herald: {
@@ -566,10 +639,13 @@ export const AGENT_META: Record<AgentId, AgentMeta> = {
     role: 'Marketing Automation',
     color: '#ef4444',
     bgColor: 'bg-red-500/10 border-red-500/30',
-    inputsFrom: ['scout', 'oracle', 'sage'],
-    outputsTo: ['mentor', 'forge'],
+    // Inputs: KEYWORD_OPPORTUNITY ← scout | CAMPAIGN_PERFORMANCE ← oracle
+    //         CONTENT_VERIFIED ← sage | EXAM_DEPLOYED ← forge
+    inputsFrom: ['scout', 'oracle', 'sage', 'forge'],
+    // Outputs: CAMPAIGN_RESULT → scout | signals → mentor+forge
+    outputsTo: ['scout', 'mentor', 'forge'],
     workflows: ['run_daily_ops', 'growth_strategy', 'blog_post', 'student_engagement'],
-    description: 'Manages campaigns, social media, and lead nurturing. Receives intel from Scout.',
+    description: 'Manages campaigns, social media, and lead nurturing. Receives KEYWORD_OPPORTUNITY from Scout, CAMPAIGN_PERFORMANCE from Oracle, CONTENT_VERIFIED from Sage, EXAM_DEPLOYED from Forge. Emits CAMPAIGN_RESULT to Scout when campaigns underperform.',
     subAgents: ['CampaignManager', 'SocialPoster', 'EmailCrafter', 'LeadNurturer', 'ReferralManager', 'PRCoordinator'],
   },
   forge: {
@@ -579,10 +655,12 @@ export const AGENT_META: Record<AgentId, AgentMeta> = {
     role: 'Deployment & Ops',
     color: '#8b5cf6',
     bgColor: 'bg-violet-500/10 border-violet-500/30',
+    // Inputs: CONTENT_READY ← atlas | CONTENT_VERIFIED ← sage | EXAM_APPROVED ← ceo | from herald+mentor
     inputsFrom: ['atlas', 'sage', 'herald', 'mentor'],
-    outputsTo: [],
+    // Outputs: EXAM_DEPLOYED → oracle+herald+mentor | DEPLOY_METRICS → scout
+    outputsTo: ['oracle', 'herald', 'mentor', 'scout'],
     workflows: ['launch_exam', 'run_daily_ops', 'generate_content', 'blog_post'],
-    description: 'Manages CI/CD, deployments, CDN, and system health. The operational backbone.',
+    description: 'Manages CI/CD, deployments, CDN, and system health. Receives CONTENT_READY from Atlas, CONTENT_VERIFIED from Sage, and signals from Herald/Mentor. Emits EXAM_DEPLOYED to Oracle+Herald+Mentor and DEPLOY_METRICS to Scout.',
     subAgents: ['BuildRunner', 'TestOrchestrator', 'CDNSyncer', 'CacheManager', 'DBMigrator', 'RollbackGuard', 'HealthChecker'],
   },
   oracle: {
@@ -592,10 +670,28 @@ export const AGENT_META: Record<AgentId, AgentMeta> = {
     role: 'Analytics & Insights',
     color: '#06b6d4',
     bgColor: 'bg-cyan-500/10 border-cyan-500/30',
-    inputsFrom: ['forge'],
-    outputsTo: ['scout', 'herald'],
+    // Inputs: MASTERY_ACHIEVED/BEHAVIORAL_SNAPSHOT/BREAKTHROUGH ← sage+lens
+    //         EXAM_DEPLOYED ← forge | CONTENT_PUBLISHED ← atlas
+    inputsFrom: ['forge', 'sage', 'atlas'],
+    // Outputs: PERFORMANCE_INSIGHT → scout+atlas+mentor | CHURN_RISK → mentor | CAMPAIGN_PERFORMANCE → herald
+    outputsTo: ['scout', 'herald', 'mentor', 'atlas'],
     workflows: ['launch_exam', 'run_daily_ops', 'growth_strategy', 'exam_analytics'],
-    description: 'Tracks metrics, detects anomalies, and generates insights. Feeds Scout with data.',
+    description: 'Tracks metrics, detects anomalies, and generates insights. Receives MASTERY_ACHIEVED/BEHAVIORAL_SNAPSHOT/BREAKTHROUGH from Sage, EXAM_DEPLOYED from Forge, CONTENT_PUBLISHED from Atlas. Emits PERFORMANCE_INSIGHT to Scout+Atlas+Mentor, CHURN_RISK to Mentor, CAMPAIGN_PERFORMANCE to Herald.',
     subAgents: ['MetricTracker', 'AnomalyDetector', 'ReportGenerator', 'FunnelAnalyzer', 'CohortAnalyzer', 'ABEvaluator'],
+  },
+  prism: {
+    id: 'prism',
+    name: 'Prism',
+    emoji: '🌈',
+    role: 'Journey Intelligence',
+    color: '#f97316',
+    bgColor: 'bg-orange-500/10 border-orange-500/30',
+    // Inputs: journey events from all agents (FUNNEL_INSIGHT feedback loop)
+    inputsFrom: ['scout', 'atlas', 'sage', 'mentor', 'herald', 'forge', 'oracle'],
+    // Outputs: FUNNEL_INSIGHT → relevant agent based on funnel stage
+    outputsTo: ['scout', 'atlas', 'sage', 'mentor', 'herald', 'forge', 'oracle'],
+    workflows: ['prism_analysis'],
+    description: 'Analyses user journey traces (blog → chat → practice → return). Detects funnel leaks, frustration spikes, and conversion drop-offs. Emits FUNNEL_INSIGHT signals to the responsible agent for each stage.',
+    subAgents: ['JourneyMapper', 'FunnelAnalyzer', 'ConversionOptimizer', 'LeakDetector', 'SegmentProfiler'],
   },
 };

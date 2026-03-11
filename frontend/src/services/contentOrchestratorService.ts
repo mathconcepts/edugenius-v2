@@ -236,6 +236,20 @@ export function getOrchestrationLog(): OrchestrationLogEntry[] {
 
 // ─── Agent Signal Emission ────────────────────────────────────────────────────
 
+/**
+ * Write a value to localStorage, silently ignoring quota/security errors.
+ * Centralises the repetitive try/catch pattern used across all signal emitters.
+ */
+function safeLocalSet(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch { /* ignore quota/security errors */ }
+}
+
+/**
+ * Build and persist agent signal entries to localStorage, returning the full signal list.
+ * Each agent gets a dedicated storage key so its signal can be read independently.
+ */
 function emitAgentSignals(
   req: ContentOrchestrationRequest,
   tier: ContentTier,
@@ -251,7 +265,7 @@ function emitAgentSignals(
     try {
       const existing = JSON.parse(localStorage.getItem(key) ?? '[]') as unknown[];
       existing.unshift({ topic: req.topic, examType: req.examType, tier, at: now });
-      localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+      safeLocalSet(key, existing.slice(0, 50));
     } catch { /* ignore */ }
     signals.push({
       agentId: 'scout',
@@ -264,12 +278,7 @@ function emitAgentSignals(
   // Atlas signal — content atom ready
   if (config.agentSignalsEnabled.atlas !== false && req.surface === 'in_app') {
     const key = 'orchestrator:atlas_signal';
-    try {
-      localStorage.setItem(
-        key,
-        JSON.stringify({ topic: req.topic, examType: req.examType, tier, at: now }),
-      );
-    } catch { /* ignore */ }
+    safeLocalSet(key, { topic: req.topic, examType: req.examType, tier, at: now });
     signals.push({
       agentId: 'atlas',
       signalType: 'content_ready',
@@ -281,19 +290,14 @@ function emitAgentSignals(
   // Oracle signal — generation event for analytics
   if (config.agentSignalsEnabled.oracle !== false) {
     const key = 'orchestrator:oracle_signal';
-    try {
-      localStorage.setItem(
-        key,
-        JSON.stringify({
-          topic: req.topic,
-          examType: req.examType,
-          surface: req.surface,
-          tier,
-          wordCount: textContent.split(/\s+/).length,
-          at: now,
-        }),
-      );
-    } catch { /* ignore */ }
+    safeLocalSet(key, {
+      topic: req.topic,
+      examType: req.examType,
+      surface: req.surface,
+      tier,
+      wordCount: textContent.split(/\s+/).length,
+      at: now,
+    });
     signals.push({
       agentId: 'oracle',
       signalType: 'generation_event',
@@ -308,12 +312,7 @@ function emitAgentSignals(
     (req.surface === 'blog_web' || req.surface === 'email')
   ) {
     const key = 'orchestrator:herald_signal';
-    try {
-      localStorage.setItem(
-        key,
-        JSON.stringify({ topic: req.topic, examType: req.examType, surface: req.surface, at: now }),
-      );
-    } catch { /* ignore */ }
+    safeLocalSet(key, { topic: req.topic, examType: req.examType, surface: req.surface, at: now });
     signals.push({
       agentId: 'herald',
       signalType: 'marketing_content_ready',
@@ -328,17 +327,7 @@ function emitAgentSignals(
     (req.triggeredBy === 'student_request' || req.persona === 'student')
   ) {
     const key = 'orchestrator:mentor_signal';
-    try {
-      localStorage.setItem(
-        key,
-        JSON.stringify({
-          userId: req.userId,
-          topic: req.topic,
-          examType: req.examType,
-          at: now,
-        }),
-      );
-    } catch { /* ignore */ }
+    safeLocalSet(key, { userId: req.userId, topic: req.topic, examType: req.examType, at: now });
     signals.push({
       agentId: 'mentor',
       signalType: 'student_engagement',
@@ -350,12 +339,7 @@ function emitAgentSignals(
   // Forge signal — rich media ready for deployment
   if (config.agentSignalsEnabled.forge !== false && tier === 'T4_richmedia') {
     const key = 'orchestrator:forge_signal';
-    try {
-      localStorage.setItem(
-        key,
-        JSON.stringify({ topic: req.topic, surface: req.surface, at: now }),
-      );
-    } catch { /* ignore */ }
+    safeLocalSet(key, { topic: req.topic, surface: req.surface, at: now });
     signals.push({
       agentId: 'forge',
       signalType: 'rich_media_ready',
@@ -870,19 +854,12 @@ export async function orchestrateBatch(
   }
 
   // Aggregate agent signals to orchestrator:batch_complete
-  try {
-    localStorage.setItem(
-      'orchestrator:batch_complete',
-      JSON.stringify({
-        at: new Date().toISOString(),
-        count: requests.length,
-        successCount: results.filter((r) => r.status === 'success').length,
-        topics: requests.map((r) => r.topic),
-      }),
-    );
-  } catch {
-    // ignore
-  }
+  safeLocalSet('orchestrator:batch_complete', {
+    at: new Date().toISOString(),
+    count: requests.length,
+    successCount: results.filter((r) => r.status === 'success').length,
+    topics: requests.map((r) => r.topic),
+  });
 
   return results;
 }

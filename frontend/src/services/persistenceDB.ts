@@ -88,7 +88,9 @@ export interface AgentSignal {
        | 'ENGAGEMENT_GAP'      // Mentor → Atlas: topic has low engagement, generate new variant
        | 'CAMPAIGN_PERFORMANCE'// Oracle → Herald: campaign CTR/ROAS feedback
        | 'CAMPAIGN_RESULT'     // Herald → Scout: campaign underperformed, research why
-       | 'CONTENT_PUBLISHED';  // Atlas → Oracle: new content live, start tracking
+       | 'CONTENT_PUBLISHED'   // Atlas → Oracle: new content live, start tracking
+       // ── Prism journey-intelligence signals (bidirectional, 2026-03-11) ────
+       | 'FUNNEL_INSIGHT';     // Prism → relevant agent: funnel leak / journey anomaly detected
   sourceAgent: string;
   targetAgent: string;
   payload: Record<string, unknown>;
@@ -583,7 +585,7 @@ export async function syncToSupabase(): Promise<{ synced: number; skipped: numbe
 
     // ── 4. Update lastSyncedAt on success ──────────────────────────────────
     localStorage.setItem(LAST_SYNC_KEY, String(now));
-    console.log(`[Persistence] Supabase sync complete — ${synced} synced, ${skipped} skipped`);
+    console.info(`[Persistence] Supabase sync complete — ${synced} synced, ${skipped} skipped`);
 
   } catch (err) {
     console.warn('[Persistence] Supabase sync failed (graceful fallback):', err);
