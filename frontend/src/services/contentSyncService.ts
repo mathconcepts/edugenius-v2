@@ -23,7 +23,8 @@ export type SyncConnectionId =
   | 'strategy_to_atlas'
   | 'oracle_to_feedback'
   | 'page_builder_to_oracle'
-  | 'social_to_content'; // Social Intel → Content pipeline
+  | 'social_to_content'    // Social Intel → Content pipeline
+  | 'course_orchestrator'; // Course Orchestrator → all agents
 
 export type SyncStatus = 'live' | 'broken' | 'degraded' | 'unconfigured';
 
@@ -90,6 +91,10 @@ const SIGNAL_KEYS: Record<SyncConnectionId, { key: string; maxAgeMs: number }> =
     key: 'content:social_intel_topics',
     maxAgeMs: 21600000, // 6 hours
   },
+  course_orchestrator: {
+    key: 'edugenius_orchestrator_state',
+    maxAgeMs: 3600000, // 1 hour
+  },
 };
 
 // Connection metadata
@@ -147,6 +152,12 @@ const CONNECTION_META: Record<SyncConnectionId, { label: string; from: string; t
     from: 'socialAgentOrchestrator',
     to: 'masterContentAgent / Atlas',
     description: 'Social listening signals (trending topics, student confusion patterns) feed Atlas content generation queue.',
+  },
+  course_orchestrator: {
+    label: 'Course Orchestrator → All Agents',
+    from: 'courseOrchestrator',
+    to: 'Sage / Atlas / Mentor / Oracle / Scout',
+    description: 'Master orchestrator state — role-aware learning objectives, content decisions, and bidirectional agent signals.',
   },
 };
 

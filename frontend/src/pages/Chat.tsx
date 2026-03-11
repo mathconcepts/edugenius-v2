@@ -1174,6 +1174,19 @@ export function Chat() {
         } catch { /* non-blocking — notebook logging never breaks chat */ }
       }
 
+      // ── Orchestrator: emit session outcome ──────────────────────────────────
+      // Tells the courseOrchestrator how the session went — feeds feedback loop.
+      try {
+        localStorage.setItem('sage:session_outcome', JSON.stringify({
+          sessionId: sessionId ?? 'unknown',
+          userId: lensContext?.studentId ?? 'unknown',
+          topicId: lensContext?.topicId ?? 'unknown',
+          correct: null,
+          timeSpentMs: latency,
+          timestamp: Date.now(),
+        }));
+      } catch { /* non-blocking */ }
+
       setIsTyping(false);
       setStreaming(false);
       // Record Sage response received for latency tracking

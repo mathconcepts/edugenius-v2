@@ -426,6 +426,22 @@ RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for t
   // add the protocol as a standing directive.
   systemPrompt += '\n\nTHINKING PROTOCOL: For any calculation or proof, work through these phases explicitly:\n[UNDERSTAND] → [IDENTIFY formulas] → [PLAN steps] → [EXECUTE] → [VERIFY units/sign] → [SUMMARIZE]';
 
+  // ── Course Orchestrator Directive ─────────────────────────────────────────
+  // Pull orchestrator directive if present — injected by courseOrchestrator.ts
+  // This connects the orchestration layer to Sage's prompt at runtime.
+  try {
+    const orchestratorDirective = localStorage.getItem('orchestrator:sage_directive');
+    if (orchestratorDirective) {
+      const dir = JSON.parse(orchestratorDirective) as {
+        objective: string;
+        topicFocus: string;
+        difficulty: string;
+        promptAdd: string;
+      };
+      systemPrompt += `\n\n[ORCHESTRATOR DIRECTIVE]\nCurrent objective: ${dir.objective}\nTopic focus: ${dir.topicFocus}\nDifficulty: ${dir.difficulty}\n${dir.promptAdd}`;
+    }
+  } catch { /* ignore malformed orchestrator directive */ }
+
   return systemPrompt;
 }
 

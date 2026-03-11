@@ -34,6 +34,7 @@ const ceoNavItems: NavItem[] = [
   { to: '/atlas-workbench',       icon: Sparkles,    label: 'Atlas Workbench' },
   { to: '/content-strategy',      icon: Sliders,     label: 'Content Strategy' },
   { to: '/content-orchestrator',  icon: Cpu,         label: 'Orchestrator' },
+  { to: '/course-orchestrator',  icon: BookOpen,     label: 'Course Engine' },
   { to: '/agent-skills',          icon: Zap,         label: 'Agent Skills' },
   { to: '/social-intent',         icon: Radio,       label: 'Social Intel' },
   { to: '/content-hub',           icon: Layers,      label: 'Content Hub',   highlight: true },

@@ -92,6 +92,9 @@ const SocialIntentDashboard = lazy(() => import('@/pages/SocialIntentDashboard')
 // Lazy load Local Page Builder (CEO only)
 const LocalPageBuilder = lazy(() => import('@/pages/LocalPageBuilder'));
 
+// Lazy load Course Orchestrator (CEO only)
+const CourseOrchestrator = lazy(() => import('@/pages/CourseOrchestrator'));
+
 // Lazy load Social Intent Dashboard (CEO only)
 
 // Lazy load trace viewer
@@ -218,6 +221,9 @@ export default function App() {
 
           {/* Local Page Builder — CEO only */}
           <Route path="page-builder" element={<Suspense fallback={<PageLoader />}><LocalPageBuilder /></Suspense>} />
+
+          {/* Course Orchestrator — CEO only */}
+          <Route path="course-orchestrator" element={<Suspense fallback={<PageLoader />}><CourseOrchestrator /></Suspense>} />
 
           {/* Social Intent Dashboard — CEO only */}
 
