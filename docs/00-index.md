@@ -1,7 +1,7 @@
 # EduGenius v2.0 — Documentation Index
 
 > **Last updated:** 2026-03-11  
-> **Total docs:** 22 files + 1 guide + infra/  
+> **Total docs:** 23 files + 1 guide + infra/  
 
 This is the master index of all documentation in the `docs/` directory, organised hierarchically.
 
@@ -64,6 +64,7 @@ This is the master index of all documentation in the `docs/` directory, organise
 | 19 | `19-audit-report.md` | Full dual-direction audit (2026-03-10) — findings + fixes |
 | 20 | `20-content-system.md` | Content generation & delivery system architecture (2026-03-10) |
 | 21 | `21-course-summary-outline.md` | Pre-approval hierarchical course outline — data model, API, UI, Atlas integration (2026-03-11) |
+| 22 | `22-help-manual.md` | **Complete help manual** — scratch-to-deploy all options, every agent + sub-agent, all connections, full student journey to course content (2026-03-11) |
 
 ---
 
