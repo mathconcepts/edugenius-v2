@@ -6,3 +6,4 @@ export { CEOIntegrations } from './CEOIntegrations';
 export { CEOStrategy } from './CEOStrategy';
 export { CEOBriefing } from './CEOBriefing';
 export { ContentIntelligence } from './ContentIntelligence';
+export { GrowthCommand } from './GrowthCommand';

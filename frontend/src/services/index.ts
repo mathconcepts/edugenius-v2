@@ -116,6 +116,19 @@ export {
   emitStudentEnrolled,
 } from './signalBus';
 
+// ── Growth Layer ──────────────────────────────────────────────────────────────
+export { growthOrchestrator } from './growthOrchestrator';
+export type { GrowthTrigger, GrowthCycleStatus, GrowthStrategy, PagePriorityItem, ContentFreshnessAlert } from './growthOrchestrator';
+
+export { websiteSeoService } from './websiteSeoService';
+export type { PageType, PageMeta, SitemapEntry, SeoScore, KeywordSet, SchemaMarkup, SchemaType, ExamPageContext, BlogPostContext, PageContext } from './websiteSeoService';
+
+export { landingPageEngine } from './landingPageEngine';
+export type { SectionType, ContentSection, LandingPageConfig, ExamCalendarEntry } from './landingPageEngine';
+
+export { acquisitionFunnelService } from './acquisitionFunnelService';
+export type { FunnelStage, FunnelEventType, AttributionSource, FunnelEvent, FunnelMetrics, DropoffPoint, FunnelInsight } from './acquisitionFunnelService';
+
 // Type re-exports for convenience
 export * from '@/types/personalization';
 export * from '@/types/teaching';

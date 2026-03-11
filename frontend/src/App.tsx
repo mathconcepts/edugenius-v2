@@ -95,6 +95,9 @@ const LocalPageBuilder = lazy(() => import('@/pages/LocalPageBuilder'));
 // Lazy load Course Orchestrator (CEO only)
 const CourseOrchestrator = lazy(() => import('@/pages/CourseOrchestrator'));
 
+// Lazy load Growth Command (CEO only)
+const GrowthCommand = lazy(() => import('@/pages/dashboards/GrowthCommand').then(m => ({ default: m.GrowthCommand })));
+
 // Lazy load Social Intent Dashboard (CEO only)
 
 // Lazy load trace viewer
@@ -224,6 +227,9 @@ export default function App() {
 
           {/* Course Orchestrator — CEO only */}
           <Route path="course-orchestrator" element={<Suspense fallback={<PageLoader />}><CourseOrchestrator /></Suspense>} />
+
+          {/* Growth Command — Master Growth Orchestrator Dashboard — CEO only */}
+          <Route path="growth-command" element={<Suspense fallback={<PageLoader />}><GrowthCommand /></Suspense>} />
 
           {/* Social Intent Dashboard — CEO only */}
 

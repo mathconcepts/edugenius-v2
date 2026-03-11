@@ -1,176 +1,366 @@
 /**
- * Public Website - Exam-Specific Landing Page
- * Dynamic content based on exam from URL
+ * Public Website — Per-Exam Landing Page
+ * Fully dynamic: reads examId from route params, generates all content
+ * from landingPageEngine. Works for ANY exam in examRegistry.
  */
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { getExamByRoute, getLiveExams, type ExamConfig } from '@/data/examRegistry';
+import { landingPageEngine, type LandingPageConfig, type ContentSection } from '@/services/landingPageEngine';
+import { websiteSeoService } from '@/services/websiteSeoService';
+import { acquisitionFunnelService } from '@/services/acquisitionFunnelService';
 
-interface ExamInfo {
-  code: string;
-  name: string;
-  fullName: string;
-  icon: string;
-  color: string;
-  description: string;
-  stats: { label: string; value: string }[];
-  subjects: string[];
-  features: string[];
-  testimonial: { name: string; score: string; quote: string };
+// ─── Section Renderers ────────────────────────────────────────────────────────
+
+function HeroSection({ section, exam }: { section: ContentSection; exam: ExamConfig }) {
+  return (
+    <section className="pt-32 pb-20 px-6">
+      <div className="max-w-7xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 border border-primary-500/30 rounded-full text-primary-400 text-sm mb-6">
+          <span>{exam.icon}</span>
+          <span>{exam.shortName} Preparation • AI-Powered</span>
+        </div>
+        <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+          {section.headline.includes('—') ? (
+            <>
+              {section.headline.split('—')[0]}
+              <span className="bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+                — {section.headline.split('—').slice(1).join('—')}
+              </span>
+            </>
+          ) : (
+            <span className="bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+              {section.headline}
+            </span>
+          )}
+        </h1>
+        <p className="text-xl text-surface-300 max-w-3xl mx-auto mb-8">{section.body}</p>
+
+        {/* Social proof mini-stats */}
+        {section.data?.socialProof && (
+          <div className="flex items-center justify-center gap-6 mb-8 text-sm text-surface-400">
+            <span>✅ {(section.data.socialProof as { studentCount: string }).studentCount} students</span>
+            <span>📈 {(section.data.socialProof as { avgRankImprovement: string }).avgRankImprovement} avg improvement</span>
+            <span>⭐ {(section.data.socialProof as { successRate: string }).successRate} success rate</span>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          {section.cta?.primary && (
+            <Link
+              to={section.cta.primary.href}
+              onClick={() => acquisitionFunnelService.trackCtaClick(section.cta!.primary.text, 'organic', exam.id)}
+              className="btn px-8 py-4 text-lg bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700"
+            >
+              {section.cta.primary.text}
+            </Link>
+          )}
+          {section.cta?.secondary && (
+            <Link
+              to={section.cta.secondary.href}
+              className="btn px-8 py-4 text-lg bg-surface-800 border border-surface-600 hover:bg-surface-700"
+            >
+              {section.cta.secondary.text}
+            </Link>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
-const examsData: Record<string, ExamInfo> = {
-  jee: {
-    code: 'JEE',
-    name: 'JEE Main & Advanced',
-    fullName: 'Joint Entrance Examination',
-    icon: '⚡',
-    color: 'from-blue-500 to-cyan-500',
-    description: 'Crack IIT with AI-powered preparation. Personalized practice, topic-wise tests, and Socratic tutoring designed for JEE aspirants.',
-    stats: [
-      { label: 'Students', value: '18,000+' },
-      { label: 'Questions', value: '85,000+' },
-      { label: 'Mock Tests', value: '500+' },
-      { label: 'Avg Score Improvement', value: '+45%' },
-    ],
-    subjects: ['Physics', 'Chemistry', 'Mathematics'],
-    features: [
-      'JEE-pattern mock tests with detailed analysis',
-      'Previous year questions with video solutions',
-      'Topic-wise practice with adaptive difficulty',
-      'Rank predictor based on your performance',
-      'Chapter-wise weightage analysis',
-      'AI-powered doubt solving in Hinglish',
-    ],
-    testimonial: { name: 'Rahul S.', score: 'AIR 1,247', quote: 'The adaptive practice knew exactly what I needed. Improved my rank from 15k to 1.2k!' },
-  },
-  neet: {
-    code: 'NEET',
-    name: 'NEET UG',
-    fullName: 'National Eligibility cum Entrance Test',
-    icon: '🧬',
-    color: 'from-green-500 to-emerald-500',
-    description: 'Your path to MBBS starts here. Master Biology, Physics, and Chemistry with NCERT-focused AI tutoring and extensive practice.',
-    stats: [
-      { label: 'Students', value: '12,000+' },
-      { label: 'Questions', value: '65,000+' },
-      { label: 'Mock Tests', value: '400+' },
-      { label: 'Avg Score Improvement', value: '+52%' },
-    ],
-    subjects: ['Physics', 'Chemistry', 'Biology'],
-    features: [
-      'NCERT-aligned content with every concept covered',
-      'Biology diagrams with labeled explanations',
-      'NEET-pattern tests with negative marking',
-      'Species and disease memory aids',
-      'Human Physiology deep-dive modules',
-      'Medical college predictor',
-    ],
-    testimonial: { name: 'Priya P.', score: '685/720', quote: 'The Biology coverage is unmatched. Every NCERT line is covered with practice questions.' },
-  },
-  cbse: {
-    code: 'CBSE',
-    name: 'CBSE Boards',
-    fullName: 'Central Board of Secondary Education',
-    icon: '📚',
-    color: 'from-purple-500 to-pink-500',
-    description: 'Score 95%+ in boards with structured preparation. NCERT mastery, sample papers, and marking scheme insights.',
-    stats: [
-      { label: 'Students', value: '15,000+' },
-      { label: 'Questions', value: '50,000+' },
-      { label: 'Sample Papers', value: '200+' },
-      { label: 'Avg Score Improvement', value: '+18%' },
-    ],
-    subjects: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English'],
-    features: [
-      'Chapter-wise NCERT solutions',
-      'Sample papers with CBSE marking scheme',
-      'Diagram practice for Science',
-      'Important questions bank',
-      'Last-minute revision notes',
-      'Previous year papers with solutions',
-    ],
-    testimonial: { name: 'Ananya S.', score: '97.2%', quote: 'The sample papers were exactly like the actual exam. Perfect preparation!' },
-  },
-  cat: {
-    code: 'CAT',
-    name: 'CAT & MBA',
-    fullName: 'Common Admission Test',
-    icon: '📊',
-    color: 'from-orange-500 to-red-500',
-    description: 'Crack CAT with structured quant, verbal, and DILR preparation. Time management strategies and sectional practice.',
-    stats: [
-      { label: 'Students', value: '5,000+' },
-      { label: 'Questions', value: '25,000+' },
-      { label: 'Mock Tests', value: '150+' },
-      { label: 'Avg Percentile Improvement', value: '+15' },
-    ],
-    subjects: ['Quantitative Aptitude', 'Verbal Ability', 'Data Interpretation', 'Logical Reasoning'],
-    features: [
-      'CAT-pattern mocks with slot analysis',
-      'DILR puzzle sets with explanations',
-      'Reading comprehension practice',
-      'Quant shortcuts and tricks',
-      'Time management strategies',
-      'IIM call predictor',
-    ],
-    testimonial: { name: 'Vikram R.', score: '99.2 percentile', quote: 'The DILR practice sets were game-changers. Improved from 85 to 99+ percentile.' },
-  },
-  'gate-em': {
-    code: 'GATE EM',
-    name: 'GATE Engineering Mathematics',
-    fullName: 'Graduate Aptitude Test in Engineering — Engineering Mathematics',
-    icon: '⚙️',
-    color: 'from-violet-500 to-purple-500',
-    description: 'Complete Engineering Mathematics preparation for GATE — covering all 10 core topics tested across CS, EC, EE, ME, and CE streams. AI-powered Socratic tutoring and adaptive practice.',
-    stats: [
-      { label: 'Questions', value: '8,000+' },
-      { label: 'Topics', value: '10 Core' },
-      { label: 'Mock Tests', value: '50+' },
-      { label: 'Avg Score Improvement', value: '+38%' },
-    ],
-    subjects: [
-      'Linear Algebra',
-      'Calculus',
-      'Differential Equations',
-      'Complex Variables',
-      'Probability & Statistics',
-      'Numerical Methods',
-      'Transform Theory',
-      'Discrete Mathematics',
-      'Graph Theory',
-      'Vector Calculus',
-    ],
-    features: [
-      'All 10 GATE EM topics with previous year questions',
-      'Adaptive difficulty: 30% easy / 50% medium / 20% hard',
-      'Socratic AI tutor explains step-by-step reasoning',
-      '65-question full mock tests (3 hrs, GATE pattern)',
-      'Numerical Answer Type (NAT) practice — no negative marking',
-      'Topic-wise weakness detection and targeted drill',
-    ],
-    testimonial: {
-      name: 'Aditya K.',
-      score: 'GATE CS AIR 312',
-      quote: 'The Engineering Maths module alone saved me 15 marks. The Socratic tutor explains proofs in a way no textbook does.',
-    },
-  },
-};
+function FeaturesSection({ section }: { section: ContentSection }) {
+  const features = (section.data?.features as string[]) ?? [];
+  return (
+    <section className="py-20 px-6 bg-surface-800/30">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-3">{section.headline}</h2>
+          <p className="text-surface-400">{section.body}</p>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {features.map((feat, i) => (
+            <div key={i} className="flex items-start gap-3 p-4 bg-surface-800 rounded-xl border border-surface-700">
+              <span className="text-primary-400 mt-0.5 flex-shrink-0">✓</span>
+              <span className="text-surface-300 text-sm">{feat}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WhyEduGeniusSection({ section }: { section: ContentSection }) {
+  const points = (section.data?.points as Array<{ title: string; body: string }>) ?? [];
+  return (
+    <section className="py-20 px-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-3">{section.headline}</h2>
+          <p className="text-surface-400">{section.body}</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          {points.map((pt, i) => (
+            <div key={i} className="p-6 bg-surface-800 rounded-2xl border border-surface-700">
+              <h3 className="text-lg font-semibold text-white mb-2">💡 {pt.title}</h3>
+              <p className="text-surface-400 text-sm">{pt.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TestimonialsSection({ section }: { section: ContentSection }) {
+  const testimonials = (section.data?.testimonials as Array<{ name: string; score: string; quote: string; avatar: string }>) ?? [];
+  return (
+    <section className="py-20 px-6 bg-gradient-to-r from-primary-900/20 to-accent-900/20">
+      <div className="max-w-5xl mx-auto">
+        <h2 className="text-3xl font-bold text-white text-center mb-12">{section.headline}</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          {testimonials.map((t, i) => (
+            <div key={i} className="p-6 bg-surface-800/60 rounded-2xl border border-surface-700">
+              <p className="text-surface-300 italic mb-4">"{t.quote}"</p>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{t.avatar}</span>
+                <div>
+                  <p className="text-white font-semibold text-sm">{t.name}</p>
+                  <p className="text-primary-400 text-xs">{t.score}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TopicGridSection({ section }: { section: ContentSection }) {
+  const topics = (section.data?.topics as string[]) ?? [];
+  const weights = (section.data?.topicWeights as Array<{ topicId: string; priority: string }>) ?? [];
+  const getWeight = (topicId: string) => weights.find((w) => w.topicId === topicId)?.priority ?? 'medium';
+
+  return (
+    <section className="py-20 px-6 bg-surface-800/20">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-3">{section.headline}</h2>
+          <p className="text-surface-400">{section.body}</p>
+        </div>
+        <div className="flex flex-wrap gap-3 justify-center">
+          {topics.map((topic) => {
+            const priority = getWeight(topic);
+            return (
+              <span
+                key={topic}
+                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                  priority === 'high'
+                    ? 'bg-primary-500/20 border-primary-500/50 text-primary-300'
+                    : priority === 'medium'
+                    ? 'bg-surface-700 border-surface-600 text-surface-300'
+                    : 'bg-surface-800 border-surface-700 text-surface-400'
+                }`}
+              >
+                {topic.replace(/-/g, ' ')}
+                {priority === 'high' && <span className="ml-1 text-xs">🔥</span>}
+              </span>
+            );
+          })}
+        </div>
+        <p className="text-center text-surface-500 text-xs mt-4">🔥 = High-priority topics with largest competitor gap</p>
+      </div>
+    </section>
+  );
+}
+
+function FaqSection({ section }: { section: ContentSection }) {
+  const faqs = (section.data?.faqs as Array<{ q: string; a: string }>) ?? [];
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  return (
+    <section className="py-20 px-6">
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-3xl font-bold text-white text-center mb-12">{section.headline}</h2>
+        <div className="space-y-3">
+          {faqs.map((faq, i) => (
+            <div key={i} className="bg-surface-800 rounded-xl border border-surface-700 overflow-hidden">
+              <button
+                className="w-full text-left px-6 py-4 flex items-center justify-between"
+                onClick={() => setOpenIdx(openIdx === i ? null : i)}
+              >
+                <span className="text-white font-medium">{faq.q}</span>
+                <span className="text-primary-400 ml-4">{openIdx === i ? '−' : '+'}</span>
+              </button>
+              {openIdx === i && (
+                <div className="px-6 pb-4 text-surface-400 text-sm">{faq.a}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ExamCalendarSection({ section }: { section: ContentSection }) {
+  const calendar = (section.data?.calendar as Array<{ examId: string; examName: string; date: string; daysAway: number; stage: string }>) ?? [];
+  if (!calendar.length) return null;
+
+  return (
+    <section className="py-16 px-6 bg-surface-800/20">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-2xl font-bold text-white text-center mb-8">{section.headline}</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {calendar.map((entry, i) => (
+            <div key={i} className="p-4 bg-surface-800 rounded-xl border border-surface-700 flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium text-sm">{entry.examName}</p>
+                <p className="text-surface-400 text-xs mt-0.5">{new Date(entry.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                entry.daysAway < 30 ? 'bg-red-500/20 text-red-400' :
+                entry.daysAway < 90 ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-green-500/20 text-green-400'
+              }`}>
+                {entry.daysAway === 0 ? 'Today!' : `${entry.daysAway}d away`}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CtaSection({ section, exam }: { section: ContentSection; exam: ExamConfig }) {
+  return (
+    <section className="py-24 px-6 bg-gradient-to-br from-primary-900/40 to-accent-900/40">
+      <div className="max-w-4xl mx-auto text-center">
+        <h2 className="text-4xl font-bold text-white mb-4">{section.headline}</h2>
+        <p className="text-xl text-surface-400 mb-8">{section.body}</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          {section.cta?.primary && (
+            <Link
+              to={section.cta.primary.href}
+              onClick={() => {
+                acquisitionFunnelService.trackCtaClick(section.cta!.primary.text, 'organic', exam.id);
+                acquisitionFunnelService.trackSignupStart('organic', exam.id);
+              }}
+              className="btn px-8 py-4 text-lg bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700"
+            >
+              {section.cta.primary.text}
+            </Link>
+          )}
+          {section.cta?.secondary && (
+            <Link
+              to={section.cta.secondary.href}
+              className="btn px-8 py-4 text-lg bg-surface-800 border border-surface-600 hover:bg-surface-700"
+            >
+              {section.cta.secondary.text}
+            </Link>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Section Dispatcher ───────────────────────────────────────────────────────
+
+function RenderSection({ section, exam }: { section: ContentSection; exam: ExamConfig }) {
+  switch (section.type) {
+    case 'hero':             return <HeroSection section={section} exam={exam} />;
+    case 'features':         return <FeaturesSection section={section} />;
+    case 'why_edugenius':    return <WhyEduGeniusSection section={section} />;
+    case 'testimonials':     return <TestimonialsSection section={section} />;
+    case 'topic_grid':       return <TopicGridSection section={section} />;
+    case 'faq':              return <FaqSection section={section} />;
+    case 'exam_calendar':    return <ExamCalendarSection section={section} />;
+    case 'cta':              return <CtaSection section={section} exam={exam} />;
+    default:                 return null;
+  }
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ExamPage() {
   const { examCode } = useParams<{ examCode: string }>();
-  const exam = examsData[examCode?.toLowerCase() || 'jee'];
+  const navigate = useNavigate();
 
-  if (!exam) {
+  const [exam, setExam] = useState<ExamConfig | null>(null);
+  const [pageConfig, setPageConfig] = useState<LandingPageConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!examCode) { navigate('/website'); return; }
+
+    const found = getExamByRoute(examCode);
+    if (!found) {
+      // Exam not found — redirect to homepage
+      navigate('/website');
+      return;
+    }
+
+    setExam(found);
+
+    // Generate landing page config
+    const config = landingPageEngine.generateExamLandingPage(found.id);
+    setPageConfig(config);
+    setLoading(false);
+
+    // Track funnel event
+    acquisitionFunnelService.trackPageView('organic', found.id, `exam-${found.id}`);
+
+    // Inject SEO meta
+    const meta = websiteSeoService.generatePageMeta('exam', { exam: found });
+    document.title = meta.title;
+
+    const setMeta = (name: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+      if (!el) { el = document.createElement('meta'); el.name = name; document.head.appendChild(el); }
+      el.content = content;
+    };
+    const setOg = (prop: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[property="${prop}"]`);
+      if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el); }
+      el.content = content;
+    };
+
+    setMeta('description', meta.description);
+    setMeta('keywords', meta.keywords.join(', '));
+    setOg('og:title', meta.ogTags.title);
+    setOg('og:description', meta.ogTags.description);
+    setOg('og:image', meta.ogTags.image);
+
+    // Inject JSON-LD schemas
+    const schemas = [
+      websiteSeoService.generateSchemaMarkup('Course', { exam: found }),
+      websiteSeoService.generateSchemaMarkup('FAQPage', { exam: found }),
+      websiteSeoService.generateSchemaMarkup('BreadcrumbList', { exam: found }),
+    ];
+    let ldScript = document.getElementById('exam-ld-json') as HTMLScriptElement | null;
+    if (!ldScript) {
+      ldScript = document.createElement('script');
+      ldScript.type = 'application/ld+json';
+      ldScript.id = 'exam-ld-json';
+      document.head.appendChild(ldScript);
+    }
+    ldScript.textContent = JSON.stringify(schemas);
+  }, [examCode, navigate]);
+
+  if (loading || !exam || !pageConfig) {
     return (
       <div className="min-h-screen bg-surface-900 flex items-center justify-center">
-        <div className="text-center">
-          <span className="text-6xl">🔍</span>
-          <h1 className="text-2xl font-bold text-white mt-4">Exam not found</h1>
-          <Link to="/website" className="btn mt-4 bg-primary-600">Go Home</Link>
-        </div>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
       </div>
     );
   }
+
+  const otherExams = getLiveExams().filter((e) => e.id !== exam.id).slice(0, 3);
 
   return (
     <div className="min-h-screen bg-surface-900">
@@ -183,102 +373,63 @@ export default function ExamPage() {
               EduGenius
             </span>
           </Link>
+          {/* Breadcrumb */}
+          <div className="hidden md:flex items-center gap-2 text-sm text-surface-400">
+            <Link to="/website" className="hover:text-white">Home</Link>
+            <span>/</span>
+            <span className="text-white">{exam.shortName}</span>
+          </div>
           <div className="flex items-center gap-3">
             <Link to="/" className="btn btn-sm bg-surface-700 hover:bg-surface-600">Login</Link>
-            <Link to={`/website/signup?exam=${exam.code}`} className="btn btn-sm bg-gradient-to-r from-primary-600 to-accent-600">
-              Start {exam.code} Prep
+            <Link
+              to="/onboarding"
+              onClick={() => acquisitionFunnelService.trackCtaClick('Start Free', 'organic', exam.id)}
+              className="btn btn-sm bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700"
+            >
+              Start Free
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center gap-12">
-            <div className="flex-1">
-              <div className={`inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${exam.color} bg-opacity-20 rounded-full text-white text-sm mb-6`}>
-                <span className="text-xl">{exam.icon}</span>
-                <span>{exam.fullName}</span>
-              </div>
-              <h1 className="text-5xl font-bold text-white mb-6">
-                Crack {exam.name} with AI
-              </h1>
-              <p className="text-xl text-surface-300 mb-8">{exam.description}</p>
-              <div className="flex gap-4">
-                <Link to={`/website/signup?exam=${exam.code}`} className="btn px-8 py-4 text-lg bg-gradient-to-r from-primary-600 to-accent-600">
-                  Start Free Trial
+      {/* Render all sections dynamically */}
+      {pageConfig.sections.map((section) => (
+        <RenderSection key={section.id} section={section} exam={exam} />
+      ))}
+
+      {/* Other Exams */}
+      {otherExams.length > 0 && (
+        <section className="py-16 px-6 border-t border-surface-800">
+          <div className="max-w-5xl mx-auto text-center">
+            <h2 className="text-2xl font-bold text-white mb-8">Also Preparing For?</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              {otherExams.map((e) => (
+                <Link
+                  key={e.id}
+                  to={`/website/exams/${e.route}`}
+                  className="group p-5 bg-surface-800 rounded-xl border border-surface-700 hover:border-primary-500/50 transition-all text-center"
+                >
+                  <span className="text-3xl">{e.icon}</span>
+                  <p className="text-white font-medium mt-2 group-hover:text-primary-400 transition-colors">{e.name}</p>
                 </Link>
-                <Link to="/website/demo" className="btn px-8 py-4 text-lg bg-surface-800 border border-surface-600">
-                  Watch Demo
-                </Link>
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className={`p-8 rounded-3xl bg-gradient-to-br ${exam.color} bg-opacity-10 border border-surface-700`}>
-                <div className="grid grid-cols-2 gap-6">
-                  {exam.stats.map((stat) => (
-                    <div key={stat.label} className="text-center">
-                      <p className="text-3xl font-bold text-white">{stat.value}</p>
-                      <p className="text-surface-400">{stat.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Subjects */}
-      <section className="py-16 px-6 bg-surface-800/30">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">Subjects Covered</h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            {exam.subjects.map((subject) => (
-              <div key={subject} className="px-8 py-4 bg-surface-800 rounded-2xl border border-surface-700">
-                <span className="text-xl font-semibold text-white">{subject}</span>
-              </div>
-            ))}
+      {/* Footer */}
+      <footer className="py-10 px-6 border-t border-surface-700">
+        <div className="max-w-7xl mx-auto text-center text-surface-500 text-sm">
+          <p>© 2026 EduGenius by MathConcepts. All rights reserved.</p>
+          <div className="flex justify-center gap-6 mt-3">
+            <Link to="/website" className="hover:text-white">Home</Link>
+            <Link to="/website/pricing" className="hover:text-white">Pricing</Link>
+            <Link to="/website/blog" className="hover:text-white">Blog</Link>
+            <Link to="/website/contact" className="hover:text-white">Contact</Link>
           </div>
         </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">{exam.code}-Specific Features</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {exam.features.map((feature, i) => (
-              <div key={i} className="p-6 bg-surface-800 rounded-2xl border border-surface-700">
-                <span className="text-2xl text-primary-400">✓</span>
-                <p className="text-white mt-2">{feature}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonial */}
-      <section className="py-20 px-6 bg-gradient-to-r from-primary-900/20 to-accent-900/20">
-        <div className="max-w-3xl mx-auto text-center">
-          <span className="text-6xl">{exam.icon}</span>
-          <p className="text-2xl text-white mt-6 mb-4">"{exam.testimonial.quote}"</p>
-          <p className="text-primary-400 font-semibold">{exam.testimonial.name}</p>
-          <p className="text-surface-400">{exam.code} • {exam.testimonial.score}</p>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">Ready to Crack {exam.code}?</h2>
-          <p className="text-xl text-surface-400 mb-8">Join {exam.stats[0].value} students already preparing with AI</p>
-          <Link to={`/website/signup?exam=${exam.code}`} className="btn px-8 py-4 text-lg bg-gradient-to-r from-primary-600 to-accent-600">
-            Start Your Free Trial
-          </Link>
-        </div>
-      </section>
+      </footer>
     </div>
   );
 }
