@@ -2,11 +2,18 @@
  * AgentSkills.tsx — Agent Skills Registry + Prompt Template Manager
  * CEO view of all VoltAgent-inspired skills and their connections
  */
-import React, { useState, useEffect } from 'react';
-import { Shield, Brain, BarChart2, FileCode, Users, Video, Mic, Plus, Trash2, Eye, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Shield, Brain, BarChart2, FileCode, Users, Video, Mic, Plus, Trash2, Eye, ChevronUp, RefreshCw, ChevronDown, AlertTriangle, TrendingUp, TrendingDown, Minus as MinusIcon } from 'lucide-react';
 import { getAllTemplates, saveCustomTemplate, deleteCustomTemplate, type PromptTemplate } from '@/services/skills/dynamicPromptsSkill';
 import { getEvalSummary } from '@/services/skills/liveEvalsSkill';
 import { isSpeechAvailable, canUsePremiumVoice } from '@/services/skills/voiceSkill';
+import {
+  buildUserResearchReport,
+  loadResearchReport,
+  saveResearchReport,
+  type UserResearchReport,
+  type ResearchSubtopic,
+} from '@/services/skills/userResearchSkill';
 
 // ── Skill Registry (static metadata) ─────────────────────────────────────────
 
@@ -76,6 +83,260 @@ const SKILLS: SkillMeta[] = [
     storageKey: 'edugenius_skill_social_intent_enabled', status: 'active',
   },
 ];
+
+// ── User Research Report Components ──────────────────────────────────────────
+
+const CONFIDENCE_STYLE: Record<string, string> = {
+  HIGH:   'bg-emerald-900/30 text-emerald-300 border-emerald-700',
+  MEDIUM: 'bg-yellow-900/30 text-yellow-300 border-yellow-700',
+  LOW:    'bg-surface-700 text-surface-400 border-surface-600',
+};
+
+const SIGNAL_STYLE: Record<string, string> = {
+  CHURN_RISK:       'text-red-400',
+  FRUSTRATION_ALERT:'text-orange-400',
+  CONTENT_GAP:      'text-fuchsia-400',
+  ENGAGEMENT_GAP:   'text-amber-400',
+  FORMAT_REQUEST:   'text-blue-400',
+};
+
+function SubtopicCard({ subtopic, defaultOpen = false }: { subtopic: ResearchSubtopic; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-surface-700 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 bg-surface-800 hover:bg-surface-750 transition-colors text-left"
+      >
+        <span className="text-base">{subtopic.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-surface-100">{subtopic.title}</span>
+            <span className={`px-1.5 py-0.5 rounded text-xs border font-medium ${CONFIDENCE_STYLE[subtopic.confidence.toUpperCase()] ?? CONFIDENCE_STYLE.LOW}`}>
+              {subtopic.confidence}
+            </span>
+            {subtopic.signalToEmit && (
+              <span className={`text-xs font-mono font-medium ${SIGNAL_STYLE[subtopic.signalToEmit] ?? 'text-surface-400'}`}>
+                → {subtopic.signalToEmit}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-surface-400 mt-0.5 truncate">{subtopic.summary.split('.')[0]}.</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex gap-1">
+            {subtopic.responsibleAgents.slice(0, 3).map(a => (
+              <span key={a} className="text-xs bg-surface-700 text-surface-400 px-1.5 py-0.5 rounded-full capitalize">{a}</span>
+            ))}
+          </div>
+          {open ? <ChevronUp className="w-4 h-4 text-surface-400" /> : <ChevronDown className="w-4 h-4 text-surface-400" />}
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-4 py-4 bg-surface-900/60 space-y-4">
+          {/* 4-field grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-surface-500 uppercase tracking-wider">📝 Summary</p>
+              <p className="text-sm text-surface-200 leading-relaxed">{subtopic.summary}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-surface-500 uppercase tracking-wider">👤 User Intent</p>
+              <p className="text-sm text-surface-300 leading-relaxed italic">"{subtopic.userIntent}"</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-surface-500 uppercase tracking-wider">📡 Data Sources</p>
+              <div className="flex flex-wrap gap-1">
+                {subtopic.dataSources.map(src => (
+                  <span key={src} className="text-xs bg-surface-800 text-surface-400 px-2 py-0.5 rounded-full">
+                    {src.replace(/_/g, ' ')}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-surface-500 uppercase tracking-wider">⚡ Action Objective</p>
+              <p className="text-sm text-primary-300 leading-relaxed">{subtopic.actionObjective}</p>
+            </div>
+          </div>
+          <p className="text-xs text-surface-600">
+            Updated: {new Date(subtopic.updatedAt).toLocaleString()} · Agents: {subtopic.responsibleAgents.join(', ')}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UserResearchSection() {
+  const [report, setReport] = useState<UserResearchReport | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showTable, setShowTable] = useState(true);
+  const [showLog, setShowLog] = useState(false);
+  const userId = 'live-user';
+
+  // Load from storage on mount
+  useEffect(() => {
+    const stored = loadResearchReport(userId);
+    if (stored) setReport(stored);
+  }, []);
+
+  const handleGenerate = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      const r = buildUserResearchReport(userId, report ?? undefined);
+      saveResearchReport(r);
+      setReport(r);
+      setIsGenerating(false);
+    }, 400);
+  };
+
+  const trajectoryIcon = (t: string) => {
+    if (t === 'accelerating') return <TrendingUp className="w-4 h-4 text-emerald-400" />;
+    if (t === 'declining') return <TrendingDown className="w-4 h-4 text-red-400" />;
+    return <MinusIcon className="w-4 h-4 text-yellow-400" />;
+  };
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-surface-400 uppercase tracking-wider">User Research Report</h2>
+          <p className="text-xs text-surface-500 mt-0.5">Per-subtopic analysis: intent, data sources, and system-determined action objectives. Updates progressively as new signals arrive.</p>
+        </div>
+        <button
+          onClick={handleGenerate}
+          disabled={isGenerating}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-500/10 text-primary-400 hover:bg-primary-500/20 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+          {report ? 'Refresh Report' : 'Generate Report'}
+        </button>
+      </div>
+
+      {!report && !isGenerating && (
+        <div className="flex flex-col items-center justify-center py-12 text-surface-500 space-y-2 border border-dashed border-surface-700 rounded-xl">
+          <Users className="w-8 h-8 opacity-30" />
+          <p className="text-sm">No research report yet — click Generate to build from available student signals.</p>
+        </div>
+      )}
+
+      {report && (
+        <>
+          {/* Report header */}
+          <div className="bg-surface-900 border border-surface-700 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-lg font-bold text-white">{report.profile.archetype.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                  <span className="text-xs bg-surface-700 text-surface-300 px-2 py-0.5 rounded-full">{report.exam}</span>
+                  <span className="flex items-center gap-1 text-xs text-surface-400">
+                    {trajectoryIcon(report.profile.trajectoryLabel)} {report.profile.trajectoryLabel}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-4 text-xs text-surface-500">
+                  <span>{report.subtopics.length} subtopics analysed</span>
+                  <span>{report.subtopics.filter(s => s.signalToEmit).length} signals ready to emit</span>
+                  <span>Updated: {new Date(report.updatedAt).toLocaleTimeString()}</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowTable(t => !t)}
+                  className="px-3 py-1.5 rounded-lg text-xs bg-surface-800 text-surface-300 hover:text-white transition-colors"
+                >
+                  {showTable ? 'Hide' : 'Show'} Table
+                </button>
+                <button
+                  onClick={() => setShowLog(l => !l)}
+                  className="px-3 py-1.5 rounded-lg text-xs bg-surface-800 text-surface-300 hover:text-white transition-colors"
+                >
+                  Update Log ({report.updateLog.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Update log */}
+            {showLog && (
+              <div className="mt-4 border-t border-surface-700 pt-3 space-y-1 max-h-36 overflow-y-auto">
+                {[...report.updateLog].reverse().map((entry, i) => (
+                  <div key={i} className="flex gap-3 text-xs">
+                    <span className="text-surface-600 flex-shrink-0">{new Date(entry.ts).toLocaleTimeString()}</span>
+                    <span className="text-surface-400">{entry.change}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Consolidated summary table */}
+          {showTable && (
+            <div className="overflow-x-auto rounded-xl border border-surface-700">
+              <table className="w-full text-xs min-w-[700px]">
+                <thead>
+                  <tr className="bg-surface-800 text-surface-400 uppercase tracking-wider">
+                    <th className="px-3 py-2.5 text-left">Subtopic</th>
+                    <th className="px-3 py-2.5 text-left">Key Finding</th>
+                    <th className="px-3 py-2.5 text-left">User Intent</th>
+                    <th className="px-3 py-2.5 text-left">Data Source</th>
+                    <th className="px-3 py-2.5 text-left">Action Objective</th>
+                    <th className="px-3 py-2.5 text-left">Agents</th>
+                    <th className="px-3 py-2.5 text-left">Confidence</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-800">
+                  {report.consolidatedTable.map((row, i) => (
+                    <tr key={i} className="bg-surface-900 hover:bg-surface-800/50 transition-colors">
+                      <td className="px-3 py-2 font-medium text-surface-200 whitespace-nowrap">{row.subtopic}</td>
+                      <td className="px-3 py-2 text-surface-300 max-w-xs">{row.keyFinding}</td>
+                      <td className="px-3 py-2 text-surface-400 italic max-w-xs">{row.userIntent}</td>
+                      <td className="px-3 py-2 text-surface-500 whitespace-nowrap">{row.primarySource}</td>
+                      <td className="px-3 py-2 text-primary-400 max-w-xs">{row.actionObjective}</td>
+                      <td className="px-3 py-2 text-surface-400 whitespace-nowrap">{row.agents}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-1.5 py-0.5 rounded border text-xs font-medium ${CONFIDENCE_STYLE[row.confidence] ?? CONFIDENCE_STYLE.LOW}`}>
+                          {row.confidence}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Subtopic deep-dive cards */}
+          <div className="space-y-2">
+            {report.subtopics.map((subtopic, i) => (
+              <SubtopicCard key={subtopic.id} subtopic={subtopic} defaultOpen={i === 0} />
+            ))}
+          </div>
+
+          {/* Signals ready to emit */}
+          {report.subtopics.some(s => s.signalToEmit) && (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-900/20 border border-amber-700">
+              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-amber-300 mb-1">Signals ready to emit</p>
+                <div className="flex flex-wrap gap-2">
+                  {report.subtopics
+                    .filter(s => s.signalToEmit)
+                    .map(s => (
+                      <span key={s.id} className={`text-xs font-mono font-medium ${SIGNAL_STYLE[s.signalToEmit!] ?? 'text-surface-300'}`}>
+                        {s.emoji} {s.signalToEmit} → {s.responsibleAgents.join(', ')}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
@@ -224,6 +485,9 @@ export default function AgentSkills() {
           })}
         </div>
       </section>
+
+      {/* User Research Report */}
+      <UserResearchSection />
 
       {/* Prompt Templates */}
       <section>
