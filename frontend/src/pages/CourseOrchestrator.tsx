@@ -16,6 +16,7 @@ import {
   Target, BookOpen, Link2, Settings2, Play, RefreshCw, CheckCircle2,
   AlertTriangle, XCircle, Zap, ChevronRight, Eye, User, Brain,
   BarChart3, Clock, Layers, Send, Filter,
+  ListTree, ToggleLeft, ToggleRight, Pencil, ThumbsUp, Minus, Plus,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
@@ -29,6 +30,12 @@ import {
   getOrchestratorRules,
   saveOrchestratorRules,
   recordOutcome,
+  generateCourseSummary,
+  toggleOutlineNode,
+  editOutlineLesson,
+  approveOutline,
+  saveOutlineToStorage,
+  loadOutlineFromStorage,
   type OrchestratorDecision,
   type LearnerProfile,
   type LearnerRole,
@@ -38,6 +45,11 @@ import {
   type DeliveryChannel,
   type AgentSignalStatus,
   type OrchestratorRules,
+  type CourseSummaryOutline,
+  type OutlineModule,
+  type OutlineTopic,
+  type OutlineLesson,
+  type OutlineNodeStatus,
 } from '@/services/courseOrchestrator';
 import {
   getAllStaticAtoms,
@@ -53,6 +65,7 @@ import { auditContentSync } from '@/services/contentSyncService';
 
 const TABS = [
   { id: 'decisions',   label: 'Live Decisions',   icon: Target    },
+  { id: 'outline',     label: 'Course Summary',   icon: ListTree  },
   { id: 'library',     label: 'Content Library',  icon: BookOpen  },
   { id: 'connections', label: 'Agent Connections', icon: Link2     },
   { id: 'rules',       label: 'Rules',             icon: Settings2 },
@@ -951,6 +964,481 @@ function OrchestrationRulesTab() {
   );
 }
 
+// ─── Tab 5: Course Summary Outline ───────────────────────────────────────────
+
+const OBJECTIVE_EMOJI: Record<LearningObjectiveType, string> = {
+  introduce_concept:    '🆕',
+  deepen_understanding: '📖',
+  fix_misconception:    '🔧',
+  build_speed:          '⚡',
+  exam_pattern:         '📋',
+  cross_connect:        '🕸️',
+  revision:             '🔄',
+  assess_readiness:     '✅',
+};
+
+const AGENT_COLOR: Record<string, string> = {
+  sage:   'text-green-400',
+  atlas:  'text-fuchsia-400',
+  mentor: 'text-amber-400',
+  oracle: 'text-cyan-400',
+};
+
+const DIFFICULTY_COLOR = {
+  easy:   'bg-green-900/30 text-green-300 border-green-700',
+  medium: 'bg-yellow-900/30 text-yellow-300 border-yellow-700',
+  hard:   'bg-red-900/30 text-red-300 border-red-700',
+};
+
+const STATUS_STYLE: Record<OutlineNodeStatus, string> = {
+  included: 'opacity-100',
+  excluded: 'opacity-40 line-through',
+  pending:  'opacity-70',
+};
+
+function LessonRow({
+  lesson,
+  onToggle,
+  onEdit,
+}: {
+  lesson: OutlineLesson;
+  onToggle: (id: string, next: OutlineNodeStatus) => void;
+  onEdit: (lesson: OutlineLesson) => void;
+}) {
+  const included = lesson.status === 'included';
+  return (
+    <div className={clsx('flex items-start gap-2 py-1.5 pl-10 pr-3 rounded-lg hover:bg-surface-700/40 group transition-colors', STATUS_STYLE[lesson.status])}>
+      <button
+        onClick={() => onToggle(lesson.id, included ? 'excluded' : 'included')}
+        className="mt-0.5 text-surface-400 hover:text-primary-400 transition-colors flex-shrink-0"
+        title={included ? 'Exclude lesson' : 'Include lesson'}
+      >
+        {included ? <ToggleRight className="w-4 h-4 text-primary-400" /> : <ToggleLeft className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs">{OBJECTIVE_EMOJI[lesson.objectiveType]}</span>
+          <span className="text-sm text-surface-200 truncate">{lesson.title}</span>
+          <span className={clsx('px-1.5 py-0.5 rounded text-xs border', DIFFICULTY_COLOR[lesson.difficulty])}>{lesson.difficulty}</span>
+          <span className={clsx('text-xs font-medium capitalize', AGENT_COLOR[lesson.agentId] ?? 'text-surface-400')}>{lesson.agentId}</span>
+          <span className="text-xs text-surface-500 ml-auto flex-shrink-0">{lesson.estimatedMinutes}min</span>
+        </div>
+        <p className="text-xs text-surface-500 mt-0.5 italic truncate">{lesson.rationale}</p>
+      </div>
+      <button
+        onClick={() => onEdit(lesson)}
+        className="opacity-0 group-hover:opacity-100 text-surface-400 hover:text-surface-200 transition-all flex-shrink-0"
+        title="Edit lesson"
+      >
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function TopicSection({
+  topic,
+  onToggleTopic,
+  onToggleLesson,
+  onEditLesson,
+}: {
+  topic: OutlineTopic;
+  onToggleTopic: (id: string, next: OutlineNodeStatus) => void;
+  onToggleLesson: (id: string, next: OutlineNodeStatus) => void;
+  onEditLesson: (lesson: OutlineLesson) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const included = topic.status === 'included';
+  const includedCount = topic.lessons.filter(l => l.status === 'included').length;
+
+  return (
+    <div className={clsx('border border-surface-700 rounded-lg overflow-hidden', STATUS_STYLE[topic.status])}>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-750 bg-surface-800 hover:bg-surface-750 cursor-pointer select-none"
+           onClick={() => setOpen(o => !o)}>
+        <button
+          onClick={e => { e.stopPropagation(); onToggleTopic(topic.id, included ? 'excluded' : 'included'); }}
+          className="text-surface-400 hover:text-primary-400 transition-colors flex-shrink-0"
+          title={included ? 'Exclude topic' : 'Include topic'}
+        >
+          {included ? <ToggleRight className="w-4 h-4 text-primary-400" /> : <ToggleLeft className="w-4 h-4" />}
+        </button>
+        <ChevronRight className={clsx('w-3.5 h-3.5 text-surface-400 transition-transform flex-shrink-0', open && 'rotate-90')} />
+        <span className="text-sm font-medium text-surface-200 flex-1">{topic.topicName}</span>
+        <span className="text-xs text-surface-500">{includedCount}/{topic.lessons.length} lessons</span>
+        <span className="text-xs text-surface-500 ml-2">{topic.totalMinutes}min</span>
+      </div>
+      {open && (
+        <div className="divide-y divide-surface-700/40">
+          {topic.lessons.map(lesson => (
+            <LessonRow
+              key={lesson.id}
+              lesson={lesson}
+              onToggle={onToggleLesson}
+              onEdit={onEditLesson}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModuleBlock({
+  module: mod,
+  onToggleModule,
+  onToggleTopic,
+  onToggleLesson,
+  onEditLesson,
+}: {
+  module: OutlineModule;
+  onToggleModule: (id: string, next: OutlineNodeStatus) => void;
+  onToggleTopic: (id: string, next: OutlineNodeStatus) => void;
+  onToggleLesson: (id: string, next: OutlineNodeStatus) => void;
+  onEditLesson: (lesson: OutlineLesson) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const included = mod.status === 'included';
+  const includedTopics = mod.topics.filter(t => t.status === 'included').length;
+  const includedLessons = mod.topics.flatMap(t => t.lessons).filter(l => l.status === 'included').length;
+
+  return (
+    <div className={clsx('border border-surface-600 rounded-xl overflow-hidden', STATUS_STYLE[mod.status])}>
+      {/* Module header */}
+      <div
+        className="flex items-center gap-3 px-5 py-3 bg-surface-750 bg-surface-800 hover:bg-surface-750 cursor-pointer select-none border-b border-surface-600"
+        onClick={() => setOpen(o => !o)}
+      >
+        <button
+          onClick={e => { e.stopPropagation(); onToggleModule(mod.id, included ? 'excluded' : 'included'); }}
+          className="text-surface-400 hover:text-primary-400 transition-colors flex-shrink-0"
+          title={included ? 'Exclude module' : 'Include module'}
+        >
+          {included ? <ToggleRight className="w-5 h-5 text-primary-400" /> : <ToggleLeft className="w-5 h-5" />}
+        </button>
+        <ChevronRight className={clsx('w-4 h-4 text-surface-400 transition-transform flex-shrink-0', open && 'rotate-90')} />
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-surface-100">{mod.title}</h3>
+          <p className="text-xs text-surface-500 mt-0.5">{mod.description}</p>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-surface-500 flex-shrink-0">
+          <span>{includedTopics} topics</span>
+          <span>{includedLessons} lessons</span>
+          <span>{Math.round(mod.totalMinutes / 60)}h</span>
+        </div>
+      </div>
+      {/* Module body */}
+      {open && (
+        <div className="p-4 space-y-3 bg-surface-850 bg-surface-900/50">
+          {mod.topics.map(topic => (
+            <TopicSection
+              key={topic.id}
+              topic={topic}
+              onToggleTopic={onToggleTopic}
+              onToggleLesson={onToggleLesson}
+              onEditLesson={onEditLesson}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Edit Lesson Modal ─────────────────────────────────────────────────────────
+function EditLessonModal({
+  lesson,
+  onSave,
+  onClose,
+}: {
+  lesson: OutlineLesson;
+  onSave: (patch: Partial<Pick<OutlineLesson, 'title' | 'rationale' | 'difficulty' | 'estimatedMinutes'>>) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(lesson.title);
+  const [rationale, setRationale] = useState(lesson.rationale);
+  const [difficulty, setDifficulty] = useState(lesson.difficulty);
+  const [minutes, setMinutes] = useState(lesson.estimatedMinutes);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-surface-800 border border-surface-600 rounded-xl p-6 w-full max-w-lg space-y-4">
+        <h3 className="text-base font-semibold text-surface-100 flex items-center gap-2">
+          <Pencil className="w-4 h-4 text-primary-400" />
+          Edit Lesson
+        </h3>
+
+        <div>
+          <label className="text-xs text-surface-400 mb-1 block">Title</label>
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            className="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2 text-sm text-surface-100"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-surface-400 mb-1 block">Rationale</label>
+          <textarea
+            value={rationale}
+            onChange={e => setRationale(e.target.value)}
+            rows={2}
+            className="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2 text-sm text-surface-100 resize-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-surface-400 mb-1 block">Difficulty</label>
+            <select
+              value={difficulty}
+              onChange={e => setDifficulty(e.target.value as OutlineLesson['difficulty'])}
+              className="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2 text-sm text-surface-100"
+            >
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-surface-400 mb-1 block">Est. Minutes</label>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setMinutes(m => Math.max(5, m - 5))} className="p-1.5 rounded bg-surface-700 text-surface-300 hover:text-white">
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="text-sm text-surface-100 w-8 text-center">{minutes}</span>
+              <button onClick={() => setMinutes(m => m + 5)} className="p-1.5 rounded bg-surface-700 text-surface-300 hover:text-white">
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-200 transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={() => { onSave({ title, rationale, difficulty, estimatedMinutes: minutes }); onClose(); }}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white transition-colors"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CourseSummaryTab ──────────────────────────────────────────────────────────
+
+function CourseSummaryTab() {
+  const [examId, setExamId] = useState('GATE_EM');
+  const [daysToExam, setDaysToExam] = useState(90);
+  const [outline, setOutline] = useState<CourseSummaryOutline | null>(() => loadOutlineFromStorage());
+  const [editingLesson, setEditingLesson] = useState<OutlineLesson | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showChangeLog, setShowChangeLog] = useState(false);
+
+  // Auto-save to localStorage on every change
+  useEffect(() => {
+    if (outline) saveOutlineToStorage(outline);
+  }, [outline]);
+
+  const handleGenerate = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      const o = generateCourseSummary(examId, daysToExam);
+      setOutline(o);
+      setIsGenerating(false);
+    }, 600);
+  };
+
+  const handleToggleNode = (nodeId: string, level: 'module' | 'topic' | 'lesson', next: OutlineNodeStatus) => {
+    if (!outline) return;
+    setOutline(prev => prev ? toggleOutlineNode(prev, nodeId, level, next) : prev);
+  };
+
+  const handleEditLesson = (patch: Partial<Pick<OutlineLesson, 'title' | 'rationale' | 'difficulty' | 'estimatedMinutes'>>) => {
+    if (!outline || !editingLesson) return;
+    setOutline(prev => prev ? editOutlineLesson(prev, editingLesson.id, patch) : prev);
+  };
+
+  const handleApprove = () => {
+    if (!outline) return;
+    setOutline(prev => prev ? approveOutline(prev) : prev);
+  };
+
+  const statusBadge = (status: CourseSummaryOutline['status']) => {
+    const map = {
+      draft:      'bg-yellow-900/30 text-yellow-300 border-yellow-700',
+      approved:   'bg-emerald-900/30 text-emerald-300 border-emerald-700',
+      generating: 'bg-blue-900/30 text-blue-300 border-blue-700',
+      complete:   'bg-purple-900/30 text-purple-300 border-purple-700',
+    };
+    return (
+      <span className={clsx('px-2 py-0.5 rounded text-xs font-medium border uppercase', map[status] ?? map.draft)}>
+        {status}
+      </span>
+    );
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Generator bar */}
+      <div className="bg-surface-800 border border-surface-700 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-surface-200 mb-4 flex items-center gap-2">
+          <ListTree className="w-4 h-4 text-primary-400" />
+          Generate Course Summary
+        </h3>
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <label className="text-xs text-surface-400 mb-1 block">Exam</label>
+            <select
+              value={examId}
+              onChange={e => setExamId(e.target.value)}
+              className="bg-surface-700 border border-surface-600 rounded-lg px-3 py-2 text-sm text-surface-100"
+            >
+              {['GATE_EM', 'JEE', 'NEET', 'CAT', 'CBSE_12'].map(e => (
+                <option key={e} value={e}>{e}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-surface-400 mb-1 block">Days to Exam: {daysToExam}</label>
+            <input
+              type="range" min={0} max={365} step={5}
+              value={daysToExam}
+              onChange={e => setDaysToExam(Number(e.target.value))}
+              className="w-40 accent-primary-500"
+            />
+            <p className="text-xs text-primary-400 mt-0.5">{PHASE_LABELS[inferExamPhase(daysToExam)]}</p>
+          </div>
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white transition-colors disabled:opacity-50"
+          >
+            {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+            {isGenerating ? 'Generating…' : 'Generate Outline'}
+          </button>
+        </div>
+      </div>
+
+      {outline && (
+        <>
+          {/* Summary header */}
+          <div className="bg-surface-800 border border-surface-700 rounded-xl p-5">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 className="text-base font-bold text-surface-100">{outline.examName} — Course Outline</h2>
+                  {statusBadge(outline.status)}
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm text-surface-400">
+                  <span><span className="text-surface-200 font-medium">{outline.totalModules}</span> modules</span>
+                  <span><span className="text-surface-200 font-medium">{outline.totalTopics}</span> topics</span>
+                  <span><span className="text-surface-200 font-medium">{outline.totalLessons}</span> lessons</span>
+                  <span><span className="text-surface-200 font-medium">~{outline.estimatedHours}h</span> total</span>
+                </div>
+                {outline.approvedAt && (
+                  <p className="text-xs text-emerald-400 mt-1.5">
+                    ✅ Approved by {outline.approvedBy} at {new Date(outline.approvedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {outline.status === 'draft' && (
+                  <button
+                    onClick={handleApprove}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                    Approve & Queue Atlas
+                  </button>
+                )}
+                {outline.status === 'approved' && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-900/30 border border-emerald-700">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm text-emerald-300">Atlas generation queued</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowChangeLog(s => !s)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-surface-400 hover:text-surface-200 bg-surface-700 transition-colors"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Change Log ({outline.changeLog.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Change log */}
+            <AnimatePresence>
+              {showChangeLog && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-4 border-t border-surface-700 pt-4 space-y-1.5 max-h-48 overflow-y-auto"
+                >
+                  {[...outline.changeLog].reverse().map((entry, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs">
+                      <span className="text-surface-600 flex-shrink-0">{new Date(entry.ts).toLocaleTimeString()}</span>
+                      <span className="text-surface-300">{entry.change}</span>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Hierarchical outline */}
+          <div className="space-y-4">
+            {outline.modules.map(mod => (
+              <ModuleBlock
+                key={mod.id}
+                module={mod}
+                onToggleModule={(id, next) => handleToggleNode(id, 'module', next)}
+                onToggleTopic={(id, next) => handleToggleNode(id, 'topic', next)}
+                onToggleLesson={(id, next) => handleToggleNode(id, 'lesson', next)}
+                onEditLesson={setEditingLesson}
+              />
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 text-xs text-surface-500 px-1">
+            <span className="flex items-center gap-1.5"><ToggleRight className="w-3.5 h-3.5 text-primary-400" /> Included</span>
+            <span className="flex items-center gap-1.5"><ToggleLeft className="w-3.5 h-3.5" /> Excluded</span>
+            <span className="flex items-center gap-1.5"><span className="text-green-400 font-medium">●</span> Sage</span>
+            <span className="flex items-center gap-1.5"><span className="text-fuchsia-400 font-medium">●</span> Atlas</span>
+            <span className="flex items-center gap-1.5"><span className="text-amber-400 font-medium">●</span> Mentor</span>
+            <span className="flex items-center gap-1.5"><span className="text-cyan-400 font-medium">●</span> Oracle</span>
+          </div>
+        </>
+      )}
+
+      {!outline && !isGenerating && (
+        <div className="flex flex-col items-center justify-center py-20 text-surface-500 space-y-3">
+          <ListTree className="w-10 h-10 opacity-30" />
+          <p className="text-sm">Select an exam, set days to exam, and click Generate Outline.</p>
+          <p className="text-xs">The outline shows every module, topic, and lesson that will be generated — review and edit before approving.</p>
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editingLesson && (
+        <EditLessonModal
+          lesson={editingLesson}
+          onSave={handleEditLesson}
+          onClose={() => setEditingLesson(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CourseOrchestrator() {
@@ -1006,6 +1494,7 @@ export default function CourseOrchestrator() {
           transition={{ duration: 0.15 }}
         >
           {activeTab === 'decisions'   && <LiveDecisionsTab />}
+          {activeTab === 'outline'     && <CourseSummaryTab />}
           {activeTab === 'library'     && <ContentLibraryTab />}
           {activeTab === 'connections' && <AgentConnectionsTab />}
           {activeTab === 'rules'       && <OrchestrationRulesTab />}

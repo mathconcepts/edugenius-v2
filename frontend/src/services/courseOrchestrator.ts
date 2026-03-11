@@ -1107,6 +1107,481 @@ export function saveOrchestratorRules(rules: Partial<OrchestratorRules>): void {
   } catch { /* ignore */ }
 }
 
+// ─── Course Summary Outline ───────────────────────────────────────────────────
+//
+// Generated BEFORE content is approved/delivered. Gives the CEO/admin a full
+// hierarchical view of what will be generated and delivered. Every node can be
+// toggled off (excluded) or edited, then explicitly approved before Atlas runs.
+
+export type OutlineNodeStatus = 'included' | 'excluded' | 'pending';
+
+export interface OutlineLesson {
+  id: string;
+  title: string;
+  objectiveType: LearningObjectiveType;
+  format: ContentDecision['format'];
+  mode: ContentMode;
+  difficulty: 'easy' | 'medium' | 'hard';
+  estimatedMinutes: number;
+  agentId: 'sage' | 'atlas' | 'mentor' | 'oracle';
+  status: OutlineNodeStatus;
+  rationale: string;
+  prerequisites: string[];
+}
+
+export interface OutlineTopic {
+  id: string;
+  topicId: string;
+  topicName: string;
+  phase: ExamPhase;
+  totalMinutes: number;
+  lessons: OutlineLesson[];
+  status: OutlineNodeStatus;
+}
+
+export interface OutlineModule {
+  id: string;
+  title: string;           // e.g. "Foundation Phase — Core Concepts"
+  phase: ExamPhase;
+  description: string;
+  totalMinutes: number;
+  topics: OutlineTopic[];
+  status: OutlineNodeStatus;
+}
+
+export interface CourseSummaryOutline {
+  id: string;
+  examId: string;
+  examName: string;
+  generatedAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  status: 'draft' | 'approved' | 'generating' | 'complete';
+  totalModules: number;
+  totalTopics: number;
+  totalLessons: number;
+  estimatedHours: number;
+  modules: OutlineModule[];
+  changeLog: Array<{ ts: string; change: string }>;
+}
+
+// ─── Exam topic catalogue (seeded per exam) ───────────────────────────────────
+
+const EXAM_TOPIC_CATALOGUE: Record<string, Array<{ topicId: string; topicName: string; difficulty: 'easy' | 'medium' | 'hard'; estimatedMinutes: number }>> = {
+  GATE_EM: [
+    { topicId: 'linear_algebra',   topicName: 'Linear Algebra',      difficulty: 'medium', estimatedMinutes: 45 },
+    { topicId: 'calculus',         topicName: 'Calculus',            difficulty: 'medium', estimatedMinutes: 40 },
+    { topicId: 'probability',      topicName: 'Probability & Stats', difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'complex_numbers',  topicName: 'Complex Numbers',     difficulty: 'hard',   estimatedMinutes: 30 },
+    { topicId: 'signals',          topicName: 'Signals & Systems',   difficulty: 'hard',   estimatedMinutes: 50 },
+    { topicId: 'numerical_methods',topicName: 'Numerical Methods',   difficulty: 'hard',   estimatedMinutes: 35 },
+    { topicId: 'transform_theory', topicName: 'Transform Theory',    difficulty: 'hard',   estimatedMinutes: 40 },
+    { topicId: 'differential_eq',  topicName: 'Differential Equations', difficulty: 'medium', estimatedMinutes: 35 },
+  ],
+  JEE: [
+    { topicId: 'mechanics',        topicName: 'Mechanics',           difficulty: 'medium', estimatedMinutes: 50 },
+    { topicId: 'thermodynamics',   topicName: 'Thermodynamics',      difficulty: 'medium', estimatedMinutes: 40 },
+    { topicId: 'electromagnetism', topicName: 'Electromagnetism',    difficulty: 'hard',   estimatedMinutes: 55 },
+    { topicId: 'organic_chemistry',topicName: 'Organic Chemistry',   difficulty: 'hard',   estimatedMinutes: 60 },
+    { topicId: 'inorganic_chem',   topicName: 'Inorganic Chemistry', difficulty: 'medium', estimatedMinutes: 45 },
+    { topicId: 'calculus',         topicName: 'Calculus',            difficulty: 'medium', estimatedMinutes: 50 },
+    { topicId: 'algebra',          topicName: 'Algebra',             difficulty: 'medium', estimatedMinutes: 40 },
+    { topicId: 'coordinate_geo',   topicName: 'Coordinate Geometry', difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'optics',           topicName: 'Optics',              difficulty: 'easy',   estimatedMinutes: 30 },
+  ],
+  NEET: [
+    { topicId: 'cell_biology',     topicName: 'Cell Biology',        difficulty: 'medium', estimatedMinutes: 40 },
+    { topicId: 'genetics',         topicName: 'Genetics',            difficulty: 'hard',   estimatedMinutes: 50 },
+    { topicId: 'plant_physiology', topicName: 'Plant Physiology',    difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'human_physiology', topicName: 'Human Physiology',    difficulty: 'hard',   estimatedMinutes: 55 },
+    { topicId: 'organic_chemistry',topicName: 'Organic Chemistry',   difficulty: 'hard',   estimatedMinutes: 50 },
+    { topicId: 'biomolecules',     topicName: 'Biomolecules',        difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'mechanics',        topicName: 'Mechanics',           difficulty: 'easy',   estimatedMinutes: 30 },
+  ],
+  CAT: [
+    { topicId: 'quant_arithmetic', topicName: 'Arithmetic',          difficulty: 'medium', estimatedMinutes: 40 },
+    { topicId: 'quant_algebra',    topicName: 'Algebra',             difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'quant_geometry',   topicName: 'Geometry',            difficulty: 'hard',   estimatedMinutes: 40 },
+    { topicId: 'reading_comp',     topicName: 'Reading Comprehension', difficulty: 'hard', estimatedMinutes: 50 },
+    { topicId: 'verbal_ability',   topicName: 'Verbal Ability',      difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'dilr',             topicName: 'Data Interpretation & LR', difficulty: 'hard', estimatedMinutes: 55 },
+  ],
+  CBSE_12: [
+    { topicId: 'calculus',         topicName: 'Calculus',            difficulty: 'medium', estimatedMinutes: 45 },
+    { topicId: 'vectors',          topicName: 'Vectors & 3D',        difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'probability',      topicName: 'Probability',         difficulty: 'easy',   estimatedMinutes: 30 },
+    { topicId: 'electrostatics',   topicName: 'Electrostatics',      difficulty: 'medium', estimatedMinutes: 40 },
+    { topicId: 'magnetism',        topicName: 'Magnetism',           difficulty: 'medium', estimatedMinutes: 35 },
+    { topicId: 'organic_chemistry',topicName: 'Organic Chemistry',   difficulty: 'hard',   estimatedMinutes: 50 },
+  ],
+};
+
+// ─── Lesson generator per topic ───────────────────────────────────────────────
+
+function buildLessonsForTopic(
+  topicId: string,
+  topicName: string,
+  difficulty: 'easy' | 'medium' | 'hard',
+  phase: ExamPhase,
+  phaseIndex: number,
+): OutlineLesson[] {
+  const lessons: OutlineLesson[] = [];
+  const base = `${topicId}::${phase}`;
+
+  // Phase determines which lessons are generated
+  const lessonSet: Array<{
+    suffix: string;
+    title: string;
+    objType: LearningObjectiveType;
+    format: ContentDecision['format'];
+    mode: ContentMode;
+    minutes: number;
+    agent: OutlineLesson['agentId'];
+    rationale: string;
+  }> = [];
+
+  if (['discovery', 'foundation'].includes(phase)) {
+    lessonSet.push({
+      suffix: 'intro',
+      title: `Introduction to ${topicName}`,
+      objType: 'introduce_concept',
+      format: 'explanation',
+      mode: 'llm_generated',
+      minutes: 15,
+      agent: 'sage',
+      rationale: 'First-encounter lesson: builds mental model from scratch with real-world hooks.',
+    });
+    lessonSet.push({
+      suffix: 'worked',
+      title: `${topicName} — Worked Examples`,
+      objType: 'deepen_understanding',
+      format: 'worked_example',
+      mode: 'wolfram_verified',
+      minutes: 20,
+      agent: 'sage',
+      rationale: 'Deepens understanding through step-by-step verified examples.',
+    });
+  }
+
+  if (['structured', 'intensive'].includes(phase)) {
+    lessonSet.push({
+      suffix: 'misconception',
+      title: `Common Mistakes in ${topicName}`,
+      objType: 'fix_misconception',
+      format: 'explanation',
+      mode: 'llm_generated',
+      minutes: 12,
+      agent: 'sage',
+      rationale: 'Targets the most common wrong mental models detected in student cohort.',
+    });
+    lessonSet.push({
+      suffix: 'practice',
+      title: `${topicName} — MCQ Drill`,
+      objType: 'build_speed',
+      format: 'mcq',
+      mode: 'static_pyq',
+      minutes: 20,
+      agent: 'atlas',
+      rationale: 'Builds timed MCQ speed. Uses PYQs from previous exam papers.',
+    });
+    lessonSet.push({
+      suffix: 'exam_pattern',
+      title: `${topicName} — Exam Pattern Analysis`,
+      objType: 'exam_pattern',
+      format: 'mock_question',
+      mode: 'static_pyq',
+      minutes: 18,
+      agent: 'atlas',
+      rationale: 'Shows exactly how examiners frame this topic. PYQ-anchored.',
+    });
+  }
+
+  if (['sprint', 'exam_week'].includes(phase)) {
+    lessonSet.push({
+      suffix: 'formula',
+      title: `${topicName} — Formula Sheet`,
+      objType: 'revision',
+      format: 'formula_sheet',
+      mode: 'static_pyq',
+      minutes: 8,
+      agent: 'atlas',
+      rationale: 'High-density formula revision card. Zero prose, maximum recall.',
+    });
+    lessonSet.push({
+      suffix: 'readiness',
+      title: `${topicName} — Readiness Check`,
+      objType: 'assess_readiness',
+      format: 'mcq',
+      mode: 'static_pyq',
+      minutes: 15,
+      agent: 'atlas',
+      rationale: 'Diagnostic MCQ set to confirm exam-readiness before the test.',
+    });
+  }
+
+  if (phase === 'post_exam') {
+    lessonSet.push({
+      suffix: 'crossconnect',
+      title: `${topicName} — Cross-Connections`,
+      objType: 'cross_connect',
+      format: 'concept_map',
+      mode: 'llm_generated',
+      minutes: 20,
+      agent: 'sage',
+      rationale: 'Links this topic to adjacent concepts for deeper long-term understanding.',
+    });
+  }
+
+  // If phase has no specific set, default to intro + practice
+  if (lessonSet.length === 0) {
+    lessonSet.push({
+      suffix: 'intro',
+      title: `Introduction to ${topicName}`,
+      objType: 'introduce_concept',
+      format: 'explanation',
+      mode: 'llm_generated',
+      minutes: 15,
+      agent: 'sage',
+      rationale: 'General introduction lesson.',
+    });
+    lessonSet.push({
+      suffix: 'practice',
+      title: `${topicName} — Practice`,
+      objType: 'build_speed',
+      format: 'mcq',
+      mode: 'static_pyq',
+      minutes: 15,
+      agent: 'atlas',
+      rationale: 'Practice MCQs for this topic.',
+    });
+  }
+
+  lessonSet.forEach((l, li) => {
+    lessons.push({
+      id: `${base}::${l.suffix}::${phaseIndex}-${li}`,
+      title: l.title,
+      objectiveType: l.objType,
+      format: l.format,
+      mode: l.mode,
+      difficulty,
+      estimatedMinutes: l.minutes,
+      agentId: l.agent,
+      status: 'included',
+      rationale: l.rationale,
+      prerequisites: li > 0 ? [`${base}::${lessonSet[li - 1].suffix}::${phaseIndex}-${li - 1}`] : [],
+    });
+  });
+
+  return lessons;
+}
+
+// ─── generateCourseSummary ────────────────────────────────────────────────────
+
+/**
+ * Generate a full hierarchical course summary outline for a given exam.
+ * This is called BEFORE approval — the CEO reviews and edits, then approves.
+ * Atlas only runs after approval.
+ *
+ * Structure:  CourseSummaryOutline → [OutlineModule] → [OutlineTopic] → [OutlineLesson]
+ */
+export function generateCourseSummary(
+  examId: string,
+  daysToExam: number,
+  customTopicIds?: string[],   // optional: restrict to these topics only
+): CourseSummaryOutline {
+  const id = `outline-${examId}-${Date.now()}`;
+  const topics = (EXAM_TOPIC_CATALOGUE[examId] ?? EXAM_TOPIC_CATALOGUE.GATE_EM)
+    .filter(t => !customTopicIds || customTopicIds.includes(t.topicId));
+
+  // Determine phases to cover based on daysToExam
+  const phasePlan: ExamPhase[] = [];
+  if (daysToExam > 90)  phasePlan.push('foundation');
+  if (daysToExam > 45)  phasePlan.push('structured');
+  if (daysToExam > 21)  phasePlan.push('intensive');
+  if (daysToExam > 7)   phasePlan.push('sprint');
+  if (daysToExam <= 7)  phasePlan.push('exam_week');
+  if (daysToExam <= 0)  phasePlan.push('post_exam');
+  if (phasePlan.length === 0) phasePlan.push('structured');
+
+  const PHASE_MODULE_TITLES: Record<ExamPhase, string> = {
+    discovery:  '🌱 Discovery — Orientation',
+    foundation: '🏗️ Foundation — Core Concepts',
+    structured: '📐 Structured — Systematic Coverage',
+    intensive:  '⚡ Intensive — Speed & Accuracy',
+    sprint:     '🏃 Sprint — High-Value Revision',
+    exam_week:  '🎯 Exam Week — Final Polish',
+    post_exam:  '🎉 Post-Exam — Deep Connections',
+  };
+  const PHASE_DESC: Record<ExamPhase, string> = {
+    discovery:  'Orientation and broad exploration of the exam landscape.',
+    foundation: 'Build conceptual understanding from the ground up for all core topics.',
+    structured: 'Systematic syllabus coverage: deepen understanding and fix misconceptions.',
+    intensive:  'Speed-building, exam-pattern mastery and high-difficulty drills.',
+    sprint:     'Focused revision of key formulas and rapid readiness checks.',
+    exam_week:  'Last-mile formula sheets and confidence-building readiness tests.',
+    post_exam:  'Cross-topic connections and preparation for the next level.',
+  };
+
+  const modules: OutlineModule[] = phasePlan.map((phase, phaseIndex) => {
+    const outlineTopics: OutlineTopic[] = topics.map((t, ti) => {
+      const lessons = buildLessonsForTopic(t.topicId, t.topicName, t.difficulty, phase, phaseIndex * 100 + ti);
+      const totalMinutes = lessons.reduce((s, l) => s + l.estimatedMinutes, 0);
+      return {
+        id: `topic-${phase}-${t.topicId}`,
+        topicId: t.topicId,
+        topicName: t.topicName,
+        phase,
+        totalMinutes,
+        lessons,
+        status: 'included',
+      };
+    });
+
+    const totalMinutes = outlineTopics.reduce((s, t) => s + t.totalMinutes, 0);
+    return {
+      id: `module-${phase}-${phaseIndex}`,
+      title: PHASE_MODULE_TITLES[phase] ?? `Phase: ${phase}`,
+      phase,
+      description: PHASE_DESC[phase] ?? '',
+      totalMinutes,
+      topics: outlineTopics,
+      status: 'included',
+    };
+  });
+
+  const totalLessons = modules.flatMap(m => m.topics.flatMap(t => t.lessons)).length;
+  const totalTopics  = modules.flatMap(m => m.topics).length;
+  const totalMinutes = modules.reduce((s, m) => s + m.totalMinutes, 0);
+
+  return {
+    id,
+    examId,
+    examName: examId,
+    generatedAt: new Date().toISOString(),
+    status: 'draft',
+    totalModules: modules.length,
+    totalTopics,
+    totalLessons,
+    estimatedHours: Math.round(totalMinutes / 60),
+    modules,
+    changeLog: [{ ts: new Date().toISOString(), change: 'Outline generated — awaiting approval.' }],
+  };
+}
+
+// ─── Outline mutation helpers ─────────────────────────────────────────────────
+
+/** Toggle include/exclude on any outline node by id. */
+export function toggleOutlineNode(
+  outline: CourseSummaryOutline,
+  nodeId: string,
+  level: 'module' | 'topic' | 'lesson',
+  nextStatus: OutlineNodeStatus,
+): CourseSummaryOutline {
+  const updated: CourseSummaryOutline = JSON.parse(JSON.stringify(outline));
+  let changeDesc = '';
+
+  if (level === 'module') {
+    const m = updated.modules.find(m => m.id === nodeId);
+    if (m) {
+      m.status = nextStatus;
+      // Cascade to children
+      m.topics.forEach(t => {
+        t.status = nextStatus;
+        t.lessons.forEach(l => { l.status = nextStatus; });
+      });
+      changeDesc = `Module "${m.title}" → ${nextStatus}`;
+    }
+  } else if (level === 'topic') {
+    for (const m of updated.modules) {
+      const t = m.topics.find(t => t.id === nodeId);
+      if (t) {
+        t.status = nextStatus;
+        t.lessons.forEach(l => { l.status = nextStatus; });
+        changeDesc = `Topic "${t.topicName}" in module "${m.title}" → ${nextStatus}`;
+        break;
+      }
+    }
+  } else {
+    for (const m of updated.modules) {
+      for (const t of m.topics) {
+        const l = t.lessons.find(l => l.id === nodeId);
+        if (l) {
+          l.status = nextStatus;
+          changeDesc = `Lesson "${l.title}" → ${nextStatus}`;
+          break;
+        }
+      }
+    }
+  }
+
+  // Recompute summary counts
+  const allLessons = updated.modules.flatMap(m => m.topics.flatMap(t => t.lessons));
+  const includedLessons = allLessons.filter(l => l.status === 'included');
+  updated.totalLessons = includedLessons.length;
+  updated.totalTopics  = updated.modules.flatMap(m => m.topics.filter(t => t.status === 'included')).length;
+  updated.totalModules = updated.modules.filter(m => m.status === 'included').length;
+  updated.estimatedHours = Math.round(includedLessons.reduce((s, l) => s + l.estimatedMinutes, 0) / 60);
+
+  if (changeDesc) {
+    updated.changeLog.push({ ts: new Date().toISOString(), change: changeDesc });
+  }
+
+  return updated;
+}
+
+/** Update a lesson's title, rationale, or difficulty. */
+export function editOutlineLesson(
+  outline: CourseSummaryOutline,
+  lessonId: string,
+  patch: Partial<Pick<OutlineLesson, 'title' | 'rationale' | 'difficulty' | 'estimatedMinutes' | 'format'>>,
+): CourseSummaryOutline {
+  const updated: CourseSummaryOutline = JSON.parse(JSON.stringify(outline));
+  for (const m of updated.modules) {
+    for (const t of m.topics) {
+      const l = t.lessons.find(l => l.id === lessonId);
+      if (l) {
+        const changes = Object.entries(patch)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(', ');
+        Object.assign(l, patch);
+        updated.changeLog.push({ ts: new Date().toISOString(), change: `Lesson "${l.title}" edited — ${changes}` });
+        break;
+      }
+    }
+  }
+  return updated;
+}
+
+/** Approve the outline — records who approved and when. */
+export function approveOutline(
+  outline: CourseSummaryOutline,
+  approvedBy = 'CEO',
+): CourseSummaryOutline {
+  return {
+    ...outline,
+    status: 'approved',
+    approvedAt: new Date().toISOString(),
+    approvedBy,
+    changeLog: [...outline.changeLog, {
+      ts: new Date().toISOString(),
+      change: `✅ Approved by ${approvedBy} — Atlas generation queued.`,
+    }],
+  };
+}
+
+const OUTLINE_LS_KEY = 'edugenius_course_outline';
+
+export function saveOutlineToStorage(outline: CourseSummaryOutline): void {
+  try { localStorage.setItem(OUTLINE_LS_KEY, JSON.stringify(outline)); } catch { /* ignore */ }
+}
+
+export function loadOutlineFromStorage(): CourseSummaryOutline | null {
+  try {
+    const raw = localStorage.getItem(OUTLINE_LS_KEY);
+    return raw ? (JSON.parse(raw) as CourseSummaryOutline) : null;
+  } catch { return null; }
+}
+
 // ─── Signal health check ──────────────────────────────────────────────────────
 
 export interface AgentSignalStatus {
