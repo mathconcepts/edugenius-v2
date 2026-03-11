@@ -1,8 +1,9 @@
 # Agent Architecture
 
-Comprehensive documentation of all 7 domain agents and their 45 sub-agents.
+Comprehensive documentation of all 8 agents (7 domain + Prism) and their 45+ sub-agents.
 
-> **See also:** [`18-agent-connection-map.md`](./18-agent-connection-map.md) — complete bidirectional signal reference with full connection matrix, all 24 signal types, and the exam lifecycle flow diagram. Last audited 2026-03-08 (all gaps filled).
+> **Last updated:** 2026-03-11 — Prism agent added (commit `d5968b0`)  
+> **See also:** [`18-agent-connection-map.md`](./18-agent-connection-map.md) — complete bidirectional signal reference with full connection matrix, all 25+ signal types, inbox processors, and the exam lifecycle flow diagram. Updated 2026-03-11.
 
 ---
 
@@ -505,3 +506,38 @@ Forge deploys
 Oracle tracks deployment
     ↓ oracle.track.deployment
 ```
+
+---
+
+## Prism Agent — Journey Intelligence
+
+> **Added:** 2026-03-11 (commit `d5968b0`)
+
+**Purpose:** Analyses full user journey traces across all touchpoints (blog → signup → first session → subscription). Detects funnel leaks and emits targeted `FUNNEL_INSIGHT` signals to the agent responsible for fixing each leak.
+
+**Heartbeat:** On-demand (triggered by Oracle when journey data is ready)
+
+**Role:** Intelligence layer — reads data from Oracle, emits insights to Herald, Mentor, and Atlas. Does not teach, generate content, or deploy.
+
+**Signal flow:**
+```
+Oracle exports journey events
+    ↓ (journey data)
+Prism analyses funnel stages
+    ├── FUNNEL_INSIGHT → Herald    (acquisition leaks: blog→signup CTAs, ad copy)
+    ├── FUNNEL_INSIGHT → Mentor    (activation leaks: onboarding→first-practice drop-off)
+    └── FUNNEL_INSIGHT → Atlas     (content signals: high-converting topic/format discovery)
+```
+
+**Workflow:** `prism_analysis` — 4-step pipeline visible in `/agents` CEO dashboard.
+
+**Sub-Agents:**
+
+| Sub-Agent | Description |
+|-----------|-------------|
+| **JourneyMapper** | Maps raw page/session events into user journey traces |
+| **LeakDetector** | Identifies drop-off points by stage and segment |
+| **SegmentAnalyser** | Breaks journeys by exam, entry point, device, and user type |
+| **InsightRouter** | Routes FUNNEL_INSIGHT signals to the correct target agent |
+
+**Inbox processor:** `processPrismInbox()` — drains all Prism-targeted signals.

@@ -1,7 +1,7 @@
 # Agent Connection Map — Bidirectional Signal Reference
 
-> **Last updated:** 2026-03-10  
-> **Audit status:** ✅ Complete — all 7 core agents fully connected; connection fixes applied 2026-03-10  
+> **Last updated:** 2026-03-11  
+> **Audit status:** ✅ Complete — all 8 agents (7 domain + Prism) fully connected; latest wiring commit `d5968b0`  
 > **Source files:** `services/signalBus.ts`, `services/examOrchestrator.ts`, `services/persistenceDB.ts`  
 > **See also:** `docs/19-audit-report.md` — Phase 3 for full connection inconsistency details
 
@@ -15,11 +15,24 @@
 | Duplicate module load: `buildStaticRagContext`/`buildStaticCatRagContext` imported twice | `services/sagePersonaPrompts.ts` | Removed duplicate bottom-of-file imports |
 | `Layout.tsx` read `edugenius_persona` key but `studentPersonaEngine` writes `edugenius_student_persona` | `components/layout/Layout.tsx` | Fixed key to `edugenius_student_persona` |
 
+## Refactor & Wiring Improvements (2026-03-11 — commit `d5968b0`)
+
+| Change | Detail |
+|--------|--------|
+| `AGENT_META` stale `inputsFrom`/`outputsTo` fixed for all 7 agents | `services/agentWorkflows.ts` — now matches signalBus reality |
+| `processAtlasInbox()` expanded | Was 2 signal types; now handles 6: `FORMAT_REQUEST`, `FORMAT_SUCCESS`, `ENGAGEMENT_GAP`, `TREND_SIGNAL` added |
+| `processSageInbox()` added | Sage can now drain `STUDENT_STRUGGLING` (from Mentor) and `CONTENT_READY` (from Atlas) |
+| **Prism agent wired** | `FUNNEL_INSIGHT` signal type added; `emitFunnelInsight()` + `processPrismInbox()` implemented |
+| `prism_analysis` workflow added | 4-step pipeline: Oracle exports journeys → Prism analyses → Herald fixes acquisition → Mentor fixes activation |
+| Agent system prompts improved | Oracle, Scout, Mentor, Herald now have explicit "Signal loop" directives in `llmService.ts` |
+| Debug `console.log` removed | All signal processor debug logs cleaned |
+| Full JSDoc on all `emit*()` functions | `@param` and `@returns` on every emitter in signalBus.ts |
+
 ---
 
 ## Overview
 
-EduGenius uses a **typed signal bus** (IndexedDB-backed) to connect all 7 domain agents bidirectionally. Every signal is:
+EduGenius uses a **typed signal bus** (IndexedDB-backed) to connect all 8 agents (7 domain + Prism journey intelligence) bidirectionally. Every signal is:
 
 - **Typed** — strongly typed union in `AgentSignal.type` (persistenceDB.ts)
 - **Persisted** — survives page reload, delivered on next agent tick
@@ -32,18 +45,19 @@ EduGenius uses a **typed signal bus** (IndexedDB-backed) to connect all 7 domain
 ## Full Connection Matrix
 
 ```
-FROM ╲ TO    Scout  Atlas  Sage  Mentor Herald  Forge Oracle
-─────────────────────────────────────────────────────────────
-Scout          ·      ✓     ·      ·      ✓      ·     ·
-Atlas          ·      ·     ✓      ·      ·      ·     ✓
-Sage           ·      ✓     ·      ✓      ✓      ✓     ✓
-Mentor         ·      ✓     ✓      ·      ·      ·     ·
-Herald         ✓      ·     ·      ·      ·      ·     ✓
-Forge          ✓      ·     ·      ✓      ✓      ·     ✓
-Oracle         ✓      ✓     ·      ✓      ✓      ·     ·
-CEO            ✓      ✓     ✓      ✓      ✓      ✓     ✓
-UserService    ·      ·     ✓      ✓      ·      ·     ✓
-Lens           ·      ✓     ·      ✓      ·      ·     ✓
+FROM ╲ TO    Scout  Atlas  Sage  Mentor Herald  Forge Oracle  Prism
+────────────────────────────────────────────────────────────────────
+Scout          ·      ✓     ·      ·      ✓      ·     ·       ·
+Atlas          ·      ·     ✓      ·      ·      ·     ✓       ·
+Sage           ·      ✓     ·      ✓      ✓      ✓     ✓       ·
+Mentor         ·      ✓     ✓      ·      ·      ·     ·       ·
+Herald         ✓      ·     ·      ·      ·      ·     ✓       ·
+Forge          ✓      ·     ·      ✓      ✓      ·     ✓       ·
+Oracle         ✓      ✓     ·      ✓      ✓      ·     ·       ✓
+CEO            ✓      ✓     ✓      ✓      ✓      ✓     ✓       ·
+UserService    ·      ·     ✓      ✓      ·      ·     ✓       ·
+Lens           ·      ✓     ·      ✓      ·      ·     ✓       ·
+Prism          ·      ·     ·      ✓      ✓      ·     ·       ·
 
 ✓ = connected  · = no direct signal (by design)
 ```
@@ -95,6 +109,16 @@ Lens           ·      ✓     ·      ✓      ·      ·     ✓
 | `CAMPAIGN_RESULT` | Herald → Scout | Campaign underperformed; Scout researches why | `emitCampaignResult()` |
 | `CONTENT_PUBLISHED` | Atlas → Oracle | New content live; Oracle sets up performance tracking | `emitContentPublished()` |
 
+### Prism Journey Intelligence (added 2026-03-11 — commit `d5968b0`)
+
+| Signal | Source → Target | Trigger | Emit Function |
+|--------|----------------|---------|---------------|
+| `FUNNEL_INSIGHT` | Prism → Herald | Acquisition funnel leak detected (e.g. blog→signup drop-off); Herald rewrites CTAs | `emitFunnelInsight()` |
+| `FUNNEL_INSIGHT` | Prism → Mentor | Activation leak detected (e.g. onboarding→first-practice drop-off); Mentor sends nudge | `emitFunnelInsight()` |
+| `FUNNEL_INSIGHT` | Prism → Atlas | High-converting content type identified; Atlas prioritises that format | `emitFunnelInsight()` |
+
+> **Note:** `FUNNEL_INSIGHT` is a parameterised signal — the `targetAgent` field routes it to Herald, Mentor, or Atlas based on which funnel stage the leak belongs to.
+
 ---
 
 ## Agent Responsibility Summary
@@ -131,8 +155,14 @@ Lens           ·      ✓     ·      ✓      ·      ·     ✓
 
 ### Oracle 📊 (Analytics)
 **Receives from:** Sage (mastery_achieved, breakthrough, behavioral_snapshot), Lens (behavioral_snapshot), Oracle self (churn_risk calculation), Forge (exam_deployed), Herald (marketing_live), UserService (student_enrolled), Atlas (content_published)  
-**Sends to:** Mentor (churn_risk, churn_cohort_alert), Atlas (content_stale), Scout (performance_insight), Herald (campaign_performance)  
-**Job:** Track everything. Drive the feedback loops. Health score keeper.
+**Sends to:** Mentor (churn_risk, churn_cohort_alert), Atlas (content_stale), Scout (performance_insight), Herald (campaign_performance), Prism (journey event export)  
+**Job:** Track everything. Drive the feedback loops. Health score keeper. Exports journey data to Prism for funnel analysis.
+
+### Prism 🌈 (Journey Intelligence)
+**Receives from:** Oracle (raw journey event export — entry points, drop-off stages, conversion events)  
+**Sends to:** Herald (funnel_insight — acquisition leaks), Mentor (funnel_insight — activation leaks), Atlas (funnel_insight — high-converting content signals)  
+**Job:** Map full user journey traces. Detect funnel leaks by stage and segment. Emit targeted FUNNEL_INSIGHT signals to the agent responsible for each leak. Operates as an intelligence layer, not a tutor or content engine.  
+**Workflow:** `prism_analysis` — Oracle exports journeys → Prism analyses → Herald/Mentor/Atlas receive targeted insights
 
 ---
 
@@ -182,6 +212,21 @@ Steady state feedback loops (weekly / continuous):
         Mentor──ENGAGEMENT_GAP──▶ Atlas
         Sage──CONTENT_GAP──▶ Atlas
 ```
+
+---
+
+## Inbox Processors (as of 2026-03-11)
+
+| Agent | Processor Function | Signals Handled |
+|-------|--------------------|-----------------|
+| Atlas | `processAtlasInbox()` | CONTENT_GAP, STRUGGLE_PATTERN, FORMAT_REQUEST, FORMAT_SUCCESS, ENGAGEMENT_GAP, TREND_SIGNAL |
+| Mentor | `processMentorInbox()` | CHURN_RISK, MASTERY_ACHIEVED, FRUSTRATION_ALERT, BREAKTHROUGH |
+| Oracle | `processOracleInbox()` | All Oracle-targeted signals (generic drain) |
+| Scout | `processScoutInbox()` | DEPLOY_METRICS, CAMPAIGN_RESULT, PERFORMANCE_INSIGHT |
+| Herald | `processHeraldInbox()` | CONTENT_VERIFIED, EXAM_DEPLOYED, CAMPAIGN_PERFORMANCE, KEYWORD_OPPORTUNITY |
+| Forge | `processForgeInbox()` | CONTENT_VERIFIED, EXAM_APPROVED |
+| **Sage** | `processSageInbox()` *(new)* | STUDENT_STRUGGLING, CONTENT_READY, EXAM_APPROVED |
+| **Prism** | `processPrismInbox()` *(new)* | All Prism-targeted signals (generic drain, consumed by prism_analysis workflow) |
 
 ---
 

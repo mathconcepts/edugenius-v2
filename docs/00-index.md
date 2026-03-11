@@ -1,7 +1,7 @@
 # EduGenius v2.0 — Documentation Index
 
-> **Last updated:** 2026-03-10  
-> **Total docs:** 21 files + 1 guide + infra/  
+> **Last updated:** 2026-03-11  
+> **Total docs:** 22 files + 1 guide + infra/  
 
 This is the master index of all documentation in the `docs/` directory, organised hierarchically.
 
@@ -60,9 +60,10 @@ This is the master index of all documentation in the `docs/` directory, organise
 | # | File | Contents |
 |---|------|----------|
 | 17 | `17-master-design-documentation.md` | Complete system design, data flows |
-| 18 | `18-agent-connection-map.md` | Bidirectional signal reference for all agents |
+| 18 | `18-agent-connection-map.md` | Bidirectional signal reference for all 8 agents (updated 2026-03-11: Prism + FUNNEL_INSIGHT + inbox processors) |
 | 19 | `19-audit-report.md` | Full dual-direction audit (2026-03-10) — findings + fixes |
 | 20 | `20-content-system.md` | Content generation & delivery system architecture (2026-03-10) |
+| 21 | `21-course-summary-outline.md` | Pre-approval hierarchical course outline — data model, API, UI, Atlas integration (2026-03-11) |
 
 ---
 
