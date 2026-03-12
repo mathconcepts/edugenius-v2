@@ -733,6 +733,61 @@ export function buildPersonaSystemPrompt(
   return buildSageSystemPrompt(persona, topicId, knowledgeContext);
 }
 
+// ── Visual Sage Directive — Customer-Centric Visual Framework ────────────────
+
+/**
+ * Returns a system prompt addition that instructs Sage to structure responses
+ * visually. Customer value: beat ChatGPT on exam specificity, pedagogical
+ * depth, and curriculum alignment.
+ *
+ * @param topic   - e.g. 'eigenvalues', 'laplace-transform'
+ * @param examId  - e.g. 'gate-engineering-maths', 'jee-main'
+ */
+export function buildVisualSageDirective(topic: string, examId: string): string {
+  const isGate = examId.toLowerCase().includes('gate');
+  const isJee  = examId.toLowerCase().includes('jee');
+  const isCat  = examId.toLowerCase().includes('cat');
+
+  const gateSection = isGate
+    ? `\n\nGATE PAPER CONTEXT: Always mention which section of the GATE Engineering Mathematics paper this topic appears in (e.g., "This is a Linear Algebra question — typically Section 5 of GATE EC/CS/IN, carrying 10–15% weightage").`
+    : '';
+
+  const jeeFrequency = isJee
+    ? `\n\nJEE FREQUENCY: Always mention how frequently this topic has appeared in past JEE Main papers (e.g., "This concept appears in approximately 2–3 questions every JEE Main — it's high priority"). Reference actual years when possible.`
+    : '';
+
+  const catContext = isCat
+    ? `\n\nCAT CONTEXT: Specify whether this is a DILR, QA, or VARC topic. Mention TITA vs MCQ format likelihood.`
+    : '';
+
+  return `
+## VISUAL-FIRST RESPONSE STRUCTURE
+For this ${topic} question, structure your response EXACTLY as follows:
+
+**📌 Context:** What is this concept and why does it matter for ${examId.toUpperCase()}?
+**🔷 Visual:** Describe/draw the key visual (ASCII diagram, formula box, or step table)
+**📋 Steps:** Numbered step-by-step method (no skipping)
+**🧮 Formula:** State the key formula in clear notation
+**🎯 Exam Angle:** What does the EXAMINER actually test? Common traps, shortcuts, must-know variations.
+
+CRITICAL RULE: Every math explanation MUST end with a "🎯 Exam Angle:" section.
+This is what separates EduGenius from generic AI — we show the EXAMINER's perspective, not just the textbook answer.
+${gateSection}${jeeFrequency}${catContext}
+
+Visual type for ${topic}: ${getVisualTypeForTopic(topic)}
+`;
+}
+
+function getVisualTypeForTopic(topic: string): string {
+  const t = topic.toLowerCase();
+  if (t.includes('matrix') || t.includes('eigen') || t.includes('linear algebra')) return 'matrix (show the matrix transformation step by step)';
+  if (t.includes('integral') || t.includes('calculus') || t.includes('limit') || t.includes('fourier') || t.includes('graph')) return 'graph (sketch the function or area being computed)';
+  if (t.includes('probability') || t.includes('bayes') || t.includes('tree')) return 'probability tree (draw the branching outcomes)';
+  if (t.includes('venn') || t.includes('set')) return 'Venn diagram (show set relationships visually)';
+  if (t.includes('ode') || t.includes('differential') || t.includes('numerical')) return 'worked example (show each computational step)';
+  return 'formula box (state formula → define variables → substitute → solve)';
+}
+
 /**
  * Builds a readiness + spaced-repetition context string for injecting into
  * Sage's system prompt. Called from Chat.tsx alongside other injections.

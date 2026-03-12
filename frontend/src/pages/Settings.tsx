@@ -529,6 +529,12 @@ function AdvancedTab() {
             label="Live Exam Simulator"
             sub="Timed mock exams with negative marking, percentile, and question autopsy."
           />
+          <Toggle
+            value={store.visualConceptCardsEnabled}
+            onChange={store.setVisualConceptCardsEnabled}
+            label="Visual Concept Cards (ChatGPT Counter 🎯)"
+            sub="Sage auto-attaches structured visual cards below math responses: steps, formula, memory anchor, and GATE/JEE-specific exam tips."
+          />
         </div>
       </div>
 

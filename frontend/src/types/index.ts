@@ -147,6 +147,9 @@ export interface Message {
     topperExamId?: string;   // e.g. 'gate-engineering-maths'
   };
 
+  // Visual Math Framework — customer-centric visual concept card
+  visualCard?: import('../services/visualMathService').VisualConceptCardData;
+
   // Traceability
   traceId?: string;        // rootTraceId of the TraceTree for this message
   promptId?: string;       // which prompt template was used

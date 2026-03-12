@@ -74,6 +74,10 @@ interface AppState {
   moodCheckInEnabled: boolean;
   setMoodCheckInEnabled: (v: boolean) => void;
 
+  // F13: Visual Concept Cards — customer-centric visual math framework (default ON)
+  visualConceptCardsEnabled: boolean;
+  setVisualConceptCardsEnabled: (v: boolean) => void;
+
   // ── Notifications ─────────────────────────────────────────────────────────────
   notifications: Notification[];
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
@@ -280,6 +284,9 @@ export const useAppStore = create<AppState>()(
       moodCheckInEnabled: true,
       setMoodCheckInEnabled: (v) => set({ moodCheckInEnabled: v }),
 
+      visualConceptCardsEnabled: true,
+      setVisualConceptCardsEnabled: (v) => set({ visualConceptCardsEnabled: v }),
+
       // ── Notifications ─────────────────────────────────────────────────────────
       notifications: [],
       addNotification: (notification) => set((state) => ({
@@ -341,6 +348,7 @@ export const useAppStore = create<AppState>()(
         sageLanguage: state.sageLanguage,
         readinessScoreEnabled: state.readinessScoreEnabled,
         moodCheckInEnabled: state.moodCheckInEnabled,
+        visualConceptCardsEnabled: state.visualConceptCardsEnabled,
       }),
     }
   )

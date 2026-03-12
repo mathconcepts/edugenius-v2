@@ -26,6 +26,7 @@ import { NextConceptCard } from '@/components/chat/NextConceptCard';
 import { MasteryBadge } from '@/components/chat/MasteryBadge';
 import { MobileChatUI, useIsMobile } from '@/components/chat/MobileChatUI';
 import { TopperTipChip } from '@/components/chat/TopperInsightCard';
+import { VisualConceptCard } from '@/components/VisualConceptCard';
 import { shouldRenderWithManim, extractPrimaryLatex } from '@/services/manimService';
 import { buildLensContext, type LensContext } from '@/services/lensEngine';
 import { recordSageInteraction } from '@/services/signalBus';
@@ -190,6 +191,7 @@ function MessageBubble({
   newlyMastered,
   onDismissMastery,
   isLastMessage,
+  visualConceptCardsEnabled,
 }: {
   message: Message;
   onCopy: () => void;
@@ -201,6 +203,7 @@ function MessageBubble({
   newlyMastered?: { topicId: string; score: number } | null;
   onDismissMastery?: () => void;
   isLastMessage?: boolean;
+  visualConceptCardsEnabled?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
@@ -356,6 +359,14 @@ function MessageBubble({
                 topicName={newlyMastered.topicId.replace(/-/g, ' ')}
                 masteryScore={newlyMastered.score}
                 onDismiss={onDismissMastery}
+              />
+            )}
+
+            {/* Visual Concept Card — customer-centric visual math framework */}
+            {!isUser && visualConceptCardsEnabled && message.visualCard && (
+              <VisualConceptCard
+                data={message.visualCard}
+                defaultCollapsed={false}
               />
             )}
 
@@ -540,7 +551,7 @@ function getContextualSuggestions(persona: StudentPersona): string[] {
 export function Chat() {
   const [searchParams] = useSearchParams();
   const { sessions, currentSessionId, isStreaming, createSession, setCurrentSession, deleteSession, addMessage, setStreaming, getCurrentSession } = useChatStore();
-  const { addNotification, userRole, manimEnabled, manimServiceUrl, voiceTTSEnabled, multilingualEnabled, sageLanguage, moodCheckInEnabled, readinessScoreEnabled, spacedRepetitionEnabled } = useAppStore();
+  const { addNotification, userRole, manimEnabled, manimServiceUrl, voiceTTSEnabled, multilingualEnabled, sageLanguage, moodCheckInEnabled, readinessScoreEnabled, spacedRepetitionEnabled, visualConceptCardsEnabled } = useAppStore();
 
   const [selectedAgent, setSelectedAgent] = useState<AgentType>(
     (searchParams.get('agent') as AgentType) || 'sage'
@@ -1051,7 +1062,7 @@ export function Chat() {
       return llmResponse;
     };
 
-    const deliverResponse = (responseText: string, provider?: string) => {
+    const deliverResponse = async (responseText: string, provider?: string) => {
       const latency = Date.now() - start;
 
       // Add LLM call node to trace
@@ -1096,6 +1107,24 @@ export function Chat() {
         : null;
       const manimLatex = manimTopic ? extractPrimaryLatex(responseText) : undefined;
 
+      // ── Visual Concept Card: enhance math responses with structured visual ──
+      // Detect math concept synchronously using heuristics (no LLM call).
+      let visualCardData: import('@/services/visualMathService').VisualConceptCardData | undefined;
+      if (visualConceptCardsEnabled && activeAgent === 'sage') {
+        try {
+          const { containsMathConcept, detectTopicFromText, buildConceptCard } = await import('@/services/visualMathService');
+          if (containsMathConcept(responseText)) {
+            const topicHint = detectedTopicId ?? detectTopicFromText(responseText);
+            if (topicHint) {
+              const isGateExam = (lensContext?.examId ?? '').includes('gate') ||
+                (persona?.exam ?? '').toUpperCase().includes('GATE');
+              const examId = lensContext?.examId ?? (isGateExam ? 'gate-engineering-maths' : 'jee-main');
+              visualCardData = buildConceptCard(topicHint, examId);
+            }
+          }
+        } catch { /* non-blocking — visual card is enhancement only */ }
+      }
+
       addMessage(sessionId!, {
         role: 'assistant',
         content: responseText,
@@ -1105,6 +1134,7 @@ export function Chat() {
         traceId: activeTrace!.rootTraceId,
         promptId,
         promptVersion,
+        visualCard: visualCardData,
         metadata: {
           processingMs: latency,
           confidence: intent.confidence,
@@ -1725,6 +1755,7 @@ export function Chat() {
                   newlyMastered={newlyMastered}
                   onDismissMastery={() => setNewlyMastered(null)}
                   isLastMessage={idx === currentSession.messages.length - 1}
+                  visualConceptCardsEnabled={visualConceptCardsEnabled}
                 />
               ))}
 
