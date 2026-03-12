@@ -12,7 +12,7 @@ import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
   BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders, Cpu, Zap, Globe, Layers, Radio,
-  TrendingUp,
+  TrendingUp, CalendarDays, Newspaper,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -75,6 +75,8 @@ const roleNavItems = {
     { to: '/learn',             icon: GraduationCap, label: 'Study' },
     { to: '/notebook',          icon: BookMarked,    label: 'Notebook' },
     { to: '/progress',          icon: BarChart3,     label: 'Progress' },
+    { to: '/revision',          icon: CalendarDays,  label: 'Revision' },
+    { to: '/daily-brief',       icon: Newspaper,     label: 'Daily Brief' },
     { to: '/content-strategy',  icon: Sliders,       label: 'My Strategy' },
   ],
 };

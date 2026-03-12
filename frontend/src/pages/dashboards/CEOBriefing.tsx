@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { generateLiveBrief, LiveDecision } from '../../services/liveBriefing';
+import { useAppStore } from '@/stores/appStore';
+import { loadProfile } from '@/services/gamificationService';
+import { computeReadiness } from '@/services/readinessScoreService';
 
 // ── Compact KPI Card ─────────────────────────────────────────────────────────
 
@@ -134,6 +137,40 @@ function AgentRow({ agent, summary, count, time }: {
   );
 }
 
+// ── Engagement Metrics Panel ─────────────────────────────────────────────────
+
+function EngagementMetricsPanel() {
+  const { gamificationEnabled, readinessScoreEnabled } = useAppStore();
+  if (!gamificationEnabled && !readinessScoreEnabled) return null;
+
+  // Load local student's profile as proxy (in prod this would be aggregate API)
+  const profile = loadProfile();
+  const report = computeReadiness();
+
+  return (
+    <div className="glass rounded-xl px-4 py-3 flex-shrink-0">
+      <h3 className="text-xs font-semibold text-surface-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+        🎮 Engagement Pulse
+        <span className="text-[10px] text-surface-500 font-normal normal-case">(live from student sessions)</span>
+      </h3>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Avg XP/Week', value: String(profile.weeklyXP), color: 'text-yellow-400', icon: '⚡' },
+          { label: 'Streak', value: `${profile.streak}d`, color: 'text-orange-400', icon: '🔥' },
+          { label: 'Readiness', value: `${report.overallScore}%`, color: report.overallScore >= 75 ? 'text-green-400' : 'text-amber-400', icon: '📊' },
+          { label: 'Level', value: `Lv.${profile.level} ${profile.rank}`, color: 'text-purple-400', icon: '🏆' },
+        ].map(m => (
+          <div key={m.label} className="bg-surface-800/60 rounded-xl p-3 text-center">
+            <div className="text-lg mb-1">{m.icon}</div>
+            <div className={`text-lg font-black ${m.color}`}>{m.value}</div>
+            <div className="text-xs text-surface-400">{m.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export function CEOBriefing() {
@@ -233,6 +270,9 @@ export function CEOBriefing() {
           </div>
         )}
       </motion.div>
+
+      {/* ── Zone C.5: Engagement Pulse (gamification + readiness) ────────── */}
+      <EngagementMetricsPanel />
 
       {/* ── Zone D: Agent Activity (scrolls within zone) ─────────────────── */}
       <motion.div

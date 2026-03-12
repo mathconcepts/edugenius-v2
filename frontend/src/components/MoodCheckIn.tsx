@@ -26,6 +26,18 @@ export function MoodCheckIn() {
     setSelected(mood);
     recordMood(mood);
     setConfirmed(true);
+
+    // Emit to Mentor agent via signal bus
+    const plan = getSessionPlan(mood);
+    import('@/services/signalBus').then(({ emitMoodSignal }) => {
+      emitMoodSignal({
+        studentId: 'student_local',
+        examId: localStorage.getItem('eg_active_exam') ?? 'gate',
+        mood,
+        sessionPlanDuration: plan.durationMinutes,
+        streakProtected: plan.streakProtected,
+      }).catch(() => {});
+    }).catch(() => {});
   };
 
   if (confirmed && selected) {

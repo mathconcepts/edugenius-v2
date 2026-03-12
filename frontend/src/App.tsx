@@ -101,6 +101,8 @@ const GrowthCommand = lazy(() => import('@/pages/dashboards/GrowthCommand').then
 // ── Delight Features ──────────────────────────────────────────────────────────
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 const ExamSim = lazy(() => import('@/pages/ExamSim'));
+const RevisionSchedule = lazy(() => import('@/pages/RevisionSchedule'));
+const DailyBriefPage = lazy(() => import('@/pages/DailyBrief'));
 
 // Lazy load Social Intent Dashboard (CEO only)
 
@@ -237,6 +239,8 @@ export default function App() {
           {/* ── Delight Feature Routes ──────────────────────────────────── */}
           <Route path="leaderboard" element={<Suspense fallback={<PageLoader />}><Leaderboard /></Suspense>} />
           <Route path="exam-sim" element={<Suspense fallback={<PageLoader />}><ExamSim /></Suspense>} />
+          <Route path="revision" element={<Suspense fallback={<PageLoader />}><RevisionSchedule /></Suspense>} />
+          <Route path="daily-brief" element={<Suspense fallback={<PageLoader />}><DailyBriefPage /></Suspense>} />
 
           {/* Social Intent Dashboard — CEO only */}
 

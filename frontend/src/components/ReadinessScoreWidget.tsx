@@ -2,7 +2,7 @@
  * ReadinessScoreWidget.tsx — Predictive exam readiness score display
  * CEO/Admin: appStore.readinessScoreEnabled
  */
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, AlertCircle, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -18,6 +18,26 @@ interface ReadinessScoreWidgetProps {
 export function ReadinessScoreWidget({ compact, examDate, onViewDetails }: ReadinessScoreWidgetProps) {
   const { readinessScoreEnabled } = useAppStore();
   const report = useMemo(() => computeReadiness(examDate), [examDate]);
+
+  // Emit readiness snapshot to Oracle once per day
+  useEffect(() => {
+    if (!readinessScoreEnabled) return;
+    const today = new Date().toDateString();
+    const lastEmitted = localStorage.getItem('eg_readiness_emitted');
+    if (lastEmitted !== today && report.confidence !== 'low') {
+      localStorage.setItem('eg_readiness_emitted', today);
+      import('@/services/signalBus').then(({ emitReadinessSnapshot }) => {
+        emitReadinessSnapshot({
+          studentId: 'student_local',
+          examId: localStorage.getItem('eg_active_exam') ?? 'gate',
+          score: report.overallScore,
+          grade: report.grade,
+          trend: report.trend,
+          topGap: report.topGaps[0] ?? 'none',
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+  }, [report, readinessScoreEnabled]);
 
   if (!readinessScoreEnabled) return null;
 

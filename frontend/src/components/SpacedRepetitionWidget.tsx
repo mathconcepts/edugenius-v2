@@ -129,6 +129,27 @@ export function SpacedRepetitionWidget() {
   const { spacedRepetitionEnabled } = useAppStore();
   const [showModal, setShowModal] = useState(false);
 
+  // Emit SR overdue signal to Mentor once per day when 3+ cards are due
+  useEffect(() => {
+    if (!spacedRepetitionEnabled) return;
+    const dueCards = getDueCards();
+    if (dueCards.length >= 3) {
+      const today = new Date().toDateString();
+      const lastEmitted = localStorage.getItem('eg_sr_overdue_emitted');
+      if (lastEmitted !== today) {
+        localStorage.setItem('eg_sr_overdue_emitted', today);
+        import('@/services/signalBus').then(({ emitSROverdue }) => {
+          emitSROverdue({
+            studentId: 'student_local',
+            overdueTopics: dueCards.slice(0, 5).map(c => c.topic),
+            examId: localStorage.getItem('eg_active_exam') ?? 'gate',
+            daysOverdue: 1,
+          }).catch(() => {});
+        }).catch(() => {});
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!spacedRepetitionEnabled) return null;
 
   ensureSampleCards();
