@@ -732,3 +732,28 @@ export function buildPersonaSystemPrompt(
 ): string {
   return buildSageSystemPrompt(persona, topicId, knowledgeContext);
 }
+
+/**
+ * Builds a readiness + spaced-repetition context string for injecting into
+ * Sage's system prompt. Called from Chat.tsx alongside other injections.
+ * Uses require() because this is a sync function.
+ */
+export function buildReadinessSageContext(): string {
+  try {
+    const { computeReadiness } = require('./readinessScoreService') as typeof import('./readinessScoreService');
+    const { getDueCards } = require('./spacedRepetitionEngine') as typeof import('./spacedRepetitionEngine');
+    const report = computeReadiness();
+    const due = getDueCards().length;
+    const parts: string[] = [];
+    if (report.overallScore < 70) {
+      parts.push(`STUDENT READINESS: ${report.overallScore}/100 (${report.grade}). ${report.recommendation}`);
+    }
+    if (due > 0) {
+      parts.push(`SPACED REPETITION: ${due} flashcard(s) overdue. Sage should remind the student to review them after this session.`);
+    }
+    if (report.topGaps.length > 0 && report.overallScore < 80) {
+      parts.push(`FOCUS GAPS: ${report.topGaps.slice(0, 2).join('; ')}`);
+    }
+    return parts.join('\n');
+  } catch { return ''; }
+}

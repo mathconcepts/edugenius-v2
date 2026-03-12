@@ -723,6 +723,22 @@ function QuizScreen({
         }).catch(() => {/* non-blocking */});
       });
     }
+
+    // ── Gamification: award XP on correct answer ──────────────────────────
+    if (isCorrect) {
+      import('@/services/gamificationService').then(({ awardXP, updateStreak }) => {
+        awardXP({ type: 'question_correct' });
+        updateStreak();
+      }).catch(() => {});
+    }
+
+    // ── Spaced Repetition: add card if first time seeing this question ────
+    import('@/services/spacedRepetitionEngine').then(({ addCard, getAllCards }) => {
+      const allCards = getAllCards();
+      if (!allCards.find(c => c.id === `practice_${q.id}`)) {
+        addCard(q.question.slice(0, 60), q.subject, q.options[q.correctIndex], undefined);
+      }
+    }).catch(() => {});
   };
 
   const handleSkip = useCallback(() => {
@@ -751,6 +767,10 @@ function QuizScreen({
           });
           storeTrace(sessionTrace.current);
         }
+        // ── Gamification: award topic_complete XP at session end ────────────
+        import('@/services/gamificationService').then(({ awardXP }) => {
+          awardXP({ type: 'topic_complete' });
+        }).catch(() => {});
         onComplete(updated);
       }
       return updated;
@@ -782,6 +802,10 @@ function QuizScreen({
         });
         storeTrace(sessionTrace.current);
       }
+      // ── Gamification: award topic_complete XP at session end ──────────────
+      import('@/services/gamificationService').then(({ awardXP }) => {
+        awardXP({ type: 'topic_complete' });
+      }).catch(() => {});
       onComplete(answers);
       return;
     }

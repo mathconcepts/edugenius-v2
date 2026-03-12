@@ -90,7 +90,12 @@ export interface AgentSignal {
        | 'CAMPAIGN_RESULT'     // Herald → Scout: campaign underperformed, research why
        | 'CONTENT_PUBLISHED'   // Atlas → Oracle: new content live, start tracking
        // ── Prism journey-intelligence signals (bidirectional, 2026-03-11) ────
-       | 'FUNNEL_INSIGHT';     // Prism → relevant agent: funnel leak / journey anomaly detected
+       | 'FUNNEL_INSIGHT'     // Prism → relevant agent: funnel leak / journey anomaly detected
+       // ── Delight feature signals (bidirectional wiring 2026-03-12) ─────────
+       | 'XP_MILESTONE'       // Mentor → Oracle: level-up / badge / streak milestone
+       | 'READINESS_SNAPSHOT' // Sage → Oracle: daily readiness score snapshot
+       | 'MOOD_CHECK_IN'      // Sage → Mentor: daily mood signal for wellbeing tracking
+       | 'SR_OVERDUE_ALERT';  // Student → Mentor: spaced repetition cards overdue
   sourceAgent: string;
   targetAgent: string;
   payload: Record<string, unknown>;

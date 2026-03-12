@@ -134,3 +134,6 @@ export function getMoodFromText(text: string): StudentMood {
   if (/got it|understand|makes sense|easy|clear|i see|perfect|yes!/.test(lower)) return 'confident';
   return 'neutral';
 }
+
+/** Alias for getMoodFromText — used by Chat.tsx for mood-adaptive TTS. */
+export const detectMoodFromText = getMoodFromText;

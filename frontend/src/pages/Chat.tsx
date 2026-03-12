@@ -40,7 +40,7 @@ import { callLLM, isLLMConfigured, getActiveProvider } from '@/services/llmServi
 import { getKey } from '@/services/connectionBridge';
 import { loadPersona, updatePersonaAfterMessage, personaToCustomerProfileRaw } from '@/services/studentPersonaEngine';
 import { inferEmotionalStateFromSignals } from '@/services/behavioralSignals';
-import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, KnowledgeContext, type UserContext } from '@/services/sagePersonaPrompts';
+import { buildSageSystemPrompt, getSageOpener, buildGateRagPrompt, shouldUseRag, buildCatRagPrompt, shouldUseCatRag, buildReadinessSageContext, KnowledgeContext, type UserContext } from '@/services/sagePersonaPrompts';
 import { buildCustomerProfile, type LearningMoment } from '@/services/contentFramework';
 import { resolveKnowledgeForUser } from '@/services/knowledgeRouter';
 import {
@@ -540,7 +540,7 @@ function getContextualSuggestions(persona: StudentPersona): string[] {
 export function Chat() {
   const [searchParams] = useSearchParams();
   const { sessions, currentSessionId, isStreaming, createSession, setCurrentSession, deleteSession, addMessage, setStreaming, getCurrentSession } = useChatStore();
-  const { addNotification, userRole, manimEnabled, manimServiceUrl, voiceTTSEnabled, multilingualEnabled, sageLanguage, moodCheckInEnabled } = useAppStore();
+  const { addNotification, userRole, manimEnabled, manimServiceUrl, voiceTTSEnabled, multilingualEnabled, sageLanguage, moodCheckInEnabled, readinessScoreEnabled, spacedRepetitionEnabled } = useAppStore();
 
   const [selectedAgent, setSelectedAgent] = useState<AgentType>(
     (searchParams.get('agent') as AgentType) || 'sage'
@@ -958,6 +958,12 @@ export function Chat() {
         }
       }
 
+      // ── Readiness + SR context injection ──────────────────────────────────
+      if (readinessScoreEnabled || spacedRepetitionEnabled) {
+        const readinessCtx = buildReadinessSageContext();
+        if (readinessCtx) sageSystemPrompt = `${sageSystemPrompt}\n\n${readinessCtx}`;
+      }
+
       // Prepend opener to the message context for first turn
       const opener = getSageOpener(updatedPersona, history.length === 0);
       if (opener) {
@@ -1122,8 +1128,10 @@ export function Chat() {
 
       // ── Auto-TTS: read Sage response aloud when voiceTTSEnabled ────────────
       if (voiceTTSEnabled && activeAgent === 'sage') {
-        import('@/services/voiceInputService').then(({ speak }) => {
-          speak(responseText);
+        import('@/services/voiceInputService').then(({ speak, detectMoodFromText }) => {
+          const mood = detectMoodFromText(userText);
+          // Speak slower when student is frustrated
+          speak(responseText, { rate: mood === 'frustrated' ? 0.8 : 0.95 });
         }).catch(() => {});
       }
 

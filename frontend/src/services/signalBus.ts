@@ -997,6 +997,90 @@ export async function processForgeInbox(): Promise<{
   };
 }
 
+// ─── Delight Feature Signal Emitters (bidirectional wiring 2026-03-12) ────────
+
+/**
+ * Gamification → Oracle: XP milestones and level-up events.
+ * Oracle tracks engagement trends; Mentor acts on level-ups for motivation.
+ */
+export async function emitXPMilestone(params: {
+  studentId: string;
+  examId: string;
+  event: string;   // e.g. 'level_up', 'badge_earned', 'streak_milestone'
+  xp: number;
+  level: number;
+  streak: number;
+  badge?: string;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'XP_MILESTONE',
+    sourceAgent: 'mentor',
+    targetAgent: 'oracle',
+    payload: params,
+    studentId: params.studentId,
+  });
+}
+
+/**
+ * Readiness Score → Oracle: daily readiness snapshot for trend tracking.
+ * Oracle uses this to compute week-over-week improvement curves.
+ */
+export async function emitReadinessSnapshot(params: {
+  studentId: string;
+  examId: string;
+  score: number;
+  grade: string;
+  trend: string;
+  topGap: string;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'READINESS_SNAPSHOT',
+    sourceAgent: 'sage',
+    targetAgent: 'oracle',
+    payload: params,
+    studentId: params.studentId,
+  });
+}
+
+/**
+ * Mood → Mentor: daily mood signal for wellbeing tracking.
+ * Mentor uses this to adjust study plan recommendations.
+ */
+export async function emitMoodSignal(params: {
+  studentId: string;
+  examId: string;
+  mood: string;
+  sessionPlanDuration: number;
+  streakProtected: boolean;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'MOOD_CHECK_IN',
+    sourceAgent: 'sage',
+    targetAgent: 'mentor',
+    payload: params,
+    studentId: params.studentId,
+  });
+}
+
+/**
+ * SR Overdue → Mentor: student has overdue flashcards.
+ * Mentor can schedule a nudge / reminder session.
+ */
+export async function emitSROverdue(params: {
+  studentId: string;
+  overdueTopics: string[];
+  examId: string;
+  daysOverdue: number;
+}): Promise<void> {
+  await enqueueSignal({
+    type: 'SR_OVERDUE_ALERT',
+    sourceAgent: 'sage',
+    targetAgent: 'mentor',
+    payload: params,
+    studentId: params.studentId,
+  });
+}
+
 // ─── Prism Journey Intelligence (bidirectional) ───────────────────────────────
 
 /**
