@@ -316,3 +316,99 @@ export async function getSRSummary(
     return { dueCount: 0, overdueCount: 0, masteredCount: 0, nextDueAt: null };
   }
 }
+
+// ─── SRCard (localStorage-based, for SpacedRepetitionWidget) ─────────────────
+// Separate from the IndexedDB SRRecord above — simpler, for standalone widget
+
+export interface SRCard {
+  id: string;
+  topic: string;
+  subject: string;
+  concept: string;
+  difficulty: number; // 0-1
+  lastSeen: number;   // timestamp
+  nextReview: number; // timestamp
+  interval: number;   // days
+  easeFactor: number; // SM-2
+  repetitions: number;
+  retentionScore: number; // 0-100 estimated
+}
+
+const SR_CARDS_KEY = 'eg_sr_cards';
+
+export function getAllCards(): SRCard[] {
+  try {
+    return JSON.parse(localStorage.getItem(SR_CARDS_KEY) ?? '[]') as SRCard[];
+  } catch { return []; }
+}
+
+export function saveCard(card: SRCard): void {
+  const cards = getAllCards().filter(c => c.id !== card.id);
+  localStorage.setItem(SR_CARDS_KEY, JSON.stringify([...cards, card]));
+}
+
+export function getDueCards(): SRCard[] {
+  const now = Date.now();
+  return getAllCards()
+    .filter(c => c.nextReview <= now)
+    .sort((a, b) => a.nextReview - b.nextReview);
+}
+
+export function addCard(topic: string, subject: string, concept: string): SRCard {
+  const card: SRCard = {
+    id: `${topic.replace(/\s+/g, '_')}_${Date.now()}`,
+    topic,
+    subject,
+    concept,
+    difficulty: 0.5,
+    lastSeen: 0,
+    nextReview: Date.now(),
+    interval: 1,
+    easeFactor: 2.5,
+    repetitions: 0,
+    retentionScore: 100,
+  };
+  saveCard(card);
+  return card;
+}
+
+export function calculateNextReview(card: SRCard, quality: 0 | 1 | 2 | 3 | 4 | 5): SRCard {
+  let { easeFactor, interval, repetitions } = card;
+
+  if (quality < 3) {
+    repetitions = 0;
+    interval = 1;
+  } else {
+    if (repetitions === 0) interval = 1;
+    else if (repetitions === 1) interval = 6;
+    else interval = Math.round(interval * easeFactor);
+    repetitions += 1;
+  }
+
+  easeFactor = Math.max(1.3, easeFactor + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+  const retentionScore = Math.min(100, Math.round(100 * Math.exp(-0.1 * interval)));
+
+  return {
+    ...card,
+    easeFactor,
+    interval,
+    repetitions,
+    lastSeen: Date.now(),
+    nextReview: Date.now() + interval * 86400000,
+    retentionScore,
+  };
+}
+
+export function ensureSampleCards(): void {
+  if (getAllCards().length > 0) return;
+  const samples = [
+    { topic: "Faraday's Law", subject: 'Electromagnetics', concept: 'EMF = -dΦ/dt. Rate of change of flux induces EMF.' },
+    { topic: "Lenz's Law", subject: 'Electromagnetics', concept: 'Induced current opposes the change in flux that caused it.' },
+    { topic: 'Biot-Savart Law', subject: 'Electromagnetics', concept: 'dB = (μ₀/4π) × (I dl × r̂)/r²' },
+    { topic: 'Merge Sort', subject: 'Algorithms', concept: 'Divide and conquer. O(n log n) always. Stable sort.' },
+    { topic: 'P vs NP', subject: 'Theory of Computation', concept: 'P ⊆ NP. Whether P=NP is the greatest unsolved CS problem.' },
+    { topic: 'Thevenin Theorem', subject: 'Circuit Theory', concept: 'Any linear circuit ≡ Vth in series with Rth.' },
+    { topic: 'Dijkstra Algorithm', subject: 'Algorithms', concept: 'Greedy shortest path. O((V+E) log V) with binary heap.' },
+  ];
+  samples.forEach(s => addCard(s.topic, s.subject, s.concept));
+}

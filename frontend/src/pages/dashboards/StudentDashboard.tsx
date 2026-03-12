@@ -13,6 +13,11 @@ import { Target, MessageSquare, BarChart3 } from 'lucide-react';
 import { loadPersona } from '@/services/studentPersonaEngine';
 import { getDaysToExam, getExamDateFormatted, getUrgencyLevel } from '@/services/examDateService';
 import { loadNotebookState, getDueRevisions, type ExamScope } from '@/services/notebookEngine';
+import { MoodCheckIn } from '@/components/MoodCheckIn';
+import { DailyBriefCard } from '@/components/DailyBriefCard';
+import { SpacedRepetitionWidget } from '@/components/SpacedRepetitionWidget';
+import { ReadinessScoreWidget } from '@/components/ReadinessScoreWidget';
+import { XPBar } from '@/components/XPBar';
 
 // ── Dynamic today plan from persona + notebook ────────────────────────────────
 
@@ -268,8 +273,23 @@ export function StudentDashboard() {
         onStart={handleStart}
       />
 
+      {/* ZONE 2b: Mood Check-In (adaptive pacing) */}
+      <MoodCheckIn />
+
+      {/* ZONE 2c: Daily Brief (WhatsApp-style) */}
+      <DailyBriefCard />
+
       {/* ZONE 3: Escape Hatches */}
       <EscapeHatches />
+
+      {/* ZONE 4: XP Progress bar */}
+      <XPBar />
+
+      {/* ZONE 5: Readiness Score */}
+      <ReadinessScoreWidget compact />
+
+      {/* ZONE 6: Spaced Repetition */}
+      <SpacedRepetitionWidget />
 
     </div>
   );

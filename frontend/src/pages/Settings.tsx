@@ -479,11 +479,154 @@ function BillingTab() {
 
 // ─── Advanced Tab (CEO only) ──────────────────────────────────────────────────
 
+function Toggle({ value, onChange, label, sub }: {
+  value: boolean; onChange: (v: boolean) => void; label: string; sub?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-surface-700/40 last:border-0">
+      <div>
+        <p className="text-sm font-medium text-white">{label}</p>
+        {sub && <p className="text-xs text-surface-400 mt-0.5">{sub}</p>}
+      </div>
+      <button
+        onClick={() => onChange(!value)}
+        className={clsx('relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0',
+          value ? 'bg-primary-500' : 'bg-surface-600')}
+      >
+        <span className={clsx('absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200',
+          value ? 'translate-x-6' : 'translate-x-1')} />
+      </button>
+    </div>
+  );
+}
+
 function AdvancedTab() {
   const [dangerConfirm, setDangerConfirm] = useState('');
+  const store = useAppStore();
 
   return (
     <div className="space-y-6">
+
+      {/* ── Delight Feature Flags ─────────────────────────────────────────── */}
+      <div className="card-inner">
+        <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
+          🎮 Student Engagement Features
+        </h3>
+        <p className="text-xs text-surface-400 mb-4">Toggle these features on/off for all students. Changes take effect immediately.</p>
+        <div className="divide-y divide-surface-700/40">
+          <Toggle
+            value={store.gamificationEnabled}
+            onChange={store.setGamificationEnabled}
+            label="Gamification (XP, Levels, Badges, Streaks)"
+            sub="Students earn XP for every activity. Leaderboard visible at /leaderboard"
+          />
+          <Toggle
+            value={store.dailyBriefEnabled}
+            onChange={store.setDailyBriefEnabled}
+            label="Daily Brief (WhatsApp-style micro-lesson)"
+            sub="One concept + one question delivered daily. Earns XP on correct answer."
+          />
+          <Toggle
+            value={store.spacedRepetitionEnabled}
+            onChange={store.setSpacedRepetitionEnabled}
+            label="Spaced Repetition (SM-2 flashcards)"
+            sub="Scientifically-timed revision to maximise long-term retention."
+          />
+          <Toggle
+            value={store.moodCheckInEnabled}
+            onChange={store.setMoodCheckInEnabled}
+            label="Mood Check-In + Adaptive Pacing"
+            sub="Students rate their mood → Sage adjusts tone and session difficulty."
+          />
+          <Toggle
+            value={store.readinessScoreEnabled}
+            onChange={store.setReadinessScoreEnabled}
+            label="Predictive Exam Readiness Score"
+            sub="AI-computed score (0-100) showing how ready students are for exam day."
+          />
+          <Toggle
+            value={store.examSimEnabled}
+            onChange={store.setExamSimEnabled}
+            label="Live Exam Simulator"
+            sub="Timed mock exams with negative marking, percentile, and question autopsy."
+          />
+        </div>
+      </div>
+
+      {/* ── Voice & Language ──────────────────────────────────────────────── */}
+      <div className="card-inner">
+        <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
+          🎙️ Voice & Language
+        </h3>
+        <p className="text-xs text-surface-400 mb-4">Web Speech API — no API keys required. Works in Chrome/Edge.</p>
+        <div className="divide-y divide-surface-700/40">
+          <Toggle
+            value={store.voiceInputEnabled}
+            onChange={store.setVoiceInputEnabled}
+            label="Voice Input (mic → Sage)"
+            sub="Students can speak questions instead of typing. Browser STT, no cost."
+          />
+          <Toggle
+            value={store.voiceTTSEnabled}
+            onChange={store.setVoiceTTSEnabled}
+            label="Text-to-Speech (Sage reads responses aloud)"
+            sub="Sage responses are spoken using browser TTS. Ideal for accessibility."
+          />
+          <Toggle
+            value={store.multilingualEnabled}
+            onChange={store.setMultilingualEnabled}
+            label="Multilingual Sage (Hindi, Telugu, Tamil…)"
+            sub="Sage explains concepts in the student's regional language."
+          />
+          {store.multilingualEnabled && (
+            <div className="py-3">
+              <p className="text-sm font-medium text-white mb-2">Default Language</p>
+              <select
+                value={store.sageLanguage}
+                onChange={e => store.setSageLanguage(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-surface-700 border border-surface-600 text-sm text-white"
+              >
+                <option value="en-IN">English (India)</option>
+                <option value="hi-IN">Hindi — हिन्दी</option>
+                <option value="te-IN">Telugu — తెలుగు</option>
+                <option value="ta-IN">Tamil — தமிழ்</option>
+                <option value="kn-IN">Kannada — ಕನ್ನಡ</option>
+                <option value="mr-IN">Marathi — मराठी</option>
+                <option value="bn-IN">Bengali — বাংলা</option>
+                <option value="gu-IN">Gujarati — ગુજરાતી</option>
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Manim / Micro-video ───────────────────────────────────────────── */}
+      <div className="card-inner">
+        <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
+          🎬 Micro-Video Explanations
+        </h3>
+        <p className="text-xs text-surface-400 mb-4">Manim renders animated math visualisations on demand.</p>
+        <div className="divide-y divide-surface-700/40">
+          <Toggle
+            value={store.manimEnabled}
+            onChange={store.setManimEnabled}
+            label="Manim Visualisations (requires local service)"
+            sub="Animated diagrams for math/physics. Start manim-service/start.sh first."
+          />
+          {store.manimEnabled && (
+            <div className="py-3">
+              <p className="text-sm font-medium text-white mb-2">Manim Service URL</p>
+              <input
+                value={store.manimServiceUrl}
+                onChange={e => store.setManimServiceUrl(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-surface-700 border border-surface-600 text-sm font-mono text-white"
+                placeholder="http://localhost:7341"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* API Access */}
       <div className="card-inner">
         <h3 className="font-semibold text-white mb-3 flex items-center gap-2">

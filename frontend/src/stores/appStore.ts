@@ -11,40 +11,76 @@ interface User {
 }
 
 interface AppState {
-  // User
+  // ── Core ─────────────────────────────────────────────────────────────────────
   user: User | null;
   setUser: (user: User | null) => void;
-  
-  // User Role (for preview switching)
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
-  
-  // Theme
   theme: 'light' | 'dark';
   toggleTheme: () => void;
-  
-  // Sidebar
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
-  
-  // Playground mode
   playgroundMode: boolean;
   setPlaygroundMode: (enabled: boolean) => void;
 
-  // Manim visualisation feature flag
+  // ── Manim ─────────────────────────────────────────────────────────────────────
   manimEnabled: boolean;
   setManimEnabled: (enabled: boolean) => void;
   manimServiceUrl: string;
   setManimServiceUrl: (url: string) => void;
-  
-  // Notifications
+
+  // ── v2.0 Feature Flags (CEO/Admin toggleable from Settings > Advanced) ────────
+
+  // F1: Gamification — XP, levels, streaks, badges, leaderboard (default ON)
+  gamificationEnabled: boolean;
+  setGamificationEnabled: (v: boolean) => void;
+
+  // F2: Voice input (mic → text) + TTS (read Sage responses aloud) (default OFF)
+  voiceInputEnabled: boolean;
+  setVoiceInputEnabled: (v: boolean) => void;
+  voiceTTSEnabled: boolean;
+  setVoiceTTSEnabled: (v: boolean) => void;
+
+  // F3: Daily Brief — concept-of-the-day WhatsApp-style card (default ON)
+  dailyBriefEnabled: boolean;
+  setDailyBriefEnabled: (v: boolean) => void;
+  dailyBriefChannel: 'in-app' | 'whatsapp' | 'telegram';
+  setDailyBriefChannel: (v: 'in-app' | 'whatsapp' | 'telegram') => void;
+
+  // F4: Spaced Repetition widget & revision schedule (default ON)
+  spacedRepetitionEnabled: boolean;
+  setSpacedRepetitionEnabled: (v: boolean) => void;
+
+  // F6: Live Exam Simulator (default ON)
+  examSimEnabled: boolean;
+  setExamSimEnabled: (v: boolean) => void;
+
+  // F8: Micro-video / on-demand Manim (separate from manim lab) (default OFF)
+  microVideoEnabled: boolean;
+  setMicroVideoEnabled: (v: boolean) => void;
+
+  // F10: Multilingual Sage (default OFF)
+  multilingualEnabled: boolean;
+  setMultilingualEnabled: (v: boolean) => void;
+  sageLanguage: string; // BCP-47 e.g. 'en-IN', 'hi-IN', 'te-IN'
+  setSageLanguage: (v: string) => void;
+
+  // F11: Predictive Readiness Score (default ON)
+  readinessScoreEnabled: boolean;
+  setReadinessScoreEnabled: (v: boolean) => void;
+
+  // F12: Mood Check-In (default ON)
+  moodCheckInEnabled: boolean;
+  setMoodCheckInEnabled: (v: boolean) => void;
+
+  // ── Notifications ─────────────────────────────────────────────────────────────
   notifications: Notification[];
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
-  
-  // Agents
+
+  // ── Agents ───────────────────────────────────────────────────────────────────
   agents: Agent[];
   setAgents: (agents: Agent[]) => void;
   updateAgentStatus: (id: string, status: Agent['status']) => void;
@@ -103,7 +139,7 @@ const defaultAgents: Agent[] = [
   {
     id: 'mentor',
     name: 'Mentor',
-    emoji: '👨‍🏫',
+    emoji: '👨🏫',
     status: 'active',
     description: 'Student Engagement & Gamification',
     subAgents: [
@@ -191,36 +227,60 @@ const defaultAgents: Agent[] = [
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      // User
+      // ── Core ─────────────────────────────────────────────────────────────────
       user: null,
       setUser: (user) => set({ user }),
-      
-      // User Role — single source of truth for all role-gated UI
       userRole: 'ceo' as UserRole,
       setUserRole: (role) => set({ userRole: role }),
-
-      // Theme
       theme: 'dark' as 'light' | 'dark',
-      toggleTheme: () => set((state) => ({
-        theme: state.theme === 'dark' ? 'light' : 'dark',
-      })),
-
-      // Sidebar
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-
-      // Playground
       playgroundMode: true,
       setPlaygroundMode: (enabled) => set({ playgroundMode: enabled }),
 
-      // Manim visualisation
-      manimEnabled: false,  // OFF by default — opt-in feature
+      // ── Manim ─────────────────────────────────────────────────────────────────
+      manimEnabled: false,
       setManimEnabled: (enabled) => set({ manimEnabled: enabled }),
       manimServiceUrl: 'http://localhost:7341',
       setManimServiceUrl: (url) => set({ manimServiceUrl: url }),
 
-      // Notifications
+      // ── v2.0 Feature Flags ────────────────────────────────────────────────────
+      gamificationEnabled: true,
+      setGamificationEnabled: (v) => set({ gamificationEnabled: v }),
+
+      voiceInputEnabled: false,
+      setVoiceInputEnabled: (v) => set({ voiceInputEnabled: v }),
+      voiceTTSEnabled: false,
+      setVoiceTTSEnabled: (v) => set({ voiceTTSEnabled: v }),
+
+      dailyBriefEnabled: true,
+      setDailyBriefEnabled: (v) => set({ dailyBriefEnabled: v }),
+      dailyBriefChannel: 'in-app' as const,
+      setDailyBriefChannel: (v) => set({ dailyBriefChannel: v }),
+
+      spacedRepetitionEnabled: true,
+      setSpacedRepetitionEnabled: (v) => set({ spacedRepetitionEnabled: v }),
+
+      examSimEnabled: true,
+      setExamSimEnabled: (v) => set({ examSimEnabled: v }),
+
+      microVideoEnabled: false,
+      setMicroVideoEnabled: (v) => set({ microVideoEnabled: v }),
+
+      multilingualEnabled: false,
+      setMultilingualEnabled: (v) => set({ multilingualEnabled: v }),
+      sageLanguage: 'en-IN',
+      setSageLanguage: (v) => set({ sageLanguage: v }),
+
+      readinessScoreEnabled: true,
+      setReadinessScoreEnabled: (v) => set({ readinessScoreEnabled: v }),
+
+      moodCheckInEnabled: true,
+      setMoodCheckInEnabled: (v) => set({ moodCheckInEnabled: v }),
+
+      // ── Notifications ─────────────────────────────────────────────────────────
       notifications: [],
       addNotification: (notification) => set((state) => ({
         notifications: [
@@ -240,7 +300,7 @@ export const useAppStore = create<AppState>()(
       })),
       clearNotifications: () => set({ notifications: [] }),
 
-      // Agents
+      // ── Agents ────────────────────────────────────────────────────────────────
       agents: defaultAgents,
       setAgents: (agents) => set({ agents }),
       updateAgentStatus: (id, status) => set((state) => ({
@@ -251,10 +311,9 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'edugenius-storage',
-      version: 2, // Bumped: clears old stale cache that had playgroundConfig
+      version: 3, // Bumped for v2.0 feature flags
       storage: createJSONStorage(() => localStorage),
       migrate: (_oldState, _oldVersion) => {
-        // Always start fresh on version bump — safe since it's preview/playground data
         return {
           theme: 'dark' as const,
           sidebarOpen: true,
@@ -269,6 +328,19 @@ export const useAppStore = create<AppState>()(
         playgroundMode: state.playgroundMode,
         manimEnabled: state.manimEnabled,
         manimServiceUrl: state.manimServiceUrl,
+        // v2.0 feature flags
+        gamificationEnabled: state.gamificationEnabled,
+        voiceInputEnabled: state.voiceInputEnabled,
+        voiceTTSEnabled: state.voiceTTSEnabled,
+        dailyBriefEnabled: state.dailyBriefEnabled,
+        dailyBriefChannel: state.dailyBriefChannel,
+        spacedRepetitionEnabled: state.spacedRepetitionEnabled,
+        examSimEnabled: state.examSimEnabled,
+        microVideoEnabled: state.microVideoEnabled,
+        multilingualEnabled: state.multilingualEnabled,
+        sageLanguage: state.sageLanguage,
+        readinessScoreEnabled: state.readinessScoreEnabled,
+        moodCheckInEnabled: state.moodCheckInEnabled,
       }),
     }
   )

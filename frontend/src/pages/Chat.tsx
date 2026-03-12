@@ -29,6 +29,7 @@ import { TopperTipChip } from '@/components/chat/TopperInsightCard';
 import { shouldRenderWithManim, extractPrimaryLatex } from '@/services/manimService';
 import { buildLensContext, type LensContext } from '@/services/lensEngine';
 import { recordSageInteraction } from '@/services/signalBus';
+import { XPBar } from '@/components/XPBar';
 import { saveStudentProfile } from '@/services/persistenceDB';
 import { createBehavioralTracker, type BehavioralTracker } from '@/services/behavioralSignals';
 import { getDueTopics } from '@/services/spacedRepetition';
@@ -539,7 +540,7 @@ function getContextualSuggestions(persona: StudentPersona): string[] {
 export function Chat() {
   const [searchParams] = useSearchParams();
   const { sessions, currentSessionId, isStreaming, createSession, setCurrentSession, deleteSession, addMessage, setStreaming, getCurrentSession } = useChatStore();
-  const { addNotification, userRole, manimEnabled, manimServiceUrl } = useAppStore();
+  const { addNotification, userRole, manimEnabled, manimServiceUrl, voiceTTSEnabled, multilingualEnabled, sageLanguage, moodCheckInEnabled } = useAppStore();
 
   const [selectedAgent, setSelectedAgent] = useState<AgentType>(
     (searchParams.get('agent') as AgentType) || 'sage'
@@ -938,6 +939,25 @@ export function Chat() {
         }
       }
 
+      // ── Multilingual instruction ───────────────────────────────────────────
+      if (multilingualEnabled && sageLanguage && sageLanguage !== 'en-IN') {
+        const { getSageLanguagePrompt } = await import('@/services/multilingualService');
+        const langInstruction = getSageLanguagePrompt(sageLanguage);
+        if (langInstruction) sageSystemPrompt = `${sageSystemPrompt}\n\n${langInstruction}`;
+      }
+
+      // ── Mood-adaptive instruction ──────────────────────────────────────────
+      if (moodCheckInEnabled) {
+        const { getTodayMood, getSessionPlan } = await import('@/services/moodCheckInService');
+        const todayMood = getTodayMood();
+        if (todayMood) {
+          const plan = getSessionPlan(todayMood.mood);
+          if (plan.sageInstruction) {
+            sageSystemPrompt = `${sageSystemPrompt}\n\nSTUDENT MOOD CONTEXT: ${plan.sageInstruction}`;
+          }
+        }
+      }
+
       // Prepend opener to the message context for first turn
       const opener = getSageOpener(updatedPersona, history.length === 0);
       if (opener) {
@@ -1099,6 +1119,13 @@ export function Chat() {
           topperExamId: lensContext?.examId,
         },
       });
+
+      // ── Auto-TTS: read Sage response aloud when voiceTTSEnabled ────────────
+      if (voiceTTSEnabled && activeAgent === 'sage') {
+        import('@/services/voiceInputService').then(({ speak }) => {
+          speak(responseText);
+        }).catch(() => {});
+      }
 
       // ── VoltAgent Skill: LiveEvals — silently score Sage responses ──────────
       if (activeAgent === 'sage') {
@@ -1422,6 +1449,8 @@ export function Chat() {
               </button>
               {/* ── Smart Memory Chip ── */}
               {isStudent && <SmartMemoryChip />}
+              {/* ── XP Bar (gamification) ── */}
+              {isStudent && <XPBar compact />}
               {/* Item 5: Multi-exam switcher — shown only if user has >1 active subscription */}
               {isStudent && (() => {
                 const egUser = loadCurrentUser();

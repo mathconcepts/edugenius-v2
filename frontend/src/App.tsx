@@ -98,6 +98,10 @@ const CourseOrchestrator = lazy(() => import('@/pages/CourseOrchestrator'));
 // Lazy load Growth Command (CEO only)
 const GrowthCommand = lazy(() => import('@/pages/dashboards/GrowthCommand').then(m => ({ default: m.GrowthCommand })));
 
+// ── Delight Features ──────────────────────────────────────────────────────────
+const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
+const ExamSim = lazy(() => import('@/pages/ExamSim'));
+
 // Lazy load Social Intent Dashboard (CEO only)
 
 // Lazy load trace viewer
@@ -230,6 +234,9 @@ export default function App() {
 
           {/* Growth Command — Master Growth Orchestrator Dashboard — CEO only */}
           <Route path="growth-command" element={<Suspense fallback={<PageLoader />}><GrowthCommand /></Suspense>} />
+          {/* ── Delight Feature Routes ──────────────────────────────────── */}
+          <Route path="leaderboard" element={<Suspense fallback={<PageLoader />}><Leaderboard /></Suspense>} />
+          <Route path="exam-sim" element={<Suspense fallback={<PageLoader />}><ExamSim /></Suspense>} />
 
           {/* Social Intent Dashboard — CEO only */}
 

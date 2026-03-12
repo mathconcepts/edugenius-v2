@@ -304,6 +304,18 @@ export function Sidebar() {
               <Trophy className="w-5 h-5" />
               <span>Exam Tips</span>
             </NavLink>
+            <NavLink to="/leaderboard" className={({ isActive }) =>
+              clsx('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm',
+                isActive ? 'bg-gradient-to-r from-primary-600/25 to-primary-500/15 text-primary-400 border border-primary-500/20' : 'text-surface-400 hover:bg-surface-800/60 hover:text-white')}>
+              <Trophy className="w-5 h-5" />
+              <span>🏆 Leaderboard</span>
+            </NavLink>
+            <NavLink to="/exam-sim" className={({ isActive }) =>
+              clsx('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm',
+                isActive ? 'bg-gradient-to-r from-primary-600/25 to-primary-500/15 text-primary-400 border border-primary-500/20' : 'text-surface-400 hover:bg-surface-800/60 hover:text-white')}>
+              <Target className="w-5 h-5" />
+              <span>🎯 Mock Exam</span>
+            </NavLink>
           </div>
         )}
       </nav>
