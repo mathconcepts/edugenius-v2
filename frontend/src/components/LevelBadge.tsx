@@ -1,8 +1,17 @@
 /**
  * LevelBadge — shows rank + level with color-coded styling
  */
-import { loadProfile, RANK_COLORS, type PlayerProfile } from '@/services/gamificationService';
+import { loadProfile, type PlayerProfile, type PlayerRank } from '@/services/gamificationService';
 import { useAppStore } from '@/stores/appStore';
+
+const RANK_COLORS: Record<PlayerRank, string> = {
+  Legend:   'text-purple-400',
+  Master:   'text-yellow-400',
+  Expert:   'text-blue-400',
+  Scholar:  'text-green-400',
+  Explorer: 'text-cyan-400',
+  Novice:   'text-surface-400',
+};
 
 interface LevelBadgeProps {
   profile?: PlayerProfile;
@@ -14,7 +23,7 @@ export function LevelBadge({ profile: profileProp, size = 'md' }: LevelBadgeProp
   if (!gamificationEnabled) return null;
 
   const p = profileProp ?? loadProfile();
-  const colorClass = RANK_COLORS[p.rank];
+  const colorClass = RANK_COLORS[p.rank] ?? 'text-surface-400';
 
   const sizeClasses = {
     sm: 'text-xs px-2 py-0.5',

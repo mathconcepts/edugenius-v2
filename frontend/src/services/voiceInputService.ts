@@ -5,48 +5,15 @@
 
 // ─── Type declarations ────────────────────────────────────────────────────────
 
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognitionInstance;
-    webkitSpeechRecognition: new () => SpeechRecognitionInstance;
-  }
-}
+// Use any for cross-browser SpeechRecognition compat
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SpeechRecognitionInstance = any;
 
-interface SpeechRecognitionInstance extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onresult: ((e: SpeechRecognitionEvent) => void) | null;
-  onerror: ((e: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  readonly length: number;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: string;
-}
+// Local type aliases to avoid conflicts with browser lib.dom.d.ts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SpeechRecognitionEventLocal = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SpeechRecognitionErrorEventLocal = any;
 
 // ─── Voice input ─────────────────────────────────────────────────────────────
 
@@ -84,12 +51,12 @@ export function startListening(
   recognition.lang = language;
   recognition.maxAlternatives = 1;
 
-  recognition.onresult = (e: SpeechRecognitionEvent) => {
+  recognition.onresult = (e: SpeechRecognitionEventLocal) => {
     const result = e.results[e.results.length - 1];
     onResult(result[0].transcript, result.isFinal);
   };
 
-  recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+  recognition.onerror = (e: SpeechRecognitionErrorEventLocal) => {
     const msg = e.error === 'not-allowed'
       ? 'Microphone access denied. Please allow microphone access in your browser.'
       : `Voice error: ${e.error}`;

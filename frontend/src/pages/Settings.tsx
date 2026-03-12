@@ -479,27 +479,6 @@ function BillingTab() {
 
 // ─── Advanced Tab (CEO only) ──────────────────────────────────────────────────
 
-function Toggle({ value, onChange, label, sub }: {
-  value: boolean; onChange: (v: boolean) => void; label: string; sub?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-surface-700/40 last:border-0">
-      <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        {sub && <p className="text-xs text-surface-400 mt-0.5">{sub}</p>}
-      </div>
-      <button
-        onClick={() => onChange(!value)}
-        className={clsx('relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0',
-          value ? 'bg-primary-500' : 'bg-surface-600')}
-      >
-        <span className={clsx('absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200',
-          value ? 'translate-x-6' : 'translate-x-1')} />
-      </button>
-    </div>
-  );
-}
-
 function AdvancedTab() {
   const [dangerConfirm, setDangerConfirm] = useState('');
   const store = useAppStore();

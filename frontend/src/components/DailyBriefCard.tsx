@@ -1,233 +1,154 @@
 /**
- * DailyBriefCard — WhatsApp-styled concept-of-the-day card
- * - Dark green WhatsApp-like styling
- * - Interactive MCQ with XP reward
- * - Countdown to next brief
- * - "Enable WhatsApp delivery" CTA
+ * DailyBriefCard.tsx — WhatsApp-styled daily learning brief card
+ * Shows concept, quick fact, interactive MCQ.
+ * Awards XP on correct answer via gamificationService.
+ * CEO/Admin: appStore.dailyBriefEnabled
  */
-import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, MessageCircle, Clock, Zap } from 'lucide-react';
-import { getTodaysBrief, markBriefAnswered, isBriefAnsweredToday } from '@/services/dailyBriefService';
-import { awardXP } from '@/services/gamificationService';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, XCircle, ChevronRight, MessageCircle, Zap } from 'lucide-react';
+import { clsx } from 'clsx';
 import { useAppStore } from '@/stores/appStore';
+import { getTodaysBriefV2, recordBriefAnswer, getTodayAnswer } from '@/services/dailyBriefService';
+import { awardXP } from '@/services/gamificationService';
 
-interface DailyBriefCardProps {
-  className?: string;
-  compact?: boolean;
-}
+export function DailyBriefCard() {
+  const { dailyBriefEnabled, gamificationEnabled } = useAppStore();
+  const brief = getTodaysBriefV2();
+  const existing = getTodayAnswer(brief.id);
 
-function MsToNextBrief(): string {
-  const now = new Date();
-  const midnight = new Date(now);
-  midnight.setHours(24, 0, 0, 0);
-  const ms = midnight.getTime() - now.getTime();
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
-  return `${h}h ${m}m`;
-}
-
-export function DailyBriefCard({ className = '', compact = false }: DailyBriefCardProps) {
-  const dailyBriefEnabled = useAppStore(s => s.dailyBriefEnabled);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [xpEarned, setXpEarned] = useState(0);
-  const [showWAModal, setShowWAModal] = useState(false);
-  const [timeToNext, setTimeToNext] = useState(MsToNextBrief());
-
-  const brief = getTodaysBrief();
-  const alreadyAnswered = isBriefAnsweredToday();
-
-  useEffect(() => {
-    const interval = setInterval(() => setTimeToNext(MsToNextBrief()), 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const [selected, setSelected] = useState<number | null>(existing?.selectedIndex ?? null);
+  const [revealed, setRevealed] = useState(existing !== null);
+  const [xpGained, setXpGained] = useState<number | null>(null);
+  const [collapsed, setCollapsed] = useState(existing !== null);
 
   if (!dailyBriefEnabled) return null;
 
   const handleAnswer = (idx: number) => {
-    if (revealed || alreadyAnswered) return;
+    if (revealed) return;
+    const correct = idx === brief.question.correctIndex;
     setSelected(idx);
     setRevealed(true);
-    const correct = idx === brief.todayQuestion.answer;
-    markBriefAnswered(brief.id, correct);
-    if (correct) {
-      const result = awardXP({ type: 'daily_goal', xp: 50, description: 'Daily Brief correct answer' });
-      setXpEarned(result.earnedXP);
+    recordBriefAnswer(brief.id, idx, correct);
+
+    if (correct && gamificationEnabled) {
+      const result = awardXP({ type: 'brief_answered' });
+      setXpGained(result.earned);
     }
   };
 
-  const isCorrect = revealed && selected === brief.todayQuestion.answer;
-
-  if (compact) {
+  if (collapsed) {
     return (
-      <div
-        className={`rounded-xl bg-[#1a2a1e] border border-[#2d5a3a] p-3 cursor-pointer hover:border-[#4a8a5a] transition-colors ${className}`}
-        onClick={() => window.location.href = '/daily-brief'}
+      <button
+        onClick={() => setCollapsed(false)}
+        className="w-full flex items-center gap-3 px-4 py-3 bg-green-900/30 border border-green-700/40 rounded-xl text-left hover:bg-green-900/40 transition-all"
       >
-        <div className="flex items-center gap-2">
-          <span className="text-green-400">📱</span>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-green-300 truncate">{brief.concept}</div>
-            <div className="text-xs text-surface-400">{brief.subject} · Today's Brief</div>
-          </div>
-          {alreadyAnswered ? (
-            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-          ) : (
-            <span className="text-xs bg-green-700 text-green-100 px-2 py-0.5 rounded-full flex-shrink-0">+50 XP</span>
-          )}
+        <MessageCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-green-300">Today's Brief: {brief.concept}</p>
+          <p className="text-xs text-green-500/70">
+            {existing?.correct ? '✅ Answered correctly' : '❌ Answered incorrectly'} — tap to review
+          </p>
         </div>
-      </div>
+        <ChevronRight className="w-4 h-4 text-green-500" />
+      </button>
     );
   }
 
   return (
-    <div className={`rounded-2xl bg-[#0d1f14] border border-[#2d5a3a] overflow-hidden ${className}`}>
-      {/* WhatsApp-style header */}
-      <div className="bg-[#1a3a24] px-4 py-3 flex items-center gap-3 border-b border-[#2d5a3a]">
-        <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-sm font-bold">
-          EG
-        </div>
-        <div className="flex-1">
-          <div className="text-sm font-semibold text-green-300">EduGenius Daily Brief</div>
-          <div className="text-xs text-green-600">AI-powered · {brief.subject}</div>
-        </div>
-        <div className="flex items-center gap-1 text-xs text-green-600">
-          <Clock className="w-3 h-3" />
-          <span>Next in {timeToNext}</span>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-green-700/40 bg-gradient-to-br from-green-900/40 via-surface-800/60 to-surface-800/80 overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-2 bg-green-800/40 border-b border-green-700/30">
+        <MessageCircle className="w-4 h-4 text-green-400" />
+        <span className="text-xs font-semibold text-green-300 uppercase tracking-wider">Daily Brief</span>
+        <span className="ml-auto text-xs text-green-500/70 bg-green-900/40 px-2 py-0.5 rounded-full">
+          {brief.examTag}
+        </span>
+        {existing !== null && (
+          <button onClick={() => setCollapsed(true)} className="text-xs text-green-500 hover:text-green-300 ml-2">
+            Collapse
+          </button>
+        )}
       </div>
 
-      {/* Message bubble */}
       <div className="p-4 space-y-4">
         {/* Concept */}
-        <div className="rounded-xl bg-[#1a2a1e] border border-[#2d5a3a] p-4 space-y-3">
-          <div className="flex items-start gap-2">
-            <span className="text-2xl">🧠</span>
-            <div>
-              <div className="text-xs text-green-500 font-medium uppercase tracking-wide mb-1">Today's Concept</div>
-              <div className="text-white font-bold text-base">{brief.concept}</div>
-            </div>
-          </div>
-          <p className="text-surface-300 text-sm leading-relaxed">{brief.summary}</p>
-          <div className="bg-[#0d1f14] rounded-lg px-3 py-2 text-sm text-green-300 font-medium border-l-2 border-green-500">
-            {brief.quickFact}
-          </div>
+        <div>
+          <h3 className="font-bold text-white text-base">{brief.concept}</h3>
+          <p className="text-sm text-surface-300 mt-1 leading-relaxed">{brief.summary}</p>
         </div>
 
-        {/* Streak + countdown */}
-        {(brief.streakNote || brief.examCountdown) && (
-          <div className="flex items-center justify-between text-xs">
-            {brief.streakNote && <span className="text-orange-400">{brief.streakNote}</span>}
-            {brief.examCountdown && (
-              <span className="text-surface-400">📅 {brief.examCountdown} days to exam</span>
-            )}
-          </div>
-        )}
+        {/* Quick fact bubble */}
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-3 py-2">
+          <p className="text-sm text-yellow-200">{brief.quickFact}</p>
+        </div>
 
-        {/* MCQ Question */}
-        <div className="space-y-2">
-          <div className="text-xs text-green-500 font-medium uppercase tracking-wide flex items-center gap-1.5">
-            <Zap className="w-3 h-3" />
-            {alreadyAnswered ? 'Already answered today' : 'Answer to earn 50 XP'}
-          </div>
-          <p className="text-white text-sm font-medium">{brief.todayQuestion.text}</p>
+        {/* Question */}
+        <div>
+          <p className="text-sm font-semibold text-white mb-2">📝 Quick Question</p>
+          <p className="text-sm text-surface-200 mb-3">{brief.question.text}</p>
 
           <div className="space-y-2">
-            {brief.todayQuestion.options.map((opt, idx) => {
-              let btnClass = 'w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all border ';
-              if (!revealed && !alreadyAnswered) {
-                btnClass += 'border-[#2d5a3a] bg-[#1a2a1e] text-surface-200 hover:border-green-500 hover:bg-[#1f3228] cursor-pointer';
-              } else if (idx === brief.todayQuestion.answer) {
-                btnClass += 'border-green-500 bg-green-950 text-green-300';
-              } else if (idx === selected && idx !== brief.todayQuestion.answer) {
-                btnClass += 'border-red-500 bg-red-950 text-red-300';
-              } else {
-                btnClass += 'border-[#2d5a3a] bg-[#0d1f14] text-surface-500';
-              }
-
+            {brief.question.options.map((opt, i) => {
+              const isCorrect = i === brief.question.correctIndex;
+              const isSelected = i === selected;
               return (
                 <button
-                  key={idx}
-                  className={btnClass}
-                  onClick={() => handleAnswer(idx)}
-                  disabled={revealed || alreadyAnswered}
+                  key={i}
+                  onClick={() => handleAnswer(i)}
+                  disabled={revealed}
+                  className={clsx(
+                    'w-full text-left px-3 py-2.5 rounded-xl border text-sm transition-all',
+                    !revealed && 'hover:bg-surface-600 border-surface-600 text-surface-200',
+                    revealed && isCorrect && 'bg-green-500/20 border-green-500 text-green-200',
+                    revealed && isSelected && !isCorrect && 'bg-red-500/20 border-red-500 text-red-200',
+                    revealed && !isSelected && !isCorrect && 'border-surface-700 text-surface-500 opacity-60'
+                  )}
                 >
-                  <span className="font-medium mr-2">{String.fromCharCode(65 + idx)}.</span>
-                  {opt}
-                  {revealed && idx === brief.todayQuestion.answer && (
-                    <CheckCircle className="w-4 h-4 text-green-400 float-right mt-0.5" />
-                  )}
-                  {revealed && idx === selected && idx !== brief.todayQuestion.answer && (
-                    <XCircle className="w-4 h-4 text-red-400 float-right mt-0.5" />
-                  )}
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-surface-700 text-xs flex items-center justify-center font-bold flex-shrink-0">
+                      {String.fromCharCode(65 + i)}
+                    </span>
+                    {opt}
+                    {revealed && isCorrect && <CheckCircle className="w-4 h-4 ml-auto text-green-400" />}
+                    {revealed && isSelected && !isCorrect && <XCircle className="w-4 h-4 ml-auto text-red-400" />}
+                  </span>
                 </button>
               );
             })}
           </div>
-
-          {/* Explanation */}
-          {(revealed || alreadyAnswered) && (
-            <div className="rounded-xl bg-[#1a2a1e] border border-[#2d5a3a] p-3 space-y-1">
-              <div className="flex items-center gap-2">
-                {isCorrect ? (
-                  <span className="text-green-400 font-semibold text-sm">✅ Correct! +{xpEarned || 50} XP</span>
-                ) : (
-                  <span className="text-red-400 font-semibold text-sm">❌ Not quite</span>
-                )}
-              </div>
-              <p className="text-surface-300 text-xs">{brief.todayQuestion.explanation}</p>
-            </div>
-          )}
         </div>
 
-        {/* Tip */}
-        <div className="bg-[#1a2a1e] rounded-xl px-3 py-2 text-xs text-surface-300 border-l-2 border-yellow-600">
-          {brief.tip}
-        </div>
-
-        {/* CTA row */}
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            onClick={() => window.location.href = '/daily-brief'}
-            className="flex-1 text-xs text-green-400 hover:text-green-300 bg-[#1a2a1e] hover:bg-[#1f3228] border border-[#2d5a3a] rounded-xl py-2 transition-colors"
-          >
-            View history
-          </button>
-          <button
-            onClick={() => setShowWAModal(true)}
-            className="flex items-center gap-1.5 text-xs text-green-300 bg-green-900/40 hover:bg-green-900/60 border border-green-700 rounded-xl px-3 py-2 transition-colors"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            WhatsApp delivery
-          </button>
-        </div>
-      </div>
-
-      {/* WhatsApp modal */}
-      {showWAModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-4">
-          <div className="bg-surface-900 rounded-2xl w-full max-w-md p-6 space-y-4 border border-surface-700">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-green-400" />
-              WhatsApp Daily Brief
-            </h3>
-            <p className="text-surface-400 text-sm">
-              Get your daily brief delivered directly to WhatsApp every morning at 7 AM. 
-              This feature is coming soon! You'll be able to answer questions right in WhatsApp 
-              and earn XP on the go.
-            </p>
-            <div className="bg-surface-800 rounded-xl p-3 text-xs text-surface-400">
-              📱 For now, your briefs are available in-app. We'll notify you when WhatsApp delivery goes live!
-            </div>
-            <button
-              onClick={() => setShowWAModal(false)}
-              className="w-full bg-green-700 hover:bg-green-600 text-white py-2.5 rounded-xl font-medium transition-colors"
+        {/* Explanation */}
+        <AnimatePresence>
+          {revealed && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="bg-surface-700/60 rounded-xl p-3 space-y-2"
             >
-              Got it — notify me when ready
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+              <p className="text-sm font-semibold text-white">💡 Explanation</p>
+              <p className="text-sm text-surface-300">{brief.question.explanation}</p>
+              <p className="text-sm text-cyan-300 border-t border-surface-600 pt-2">{brief.tip}</p>
+
+              {xpGained && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center gap-1.5 text-yellow-400 text-sm font-bold"
+                >
+                  <Zap className="w-4 h-4" />
+                  +{xpGained} XP earned!
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
   );
 }

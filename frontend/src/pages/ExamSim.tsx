@@ -10,7 +10,7 @@ import { clsx } from 'clsx';
 import { useAppStore } from '@/stores/appStore';
 import {
   getExam, createSession, calculateResult, saveResult, getAvailableExams,
-  type SimExam, type ExamSession, type ExamResult,
+  type SimExam, type ExamSession, type ExamResult, type ExamResultExtended,
 } from '@/services/examSimulatorService';
 import { awardXP } from '@/services/gamificationService';
 
@@ -38,7 +38,7 @@ function ExamTimer({ secondsLeft, total }: { secondsLeft: number; total: number 
 
 // ─── Result screen ────────────────────────────────────────────────────────────
 
-function ResultScreen({ result, exam, onRetry }: { result: ExamResult; exam: SimExam; onRetry: () => void }) {
+function ResultScreen({ result, exam, onRetry }: { result: ExamResultExtended; exam: SimExam; onRetry: () => void }) {
   const [showAutopsy, setShowAutopsy] = useState(false);
   const gradeColor = result.grade === 'S' || result.grade === 'A+' ? 'text-green-400' :
     result.grade === 'A' || result.grade === 'B+' ? 'text-yellow-400' : 'text-red-400';
@@ -88,7 +88,7 @@ function ResultScreen({ result, exam, onRetry }: { result: ExamResult; exam: Sim
       {/* Time taken */}
       <div className="flex items-center gap-2 text-sm text-surface-400 justify-center">
         <Clock className="w-4 h-4" />
-        Time taken: {Math.floor(result.timeTakenSeconds / 60)}m {result.timeTakenSeconds % 60}s
+        Time taken: {Math.floor(result.timeTaken / 60)}m {result.timeTaken % 60}s
       </div>
 
       {/* Question autopsy */}
@@ -154,7 +154,7 @@ export default function ExamSim() {
   const [session, setSession] = useState<ExamSession | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const [result, setResult] = useState<ExamResult | null>(null);
+  const [result, setResult] = useState<ExamResultExtended | null>(null);
 
   // Timer
   useEffect(() => {
@@ -199,10 +199,19 @@ export default function ExamSim() {
 
   const handleSubmit = useCallback(() => {
     if (!exam || !session) return;
-    const r = calculateResult(exam, session);
+    const base = calculateResult(exam, session);
+    const allQ = exam.sections.flatMap(s => s.questions);
+    const percentage = base.maxMarks > 0 ? Math.round((base.totalMarks / base.maxMarks) * 100) : 0;
+    const grade = percentage >= 90 ? 'S' : percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' :
+                  percentage >= 60 ? 'B+' : percentage >= 50 ? 'B' : percentage >= 40 ? 'C' : 'F';
+    const questionResults = allQ.map(q => {
+      const sel = session.answers[q.id] ?? null;
+      return { question: q, selected: sel, correct: sel === q.correctIndex };
+    });
+    const r: ExamResultExtended = { ...base, percentage, grade, questionResults };
     saveResult(r);
     if (gamificationEnabled && r.correct > 0) {
-      awardXP({ type: 'exam_complete', multiplier: r.percentage / 100 + 0.5 });
+      awardXP({ type: 'exam_complete', multiplier: percentage / 100 + 0.5 });
     }
     setResult(r);
     setPhase('result');

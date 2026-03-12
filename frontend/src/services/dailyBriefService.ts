@@ -199,3 +199,83 @@ export function getBriefHistory(days = 7): Array<{ brief: DailyBrief; answered: 
   }
   return history;
 }
+
+// ─── Compatibility layer for new DailyBriefCard.tsx ──────────────────────────
+
+export interface DailyBriefV2 {
+  id: string;
+  date: string;
+  concept: string;
+  subject: string;
+  examTag: string;
+  summary: string;
+  quickFact: string;
+  question: {
+    text: string;
+    options: string[];
+    correctIndex: number;
+    explanation: string;
+  };
+  tip: string;
+}
+
+export interface BriefAnswerRecord {
+  selectedIndex: number;
+  correct: boolean;
+  at: number;
+}
+
+/** Adapts old brief format → new V2 format */
+function briefToV2(brief: DailyBrief): DailyBriefV2 {
+  return {
+    id: brief.id,
+    date: brief.date,
+    concept: brief.concept,
+    subject: brief.subject,
+    examTag: 'GATE',
+    summary: brief.summary,
+    quickFact: brief.quickFact,
+    question: {
+      text: brief.todayQuestion.text,
+      options: brief.todayQuestion.options,
+      correctIndex: brief.todayQuestion.answer,
+      explanation: brief.todayQuestion.explanation,
+    },
+    tip: brief.tip,
+  };
+}
+
+export function getTodaysBriefV2(): DailyBriefV2 {
+  return briefToV2(getTodaysBrief());
+}
+
+export function recordBriefAnswer(briefId: string, selectedIndex: number, correct: boolean): void {
+  const key = `eg_brief_ans_${briefId}`;
+  localStorage.setItem(key, JSON.stringify({ selectedIndex, correct, at: Date.now() }));
+  markBriefAnswered(briefId, correct);
+}
+
+export function getTodayAnswer(briefId: string): BriefAnswerRecord | null {
+  try {
+    const raw = localStorage.getItem(`eg_brief_ans_${briefId}`);
+    if (raw) return JSON.parse(raw) as BriefAnswerRecord;
+    // Fall back to old format
+    const old = getBriefAnswerRecord(briefId);
+    if (old) return { selectedIndex: -1, correct: old.correct, at: 0 };
+  } catch { /* ignore */ }
+  return null;
+}
+
+export interface BriefHistory {
+  date: string;
+  conceptName: string;
+  answeredCorrectly: boolean | null;
+}
+
+export function getBriefHistoryV2(): BriefHistory[] {
+  return getBriefHistory(14).map(h => ({
+    date: h.brief.id,
+    conceptName: h.brief.concept,
+    answeredCorrectly: h.answered ? (h.correct ?? null) : null,
+  }));
+}

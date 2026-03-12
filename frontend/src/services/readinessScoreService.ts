@@ -6,7 +6,7 @@
 
 import { getAllCards, getDueCards, getStats } from './spacedRepetitionEngine';
 import { loadProfile } from './gamificationService';
-import { getBriefHistory } from './dailyBriefService';
+import { getBriefHistoryV2 as getBriefHistory } from './dailyBriefService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

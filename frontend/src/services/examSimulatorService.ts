@@ -305,3 +305,32 @@ export function loadSession(): ExamSession | null {
 export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY);
 }
+
+// ─── Compatibility shims for ExamSim.tsx ─────────────────────────────────────
+
+export interface ExamResultExtended extends ExamResult {
+  percentage: number;
+  grade: string;
+  questionResults: Array<{ question: SimQuestion; selected: number | null; correct: boolean }>;
+}
+
+export function getAvailableExams(): Array<{ id: string; name: string; questions: number; duration: number; description: string }> {
+  return [
+    { id: 'gate-em', name: 'GATE EM — Quick Mock', questions: 10, duration: 20, description: 'Electromagnetics: Maxwell, waves, boundary conditions' },
+    { id: 'gate-cs', name: 'GATE CS — Algorithms', questions: 10, duration: 20, description: 'Algorithms & Data Structures: sorting, complexity, graphs' },
+  ];
+}
+
+export function getExam(id: string): SimExam {
+  if (id === 'gate-cs') return getCSMockExam();
+  return getGATEMockExam();
+}
+
+export function createSession(examId: string): ExamSession {
+  return { examId, startTime: Date.now(), answers: {}, flagged: [], timeLeft: 0, submitted: false };
+}
+
+export function saveResult(result: ExamResult | ExamResultExtended): void {
+  const key = `eg_exam_result_${Date.now()}`;
+  localStorage.setItem(key, JSON.stringify(result));
+}
