@@ -1062,25 +1062,6 @@ export async function emitMoodSignal(params: {
   });
 }
 
-/**
- * SR Overdue → Mentor: student has overdue flashcards.
- * Mentor can schedule a nudge / reminder session.
- */
-export async function emitSROverdue(params: {
-  studentId: string;
-  overdueTopics: string[];
-  examId: string;
-  daysOverdue: number;
-}): Promise<void> {
-  await enqueueSignal({
-    type: 'SR_OVERDUE_ALERT',
-    sourceAgent: 'sage',
-    targetAgent: 'mentor',
-    payload: params,
-    studentId: params.studentId,
-  });
-}
-
 // ─── Prism Journey Intelligence (bidirectional) ───────────────────────────────
 
 /**
