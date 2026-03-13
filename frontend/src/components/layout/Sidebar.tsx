@@ -12,7 +12,7 @@ import {
   Home, MessageSquare, BookOpen, Users, BarChart3, Settings, Bot,
   FileText, GraduationCap, ChevronLeft, ChevronRight, PlayCircle, User,
   BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders, Cpu, Zap, Globe, Layers, Radio,
-  TrendingUp, CalendarDays, Newspaper,
+  TrendingUp, CalendarDays, Newspaper, Library,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 
@@ -36,6 +36,7 @@ const ceoNavItems: NavItem[] = [
   { to: '/content-strategy',      icon: Sliders,     label: 'Content Strategy' },
   { to: '/content-orchestrator',  icon: Cpu,         label: 'Orchestrator' },
   { to: '/course-orchestrator',  icon: BookOpen,     label: 'Course Engine' },
+  { to: '/subtopic-bible',       icon: Library,      label: 'SubTopic Bible', highlight: true },
   { to: '/agent-skills',          icon: Zap,         label: 'Agent Skills' },
   { to: '/social-intent',         icon: Radio,       label: 'Social Intel' },
   { to: '/content-hub',           icon: Layers,      label: 'Content Hub',   highlight: true },

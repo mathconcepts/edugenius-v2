@@ -122,6 +122,13 @@ export function recordFeedback(
 
   // Incrementally update performance for this atom
   _updatePerformanceForAtom(full.atomId);
+
+  // ── Update SubTopic Bible with feedback signal ──────────────────────────
+  if (full.examType && full.topic) {
+    import('./subTopicBibleService').then(({ updateFromFeedback }) => {
+      updateFromFeedback(full.examType, full.topic, full.topic, full);
+    }).catch(() => {/* non-fatal */});
+  }
 }
 
 export function getFeedbackForAtom(atomId: string): FeedbackEvent[] {

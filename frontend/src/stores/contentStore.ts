@@ -13,6 +13,7 @@ import type {
   AutomationRun,
 } from '@/services/contentAutomationService';
 import type { GeneratedContent } from '@/services/contentGenerationService';
+import type { SubTopicBible } from '@/services/subTopicBibleService';
 
 // ─── Default config (duplicated here to avoid circular deps at init time) ─────
 
@@ -43,6 +44,10 @@ interface ContentStoreState {
   totalVerified: number;
   config: AutomationConfig;
 
+  // Bible state
+  activeBible: SubTopicBible | null;
+  bibleHealthSummary: { total: number; healthy: number; needsAttention: number };
+
   // Actions
   setAutomationEnabled: (enabled: boolean) => void;
   updateConfig: (patch: Partial<AutomationConfig>) => void;
@@ -52,6 +57,8 @@ interface ContentStoreState {
   setAutomationStatus: (status: AutomationStatus) => void;
   addRunToHistory: (run: AutomationRun) => void;
   incrementTotals: (generated: number, verified: number) => void;
+  setActiveBible: (bible: SubTopicBible | null) => void;
+  refreshBibleHealth: () => void;
   reset: () => void;
 }
 
@@ -69,6 +76,8 @@ export const useContentStore = create<ContentStoreState>()(
       totalGenerated: 0,
       totalVerified: 0,
       config: DEFAULT_CONFIG,
+      activeBible: null,
+      bibleHealthSummary: { total: 0, healthy: 0, needsAttention: 0 },
 
       // ── Actions ──────────────────────────────────────────────────────────
 
@@ -115,6 +124,15 @@ export const useContentStore = create<ContentStoreState>()(
           totalVerified: s.totalVerified + verified,
         })),
 
+      setActiveBible: (bible) => set({ activeBible: bible }),
+
+      refreshBibleHealth: () => {
+        try {
+          const { getBibleHealthSummary } = require('@/services/bibleProgressiveUpdater') as typeof import('@/services/bibleProgressiveUpdater');
+          set({ bibleHealthSummary: getBibleHealthSummary() });
+        } catch { /* non-fatal */ }
+      },
+
       reset: () =>
         set({
           automationEnabled: false,
@@ -125,6 +143,8 @@ export const useContentStore = create<ContentStoreState>()(
           totalGenerated: 0,
           totalVerified: 0,
           config: DEFAULT_CONFIG,
+          activeBible: null,
+          bibleHealthSummary: { total: 0, healthy: 0, needsAttention: 0 },
         }),
     }),
     {

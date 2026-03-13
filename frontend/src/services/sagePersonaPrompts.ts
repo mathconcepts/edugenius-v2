@@ -914,3 +914,71 @@ export function buildReadinessSageContext(): string {
     return parts.join('\n');
   } catch { return ''; }
 }
+
+// ─── SubTopic Bible Aware Directive ──────────────────────────────────────────
+import type { SubTopicBible } from './subTopicBibleService';
+import type { PersonaContext } from './contentPersonaEngine';
+
+/**
+ * buildBibleAwareDirective
+ *
+ * Sage calls this at session start to inject SubTopic Bible intelligence
+ * into its system prompt. Provides: the right analogy for the student's
+ * learning style, Socratic questions tailored to the subtopic, common
+ * misconceptions to avoid proactively, and high-yield exam areas.
+ */
+export function buildBibleAwareDirective(
+  bible: SubTopicBible,
+  personaCtx: PersonaContext,
+): string {
+  const learningStyle = (personaCtx.learningStyle as string) ?? 'visual';
+
+  // Pick analogy matching this student's learning style
+  const bestAnalogy = bible.pedagogy.effectiveAnalogies.find(a =>
+    a.worksFor.includes(learningStyle),
+  ) ?? bible.pedagogy.effectiveAnalogies[0];
+
+  // Top 3 misconceptions
+  const topMisconceptions = bible.pedagogy.commonMisconceptions
+    .slice(0, 3)
+    .map(m => `"${m.misconception}" → ${m.correction}`)
+    .join('\n      ');
+
+  // Socratic questions
+  const socratic = bible.pedagogy.socraticQuestions.slice(0, 3).join('\n      ');
+
+  // Stuck points
+  const stuckPoints = bible.analytics.commonStuckPoints.slice(0, 3).join(', ') || 'none recorded';
+
+  // Trap topics
+  const traps = bible.examIntelligence.trapTopics.slice(0, 2).join(', ') || 'none recorded';
+
+  const lines: string[] = [
+    `SUBTOPIC BIBLE CONTEXT for "${bible.subtopicName}" (${bible.examId}):`,
+    `  Academic level   : Bloom's ${bible.academic.bloomsLevel} | ${bible.academic.difficulty} difficulty`,
+    `  Prerequisites    : ${bible.academic.prerequisites.join(', ') || 'none'}`,
+    `  Teaching sequence: ${bible.pedagogy.teachingSequence.join(' → ')}`,
+    ``,
+    `  Most common misconceptions to address proactively:`,
+    `      ${topMisconceptions || 'none recorded'}`,
+    ``,
+    `  Effective analogy for ${learningStyle} learner:`,
+    `      ${bestAnalogy?.analogy ?? 'No analogy recorded yet — generate one'}`,
+    ``,
+    `  Socratic questions for this subtopic:`,
+    `      ${socratic || 'none recorded — ask foundational definition questions'}`,
+    ``,
+    `  Exam intelligence : ${bible.examIntelligence.weightage}% of marks | trap topics: ${traps}`,
+    `  Student analytics : avg ${bible.analytics.averageSessionsToMastery} sessions to mastery | common stuck: ${stuckPoints}`,
+    `  Best performing prompt template: ${bible.promptIntelligence.bestTemplateKey || 'default'}`,
+    ``,
+    `INSTRUCTION: Use the above to:`,
+    `  1. Pick the correct analogy for this student (${learningStyle} learner)`,
+    `  2. Probe understanding with the Socratic questions above`,
+    `  3. Preemptively correct the listed misconceptions`,
+    `  4. Focus teaching effort on the ${bible.examIntelligence.weightage}% exam-weightage areas`,
+    `  5. At session end: celebrate mastery if student answers Socratic Q correctly`,
+  ];
+
+  return lines.join('\n');
+}

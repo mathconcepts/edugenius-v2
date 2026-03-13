@@ -74,6 +74,15 @@ export async function getLayeredContent(
   surface: DeliverySurface,
   userPlan?: string,
 ): Promise<LayeredContent> {
+  // ── Step 0: Load SubTopic Bible (non-blocking, safe) ─────────────────────
+  let _bibleCtx: import('./subTopicBibleService').SubTopicBible | null = null;
+  try {
+    const { getBible, updateFromAtlasGeneration } = await import('./subTopicBibleService');
+    _bibleCtx = getBible(examId, topicId, topicId);
+    // Store for post-generation update
+    void updateFromAtlasGeneration; // referenced below
+  } catch { /* bible not yet seeded — safe to continue */ }
+
   // ── Step 1: Get mandatory baseline ──────────────────────────────────────
   const mandatory = getMandatoryLayer(examId, topicId);
   const spec = auditMandatoryContent(examId, topicId);
@@ -165,7 +174,7 @@ export async function getLayeredContent(
     tier = 'T0_static';
   }
 
-  return {
+  const result: LayeredContent = {
     mandatory,
     personalized,
     mandatoryCompleteness,
@@ -177,6 +186,22 @@ export async function getLayeredContent(
       rateLimitState,
     },
   };
+
+  // ── Post-generation: update bible with content coverage ──────────────────
+  if (_bibleCtx) {
+    try {
+      const { updateFromAtlasGeneration } = await import('./subTopicBibleService');
+      const atomTypes = ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'] as const;
+      for (const atom of mandatory) {
+        const matched = atomTypes.find(t => atom.id.includes(t) || (atom.type as string) === t);
+        if (matched) {
+          updateFromAtlasGeneration(examId, topicId, topicId, matched, atom.id, 'mandatory');
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  return result;
 }
 
 /**
