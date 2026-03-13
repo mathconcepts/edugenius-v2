@@ -2,7 +2,7 @@
 
 > **Audience:** Anyone setting up, operating, or using EduGenius — from first clone to first student session.  
 > **Structure:** Part 1 deploys the system → Part 2 walks every agent and sub-agent → Part 3 walks connections → Part 4 walks the full student journey to course content.  
-> **Last updated:** 2026-03-11  
+> **Last updated:** 2026-03-13  
 > **Live demo:** https://edugenius-ui.netlify.app  
 > **GitHub:** https://github.com/mathconcepts/edugenius-v2
 
@@ -1598,6 +1598,152 @@ npm run build       # production build
 
 ---
 
+## 14. Content Personalization & Course Playbook
+
+> Added: 2026-03-13
+
+This section covers the content personalization system, Course Playbook, and Course Material Generator — all built on top of the two-layer content architecture.
+
+### 14.1 Using ContentSlot in Any New Page
+
+`ContentSlot` is a universal drop-in component. You can place it anywhere with minimal props:
+
+```tsx
+import { ContentSlot } from '../components/ContentSlot';
+
+// Minimal usage — auto-fills all defaults
+<ContentSlot slotId="dashboard_hero" userId={userId} examId={examId} />
+
+// With topic context
+<ContentSlot
+  slotId="learn_topic_intro"
+  userId={userId}
+  examId="GATE_EM"
+  topic="eigenvalues_eigenvectors"
+/>
+
+// All slotIds available:
+// dashboard_hero · dashboard_sidebar · chat_pre_session · chat_post_response
+// practice_between_q · practice_session_end · learn_topic_intro · learn_topic_complete
+// daily_brief_card · exam_sim_pre · exam_sim_post · revision_card
+// blog_sidebar · blog_post_bottom · leaderboard_personal · notification_push
+// course_material_cta
+```
+
+The component automatically:
+- Reads the student's live persona (learning style, cognitive load, mood, streak)
+- Resolves the best content module(s) for this slot + context
+- Places mandatory modules first, personalized modules after
+- Auto-refreshes on the interval configured for the slot (e.g. dashboard_hero: every 5 min)
+
+**Do NOT** manually build content widgets for slots — always use `<ContentSlot>` so the personalization engine applies.
+
+### 14.2 Accessing the Course Playbook (`/course-playbook`)
+
+The Course Playbook is the single source of truth for every subtopic. Navigate to `/course-playbook` in the CEO dashboard.
+
+**Tab 1 — Playbook Browser:**
+1. Select an exam (GATE_EM / JEE / NEET / CAT / UPSC)
+2. Select a topic (filtered by exam)
+3. Browse subtopic cards — each shows completeness %, Oracle alert level, Atlas coverage, Sage sessions
+4. Click any card to see the full playbook (definition, formulas, PYQs, agent status)
+
+**Tab 2 — Playbook Health:**
+- See aggregate health across all playbooks
+- Identify playbooks with red/amber alerts (dropoff > 50%, engagement < 30%)
+- Click "Trigger Enrichment" to schedule Atlas generation for low-health playbooks
+- Health score = `completeness × 0.6 + engagementScore × 0.4 − alertPenalty`
+
+**Tab 3 — Updates:**
+- Live feed of all recent playbook changes
+- Filter by agent (Atlas / Sage / Oracle / Scout / Mentor / Herald)
+- Use this to verify that agents are actively enriching playbooks after student sessions
+
+**When to check playbooks:**
+- Before launching a new exam topic → confirm completeness ≥ 60%
+- After a batch of student sessions → check if Oracle has updated analytics
+- Weekly hygiene → identify and enrich any red-alert playbooks
+
+### 14.3 Generating Course Material (`/course-material-studio`)
+
+Navigate to `/course-material-studio` in the CEO dashboard, or from the CourseOrchestrator 6th tab.
+
+**Quick start (CEO):**
+1. Select a template (e.g. `exam_cracker` for GATE T-7)
+2. Select exam + topic + subtopics
+3. Click **Auto-Personalize** — all 34 variables resolved automatically from live student state
+4. Click **Generate** → material assembled in <1 second
+5. Review sections (mandatory sections appear first with a badge)
+6. Click **Save to Library** to store for later
+7. Click **Ask Sage** to launch a tutoring session from this material
+
+**Quick start (student):**
+1. On the Learn page, the student sees a "Generate Study Material" card
+2. Type a free-form request or tap one of 3 recommended templates
+3. Tap **Generate** — one click, fully personalized
+4. Tap **Ask Sage** to study with Sage using the material
+
+**Template selection guide:**
+
+| When | Recommended Template |
+|------|---------------------|
+| Exam in ≤ 7 days | `exam_cracker` |
+| 10-minute break | `quick_revision` |
+| Starting a new topic | `concept_builder` |
+| Student is a visual learner | `visual_deep_dive` |
+| Student learns by thinking | `socratic_journey` |
+| Advanced student wants edge cases | `topper_strategy` |
+| Parent asking "what is my child studying?" | `parent_brief` |
+| Teacher designing a class | `teacher_kit` |
+
+### 14.4 Using Custom Requests ("Explain Like a Story")
+
+Both the CEO and student can enter free-form text in the custom request field. The `parseCustomRequest()` engine converts this to configuration automatically.
+
+**Examples that work:**
+
+| You type | What happens |
+|----------|-------------|
+| `"explain like a story"` | `learningStyle=story_driven, includeAnalogies=true` |
+| `"5 min only"` | `sessionLengthMinutes=5, includeAnalogies=false` |
+| `"just previous year questions"` | `includePYQs=true`, all other sections removed |
+| `"show me visually"` | `learningStyle=visual, includeAnalogies=true` |
+| `"I'm a beginner from scratch"` | `cognitiveTier=foundational, preferredDifficulty=easy, includeAnalogies=true` |
+| `"for my teacher"` | `role=teacher`, teacher_note sections included |
+| `"show me the traps"` | `includeExamTips=true, includeCommonMistakes=true, focusAreas=['trapTopics']` |
+| `"topper level, hard"` | `cognitiveTier=advanced, preferredDifficulty=hard` |
+| `"5 min story from scratch"` | All of the above combined |
+
+Multiple keywords are combined. The last matching rule for each variable wins.
+
+### 14.5 CEO: Reading Playbook Health and Triggering Enrichment
+
+**Reading playbook health:**
+1. Go to `/course-playbook` → Tab 2 (Playbook Health)
+2. The **Health Score** (0-100) = `completeness × 0.6 + engagementScore × 0.4 − alertPenalty`
+3. **Completeness** is based on 20 measured fields across the 10 playbook sections
+4. **Oracle Alert Level:** 🟢 green (healthy) / 🟡 amber (watch) / 🔴 red (needs action)
+   - Red = dropoff rate > 50% OR engagement score < 30
+   - Amber = dropoff > 30% OR engagement < 50
+
+**Triggering enrichment (manually):**
+1. On Playbook Health tab → click **"Trigger Enrichment"** for a specific playbook
+2. This sets `agentConnections.atlas.generationPriority = 'critical'` and schedules generation in 5 minutes
+3. Atlas batch job will pick this up on its next run
+4. Return to the playbook card in 10-15 minutes — check that `contentAtoms.mandatory` is now populated
+
+**Triggering enrichment (automatically):**
+- The automation scoring system gives mandatory content gaps a **+200% priority boost** in the batch queue
+- Any playbook with `mandatoryCompleteness < 100%` will be enriched automatically in the next Atlas batch cycle
+- You do not need to manually trigger this in normal operations
+
+**Inspecting what Sage used last session:**
+1. Go to `/course-playbook` → Tab 1 → select a subtopic
+2. Scroll to "Agent Connections" → `sage.effectivePromptIds[]` shows which prompts drove engagement
+3. `promptIntelligence.bestTemplateKey` shows which CourseTemplate worked best for this subtopic
+
+---
+
 ## Reference — Document Index
 
 | Document | What it covers |
@@ -1624,10 +1770,13 @@ npm run build       # production build
 | [`18-agent-connection-map.md`](./18-agent-connection-map.md) | Complete bidirectional signal map |
 | [`19-audit-report.md`](./19-audit-report.md) | Bidirectional wiring audit findings |
 | [`19-deployment-options.md`](./19-deployment-options.md) | Deployment cost and comparison |
-| [`20-content-system.md`](./20-content-system.md) | Content system architecture |
+| [`20-content-system.md`](./20-content-system.md) | Content system architecture (updated 2026-03-13: two-layer model) |
 | [`21-course-summary-outline.md`](./21-course-summary-outline.md) | Course Summary Outline system |
+| [`22-help-manual.md`](./22-help-manual.md) | **← You are here** |
+| [`23-two-layer-content-architecture.md`](./23-two-layer-content-architecture.md) | Mandatory + personalized two-layer content system (2026-03-13) |
+| [`24-course-playbook.md`](./24-course-playbook.md) | Course Playbook — universal knowledge graph for every subtopic (2026-03-13) |
+| [`25-course-material-generator.md`](./25-course-material-generator.md) | Course Material Generator — 8 templates, 34 variables (2026-03-13) |
 | [`CEO-INTEGRATIONS-GUIDE.md`](./CEO-INTEGRATIONS-GUIDE.md) | All integrations master guide |
-| **[`22-help-manual.md`](./22-help-manual.md)** | **← You are here** |
 
 ---
 

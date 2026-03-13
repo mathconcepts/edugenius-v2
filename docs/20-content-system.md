@@ -243,3 +243,101 @@ Two new items added to `ceoNavItems`:
 - **TypeScript:** 0 errors
 - **Vite build:** ✓ 3061 modules transformed in 12.30s
 - **New bundle:** `ContentHub-D57nox8l.js` (51.26 kB gzip: 14.43 kB)
+
+---
+
+## Update — Two-Layer Architecture (2026-03-13)
+
+> **Commits:** `e81f548` · `e6a5f6d` · `88b5adb` · `cd99890` · `6af8d66` · `e1bb7cb`
+
+The content system now operates on a **mandatory + personalized two-layer model**. Every content request first fulfills a guaranteed mandatory baseline, then adds persona-adapted personalized content on top. This makes EduGenius's content both pedagogically sound (mandatory) and individually engaging (personalized).
+
+### The Two-Layer Model
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 2: HYPER-PERSONALIZED                                │
+│  style-adapted, mood-aware, cognitive-load-adjusted         │
+├─────────────────────────────────────────────────────────────┤
+│  LAYER 1: MANDATORY BASELINE                                │
+│  concept_core · formula_card · worked_example               │
+│  pyq_set · common_mistakes · exam_tips                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Graceful degradation:** If the personalization budget is exhausted (80 calls/day pool), only mandatory is delivered. If mandatory generation fails, cached or T0 static atoms are used. Students never see a blank screen.
+
+### New Services Added (2026-03-13)
+
+| Service File | Purpose | Lines |
+|-------------|---------|-------|
+| `contentSlotService.ts` | Universal slot resolution engine — 16 SlotIds, 18 ContentModules, 9 resolution scenarios | ~550 |
+| `mandatoryContentService.ts` | Mandatory baseline engine — 6 atom types, 29 exam×topic pairs | ~600 |
+| `contentLayerService.ts` | Orchestrates mandatory → personalized pipeline | ~250 |
+| `coursePlaybookService.ts` | Universal knowledge graph — one playbook per subtopic | 1,235 |
+| `playbookProgressiveUpdater.ts` | Signal-bus wiring for live playbook updates from all 6 agents | 599 |
+| `courseMaterialGenerator.ts` | Playbook-driven course material generator — 8 templates, 34 personalization variables | 1,228 |
+
+### New Components Added (2026-03-13)
+
+| Component / Page | Route | Purpose |
+|-----------------|-------|---------|
+| `ContentSlot.tsx` | (drop-in, no route) | Universal renderer for any slot in any page |
+| `PersonalizedFeed.tsx` | (embedded in Learn page) | Adaptive infinite-scroll feed |
+| `ContentPersonalizationControl.tsx` | `/content-personalization` | CEO: slot simulator + A/B override manager |
+| `CoursePlaybookViewer.tsx` | `/course-playbook` | CEO: browse/inspect/enrich all course playbooks |
+| `CourseMaterialStudio.tsx` | `/course-material-studio` | CEO + Student: generate personalized course material |
+
+### Generation Pipeline Two-Layer Sync
+
+All 9 existing generation services were updated to be layer-aware in commit `88b5adb`. Every generation function now knows whether it is fulfilling a mandatory or personalized request:
+
+- **Layer-aware prompts:** Mandatory prompts are framed for accuracy + completeness; personalized prompts are framed for style + engagement.
+- **Layer-aware arbitration:** Mandatory math → Wolfram Alpha first; mandatory PYQs → static library only (no hallucination risk); personalized → LLM.
+- **Batch priority:** Mandatory jobs always processed first in all batch queues.
+- **Automation scoring:** Mandatory content gaps receive a **+200% priority boost** in the automation scoring system.
+- **Sage directive:** `mandatoryDelivered[]` param tells Sage which atoms the student has already seen — Sage skips re-explaining and builds on top.
+
+### Rate Limit Budget System
+
+| Budget Category | Daily Allocation | Can Be Used For Personalization? |
+|----------------|-----------------|--------------------------------|
+| Mandatory reserve | 20 calls/day | No — protected |
+| Personalization pool | 80 calls/day | Yes |
+| Emergency burst | +10 calls/day | Mandatory only |
+| **Total** | **100 calls/day** | |
+
+### Course Playbook (Single Source of Truth)
+
+The **Course Playbook** (`coursePlaybookService.ts`) is the single source of truth for every subtopic. Each playbook stores 10 sections: academic foundation, teaching intelligence, exam intelligence, content atoms, student analytics, preferences, search intelligence, agent connections, prompt intelligence, and knowledge graph. Every agent reads and writes to it.
+
+**10 GATE EM subtopics** seeded with real data (5 Linear Algebra + 5 Calculus), including real PYQs with explanations, high-yield formulas, Socratic questions, and misconceptions.
+
+Storage: `localStorage` (key pattern: `eg_playbook_{examId}_{topicId}_{subtopicId}`), Supabase-ready.
+
+Full documentation: **[`24-course-playbook.md`](./24-course-playbook.md)**
+
+### Course Material Generator
+
+The `courseMaterialGenerator.ts` (1,228 lines) generates fully-assembled course materials by reading from Course Playbooks. Supports:
+
+- **8 templates:** exam_cracker, concept_builder, quick_revision, visual_deep_dive, socratic_journey, topper_strategy, parent_brief, teacher_kit
+- **34 personalization variables** across 5 dimensions
+- **`parseCustomRequest()`:** NLP parser converts free-form text ("explain like a story") into resolved `PersonalizationConfig`
+- **`autoPersonalize()`:** reads live student state + playbook and resolves all 34 variables automatically
+- **Sage integration:** `buildCourseMaterialPrompt()` — Sage teaches from generated material
+
+Full documentation: **[`25-course-material-generator.md`](./25-course-material-generator.md)**
+
+### Two-Layer Architecture Documentation
+
+Full documentation of the mandatory + personalized architecture:  
+**[`23-two-layer-content-architecture.md`](./23-two-layer-content-architecture.md)**
+
+### New CEO Sidebar Nav Items (2026-03-13)
+
+| Item | Route | Purpose |
+|------|-------|---------|
+| `🎯 Content Personalization` | `/content-personalization` | Slot simulator + A/B override manager |
+| `📖 Course Playbook` | `/course-playbook` | Browse + health + enrich all subtopic playbooks |
+| `📚 Course Material Studio` | `/course-material-studio` | Generate personalized course material |

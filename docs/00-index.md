@@ -1,7 +1,7 @@
 # EduGenius v2.0 — Documentation Index
 
-> **Last updated:** 2026-03-11  
-> **Total docs:** 23 files + 1 guide + infra/  
+> **Last updated:** 2026-03-13  
+> **Total docs:** 26 files + 1 guide + infra/  
 
 This is the master index of all documentation in the `docs/` directory, organised hierarchically.
 
@@ -62,9 +62,12 @@ This is the master index of all documentation in the `docs/` directory, organise
 | 17 | `17-master-design-documentation.md` | Complete system design, data flows |
 | 18 | `18-agent-connection-map.md` | Bidirectional signal reference for all 8 agents (updated 2026-03-11: Prism + FUNNEL_INSIGHT + inbox processors) |
 | 19 | `19-audit-report.md` | Full dual-direction audit (2026-03-10) — findings + fixes |
-| 20 | `20-content-system.md` | Content generation & delivery system architecture (2026-03-10) |
+| 20 | `20-content-system.md` | Content generation & delivery system architecture (2026-03-10; updated 2026-03-13: two-layer architecture, new services, new CEO pages) |
 | 21 | `21-course-summary-outline.md` | Pre-approval hierarchical course outline — data model, API, UI, Atlas integration (2026-03-11) |
-| 22 | `22-help-manual.md` | **Complete help manual** — scratch-to-deploy all options, every agent + sub-agent, all connections, full student journey to course content (2026-03-11) |
+| 22 | `22-help-manual.md` | **Complete help manual** — scratch-to-deploy all options, every agent + sub-agent, all connections, full student journey to course content (updated 2026-03-13: content personalization + course playbook) |
+| 23 | `23-two-layer-content-architecture.md` | Mandatory + personalized two-layer content system — 16 SlotIds, 18 ContentModules, 9 resolution scenarios, layer-aware generation pipeline, ContentLayerService orchestration (2026-03-13) |
+| 24 | `24-course-playbook.md` | Course Playbook — universal knowledge graph, 10-section schema, agent ownership map, progressive update hooks, CEO page guide, localStorage schema, Supabase migration path, 10 seeded GATE EM subtopics, full API reference (2026-03-13) |
+| 25 | `25-course-material-generator.md` | Course Material Generator — 8 templates, 34 personalization variables (5-dimension table), free-form request parsing, generateCourseMaterial() flow, autoPersonalize(), CourseMaterialStudio CEO + student modes, Sage integration (2026-03-13) |
 
 ---
 
