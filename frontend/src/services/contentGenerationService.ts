@@ -37,6 +37,9 @@ export type ContentSource =
   | 'wolfram_grounded'   // NEW — content generated from Wolfram computation
   | 'agent_workflow';
 
+/** Which content generation layer this request is serving. */
+export type GenerationLayer = 'mandatory' | 'personalized';
+
 export type ContentOutputFormat =
   | 'mcq_set'            // array of MCQs with options/answers/explanations
   | 'lesson_notes'       // structured lesson with sections
@@ -65,6 +68,12 @@ export interface GenerationRequest {
   count?: number;             // number of MCQs/flashcards etc.
   useWolframVerification: boolean;
   useWolframGrounding: boolean;
+
+  // Two-layer model fields (all optional for backward compat)
+  layer?: GenerationLayer;          // which layer this generation serves
+  mandatoryAtomType?: string;       // if mandatory: 'concept_core' | 'formula_card' | etc.
+  personaStyle?: string;            // if personalized: learning style
+  personaObjective?: string;        // if personalized: learning objective
 }
 
 export interface MCQItem {
@@ -104,6 +113,10 @@ export interface GeneratedContent {
   topicId?: string;
   wordCount: number;
   readyForReview: boolean;
+
+  // Two-layer tracking
+  layer?: GenerationLayer;          // which layer produced this content
+  generationIntent?: string;        // e.g. 'mandatory:concept_core' or 'personalized:visual:exam_readiness'
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -232,6 +245,29 @@ export async function ingestSource(
 
 // ─── LLM generation ───────────────────────────────────────────────────────────
 
+/** Build a layer-specific framing prefix for the prompt */
+function buildLayerPrefix(
+  layer?: GenerationLayer,
+  mandatoryAtomType?: string,
+  personaStyle?: string,
+  personaObjective?: string,
+  exam?: string,
+  topic?: string,
+): string {
+  if (layer === 'mandatory') {
+    const atomLabel = mandatoryAtomType ?? 'content';
+    const examLabel = exam ?? 'this exam';
+    const topicLabel = topic ?? 'this topic';
+    return `MANDATORY BASELINE GENERATION: This content MUST be complete, accurate, exam-specific, and suitable for ALL students regardless of learning style. Cover: ${atomLabel} for ${examLabel} ${topicLabel}. Quality floor: 90/100. Do not optimize for style — optimize for completeness and accuracy.\n\n`;
+  }
+  if (layer === 'personalized') {
+    const style = personaStyle ?? 'general';
+    const objective = personaObjective ?? 'exam_readiness';
+    return `PERSONALIZED LAYER GENERATION: This content is SUPPLEMENTARY to the mandatory baseline already delivered. Adapt for: learning_style=${style}, objective=${objective}. Student has already received: concept core, formula card, worked example. Build on that foundation — do not repeat basics. Add depth/style-specific value.\n\n`;
+  }
+  return '';
+}
+
 /** Build a structured prompt for the given format */
 function buildGenerationPrompt(
   sourceText: string,
@@ -240,13 +276,19 @@ function buildGenerationPrompt(
   count: number = 10,
   difficulty: string = 'mixed',
   topic?: string,
-  wolframContext?: string
+  wolframContext?: string,
+  layer?: GenerationLayer,
+  mandatoryAtomType?: string,
+  personaStyle?: string,
+  personaObjective?: string,
 ): string {
+  const layerPrefix = buildLayerPrefix(layer, mandatoryAtomType, personaStyle, personaObjective, exam, topic);
+
   const wolframBlock = wolframContext
     ? `\n\n**VERIFIED WOLFRAM COMPUTATION (use these exact values):**\n${wolframContext}\n\nEvery formula and numerical answer MUST match the Wolfram result above.\n`
     : '';
 
-  const baseContext = `You are Atlas, the content engine for EduGenius. Generate high-quality educational content for ${exam} students.${wolframBlock}`;
+  const baseContext = `${layerPrefix}You are Atlas, the content engine for EduGenius. Generate high-quality educational content for ${exam} students.${wolframBlock}`;
 
   switch (format) {
     case 'mcq_set':
@@ -388,9 +430,16 @@ export async function generateFromPrompt(
   exam: string,
   count: number = 10,
   difficulty: string = 'mixed',
-  topic?: string
+  topic?: string,
+  layer?: GenerationLayer,
+  mandatoryAtomType?: string,
+  personaStyle?: string,
+  personaObjective?: string,
 ): Promise<string> {
-  const systemPrompt = buildGenerationPrompt(prompt, format, exam, count, difficulty, topic);
+  const systemPrompt = buildGenerationPrompt(
+    prompt, format, exam, count, difficulty, topic,
+    undefined, layer, mandatoryAtomType, personaStyle, personaObjective,
+  );
   const result = await callLLM({
     agent: 'atlas',
     message: systemPrompt,
@@ -403,13 +452,17 @@ export async function generateWolframGrounded(
   format: ContentOutputFormat,
   exam: string,
   count: number = 10,
-  topic?: string
+  topic?: string,
+  layer?: GenerationLayer,
+  mandatoryAtomType?: string,
+  personaStyle?: string,
+  personaObjective?: string,
 ): Promise<string> {
   // Step 1: Get deterministic Wolfram computation
   const wolframResult = await queryWolfram(wolframQuery);
   const wolframContext = wolframResult.success ? wolframResult.answer : undefined;
 
-  // Step 2: Build grounded prompt
+  // Step 2: Build grounded prompt (with layer awareness)
   const groundedPrompt = buildGenerationPrompt(
     wolframQuery,
     format,
@@ -417,7 +470,11 @@ export async function generateWolframGrounded(
     count,
     'mixed',
     topic,
-    wolframContext
+    wolframContext,
+    layer,
+    mandatoryAtomType,
+    personaStyle,
+    personaObjective,
   );
 
   // Step 3: Generate with LLM
@@ -574,7 +631,18 @@ export async function generateContent(
     count = 10,
     useWolframVerification,
     useWolframGrounding,
+    layer,
+    mandatoryAtomType,
+    personaStyle,
+    personaObjective,
   } = request;
+
+  // Build a human-readable generation intent string for tracking
+  const generationIntent: string | undefined = layer
+    ? layer === 'mandatory'
+      ? `mandatory:${mandatoryAtomType ?? outputFormat}`
+      : `personalized:${personaStyle ?? 'general'}:${personaObjective ?? 'exam_readiness'}`
+    : undefined;
 
   onProgress?.('Ingesting source...', 5);
 
@@ -600,7 +668,11 @@ export async function generateContent(
       outputFormat,
       examTarget,
       count,
-      topicId
+      topicId,
+      layer,
+      mandatoryAtomType,
+      personaStyle,
+      personaObjective,
     );
     // Flag as wolfram-verified since we used grounded computation
     wolframVerified = true;
@@ -611,7 +683,11 @@ export async function generateContent(
       examTarget,
       count,
       difficultyLevel,
-      topicId
+      topicId,
+      layer,
+      mandatoryAtomType,
+      personaStyle,
+      personaObjective,
     );
   }
 
@@ -664,6 +740,8 @@ export async function generateContent(
     topicId,
     wordCount: countWords(displayContent),
     readyForReview: true,
+    layer,
+    generationIntent,
   };
 }
 
@@ -721,5 +799,8 @@ export function generatedContentToAtom(
     timesServed:    0,
     avgRating:      0,
     completionRate: 0,
+    // Propagate two-layer fields
+    layer:            content.layer,
+    generationIntent: content.generationIntent,
   };
 }

@@ -11,6 +11,7 @@
 import { callLLM } from './llmService';
 import { generateContent, generateAllChannels } from './contentGenerationHub';
 import { selectStrategy } from './contentStrategyService';
+import { getStaticTopicCompleteness } from './mandatoryContentService';
 import type { SupportedExam, ContentChannel, ContentAudience, GeneratedContent } from './contentGenerationHub';
 
 // ─── Campaign types ───────────────────────────────────────────────────────────
@@ -49,6 +50,9 @@ export interface ContentCampaign {
   // Scheduling
   scheduledAt?: string;
   batchId?: string;
+
+  // Two-layer model: what kind of campaign was run
+  campaignLayer?: 'mandatory_fill' | 'personalized_campaign' | 'mixed';
 }
 
 export interface ScoutInsights {
@@ -259,7 +263,35 @@ async function runAtlasStep(campaign: ContentCampaign): Promise<ContentCampaign>
   emitSignal('atlas:generate_request', { campaignId: c.id, exam: c.exam, topic: c.topic });
 
   try {
-    const contentMap = await generateAllChannels(c.exam, c.topic, c.audience, c.channels);
+    // ── STEP 1: Mandatory Audit ────────────────────────────────────────────
+    // Derive examId and topicId from exam name and topic
+    const examId = c.exam.toUpperCase().replace(/\s+/g, '_');
+    const topicId = c.topic.toLowerCase().replace(/\s+/g, '_');
+    const mandatorySpec = getStaticTopicCompleteness(examId, topicId);
+    const mandatoryCompleteness = mandatorySpec.coverage;
+
+    let campaignLayer: ContentCampaign['campaignLayer'] = 'personalized_campaign';
+
+    // ── STEP 2: Generate mandatory atoms first if incomplete ──────────────
+    if (mandatoryCompleteness < 100) {
+      campaignLayer = mandatoryCompleteness === 0 ? 'mandatory_fill' : 'mixed';
+      addLog(c, 'generate', 'running',
+        `Mandatory baseline at ${mandatoryCompleteness}% — filling gaps before campaign content`);
+
+      // Queue mandatory generation for each channel with mandatory layer tag
+      await generateAllChannels(c.exam, c.topic, c.audience, c.channels.slice(0, 1), 'mandatory');
+
+      emitSignal('atlas:mandatory_fill', {
+        campaignId: c.id,
+        examId,
+        topicId,
+        mandatoryCompleteness,
+        missingAtoms: mandatorySpec.missing,
+      });
+    }
+
+    // ── STEP 3: Generate campaign/personalized content ────────────────────
+    const contentMap = await generateAllChannels(c.exam, c.topic, c.audience, c.channels, 'personalized');
     emitSignal('atlas:content_ready', { campaignId: c.id, channelCount: contentMap.size });
 
     // Feed to RAG indexer
@@ -271,9 +303,9 @@ async function runAtlasStep(campaign: ContentCampaign): Promise<ContentCampaign>
     });
 
     c = addLog(
-      { ...c, generatedContent: contentMap },
+      { ...c, generatedContent: contentMap, campaignLayer },
       'generate', 'done',
-      `Generated ${contentMap.size} content pieces`,
+      `Generated ${contentMap.size} content pieces (layer: ${campaignLayer})`,
     );
     return c;
   } catch (err) {

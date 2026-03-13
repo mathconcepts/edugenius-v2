@@ -12,7 +12,7 @@
  */
 
 import { isWolframAvailable } from './wolframService';
-import type { GenerationRequest, ContentSource } from './contentGenerationService';
+import type { GenerationRequest, ContentSource, GenerationLayer } from './contentGenerationService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +24,9 @@ export interface ArbitrationDecision {
   wolframQuery?: string;    // if wolfram path, the query to run
   sourceLabel: string;      // "🔢 Wolfram Verified" | "📄 Document" | "🧠 LLM"
   confidenceBoost: number;  // 0.0–0.25 confidence bonus over base
+  // Two-layer model context (optional, set when layer info is available)
+  layer?: GenerationLayer;
+  mandatoryAtomType?: string;
 }
 
 // ─── Wolfram topic keywords ───────────────────────────────────────────────────
@@ -91,16 +94,22 @@ export function getSourceBadge(path: ArbitrationPath): {
 /**
  * arbitrateContentSource — given a GenerationRequest, decide which source path to use.
  *
- * Priority:
+ * Priority (with layer-aware overrides):
  *  1. Explicit wolfram_grounded source → wolfram
  *  2. Document / API / MCP source → document
- *  3. useWolframGrounding flag + Wolfram available + mathematical topic → wolfram
- *  4. Topic is mathematical + Wolfram available → wolfram
- *  5. Fallback → llm
+ *  3. [mandatory layer] math topic → always wolfram (accuracy > speed)
+ *  4. [mandatory layer] PYQ atom type → never llm; use static/pyq path → document fallback
+ *  5. [personalized layer] style adaptation → prefer llm (persona prompts)
+ *  6. [personalized layer] math topic + non-free plan → wolfram; else → llm
+ *  7. useWolframGrounding flag + Wolfram available + mathematical topic → wolfram
+ *  8. Topic is mathematical + Wolfram available → wolfram
+ *  9. Fallback → llm
  */
 export function arbitrateContentSource(
   request: GenerationRequest,
 ): ArbitrationDecision {
+  const { layer, mandatoryAtomType } = request;
+
   // Rule 1: explicit wolfram_grounded source
   if (request.source === 'wolfram_grounded') {
     return {
@@ -109,6 +118,8 @@ export function arbitrateContentSource(
       wolframQuery: buildWolframQuery(request),
       sourceLabel: '🔢 Wolfram Verified',
       confidenceBoost: 0.25,
+      layer,
+      mandatoryAtomType,
     };
   }
 
@@ -119,10 +130,80 @@ export function arbitrateContentSource(
       reason: `Source is ${request.source} — using document/external path`,
       sourceLabel: '📄 Document',
       confidenceBoost: 0.1,
+      layer,
+      mandatoryAtomType,
     };
   }
 
-  // Rule 3: useWolframGrounding flag + Wolfram available + mathematical topic
+  // ── Layer-aware rules ────────────────────────────────────────────────────
+
+  if (layer === 'mandatory') {
+    // Mandatory: PYQ atom types come from static only (never LLM for PYQ facts)
+    if (mandatoryAtomType === 'pyq_set') {
+      return {
+        path: 'document',  // static PYQ library or document path
+        reason: 'Mandatory PYQ set — PYQs come from static/verified source, not LLM',
+        sourceLabel: '📄 Document (PYQ Static)',
+        confidenceBoost: 0.2,
+        layer,
+        mandatoryAtomType,
+      };
+    }
+
+    // Mandatory + math topic → always wolfram (accuracy imperative)
+    if (isMathematicalTopic(request) && isWolframAvailable()) {
+      const wolframQuery = buildWolframQuery(request);
+      return {
+        path: 'wolfram',
+        reason: 'Mandatory layer + mathematical topic — Wolfram required for accuracy',
+        wolframQuery,
+        sourceLabel: '🔢 Wolfram Verified',
+        confidenceBoost: 0.25,
+        layer,
+        mandatoryAtomType,
+      };
+    }
+
+    // Mandatory + non-math → LLM with mandatory framing (see buildGenerationPrompt)
+    return {
+      path: 'llm',
+      reason: 'Mandatory layer non-math topic — LLM with mandatory-framing prompt',
+      sourceLabel: '🧠 LLM (Mandatory)',
+      confidenceBoost: 0.05,
+      layer,
+      mandatoryAtomType,
+    };
+  }
+
+  if (layer === 'personalized') {
+    // Personalized + math topic → wolfram only if topic is mathematical and wolfram available
+    if (isMathematicalTopic(request) && isWolframAvailable()) {
+      const wolframQuery = buildWolframQuery(request);
+      return {
+        path: 'wolfram',
+        reason: 'Personalized layer + mathematical topic — Wolfram for accuracy, then style-adapted',
+        wolframQuery,
+        sourceLabel: '🔢 Wolfram Verified',
+        confidenceBoost: 0.2,
+        layer,
+        mandatoryAtomType,
+      };
+    }
+
+    // Personalized + non-math → LLM with persona prompts
+    return {
+      path: 'llm',
+      reason: 'Personalized layer — LLM with persona/style adaptation prompts',
+      sourceLabel: '🧠 LLM (Personalized)',
+      confidenceBoost: 0.0,
+      layer,
+      mandatoryAtomType,
+    };
+  }
+
+  // ── Original rules (no layer specified — backward compat) ────────────────
+
+  // Rule 3 (legacy): useWolframGrounding flag + Wolfram available + mathematical topic
   if (
     request.useWolframGrounding &&
     isWolframAvailable() &&
@@ -139,7 +220,7 @@ export function arbitrateContentSource(
     };
   }
 
-  // Rule 4: topic matches WOLFRAM_TOPICS + Wolfram available
+  // Rule 4 (legacy): topic matches WOLFRAM_TOPICS + Wolfram available
   if (isMathematicalTopic(request) && isWolframAvailable()) {
     const wolframQuery = buildWolframQuery(request);
     return {
@@ -151,7 +232,7 @@ export function arbitrateContentSource(
     };
   }
 
-  // Rule 5: fallback to LLM
+  // Rule 5 (legacy): fallback to LLM
   return {
     path: 'llm',
     reason: 'No Wolfram or document source applicable — using direct LLM generation',

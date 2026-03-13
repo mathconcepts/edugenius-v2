@@ -301,23 +301,40 @@ export function getContentBudget(): ContentGenerationBudget {
   return readBudget();
 }
 
+/** GenerationLayer alias for budget consumption — matches contentGenerationService type */
+export type GenerationLayer = 'mandatory' | 'personalized';
+
 /**
  * Consumes one call from the appropriate budget pool.
- * - 'mandatory': uses from mandatory reserve first, then general limit
- * - 'personalized': uses from personalization budget only
+ *
+ * Layer rules:
+ * - 'mandatory': deducts from mandatoryReserve (20 calls/day reserved — NEVER shares with personalized)
+ *   If mandatoryReserve = 0 → still generate (reset emergency floor to 5 calls)
+ * - 'personalized': deducts from personalizationBudget only
+ *   If personalizationBudget = 0 → return false (caller degrades to mandatory-only)
  *
  * Returns true if budget was available and consumed, false if exhausted.
  */
-export function consumeContentBudget(type: 'mandatory' | 'personalized'): boolean {
+export function consumeContentBudget(type: GenerationLayer): boolean {
   const budget = readBudget();
 
   if (budget.dailyLLMCallsUsed >= budget.dailyLLMCallsLimit) {
-    return false; // total daily limit hit
+    // For mandatory: still allow via emergency floor reset
+    if (type === 'mandatory') {
+      // Reset emergency floor to 5 calls if mandatory is completely blocked
+      if (budget.mandatoryReserve <= 0) {
+        budget.mandatoryReserve = 5;
+        budget.dailyLLMCallsLimit += 5; // extend limit for mandatory emergency
+      }
+      // Fall through to deduct below
+    } else {
+      return false; // total daily limit hit for personalized
+    }
   }
 
   if (type === 'personalized') {
     if (budget.personalizationBudget <= 0) {
-      return false; // personalization pool exhausted
+      return false; // personalization pool exhausted — caller degrades to mandatory-only
     }
     budget.personalizationBudget = Math.max(0, budget.personalizationBudget - 1);
     budget.dailyLLMCallsUsed += 1;
@@ -325,12 +342,14 @@ export function consumeContentBudget(type: 'mandatory' | 'personalized'): boolea
     return true;
   }
 
-  // type === 'mandatory': always prioritized
+  // type === 'mandatory': deduct from mandatoryReserve exclusively
   if (budget.mandatoryReserve > 0) {
     budget.mandatoryReserve = Math.max(0, budget.mandatoryReserve - 1);
   } else {
-    // Use from personalization budget as overflow
-    budget.personalizationBudget = Math.max(0, budget.personalizationBudget - 1);
+    // Emergency floor: mandatory reserve exhausted → reset to 5 and continue
+    budget.mandatoryReserve = 5;
+    budget.dailyLLMCallsLimit += 5;
+    budget.mandatoryReserve = Math.max(0, budget.mandatoryReserve - 1);
   }
   budget.dailyLLMCallsUsed += 1;
   writeBudget(budget);

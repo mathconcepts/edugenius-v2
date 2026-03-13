@@ -244,7 +244,8 @@ export function buildSageSystemPrompt(
   networkCtxOrKnowledge?: SageNetworkContext | KnowledgeContext,
   knowledgeContext?: KnowledgeContext,
   userContext?: UserContext,
-  learningMoment?: import('./contentFramework').LearningMoment
+  learningMoment?: import('./contentFramework').LearningMoment,
+  mandatoryDelivered?: string[],  // list of mandatory atom types already delivered to this student
 ): string {
   // Distinguish overloads: networkCtx has cohortNote; KnowledgeContext has context
   let networkCtx: SageNetworkContext | null = null;
@@ -388,6 +389,27 @@ RAG search: ${userContext.mcpPrivileges.ragEnabled ? 'ENABLED' : 'DISABLED for t
   // ── Inject LearningMoment directive if provided ───────────────────────────
   if (learningMoment) {
     systemPrompt += `\n\n═══ LEARNING MOMENT ═══\n${getMomentDirective(learningMoment)}`;
+  }
+
+  // ── Inject Two-Layer Content Awareness ───────────────────────────────────
+  if (mandatoryDelivered !== undefined) {
+    const ALL_MANDATORY_TYPES = [
+      'concept_core', 'formula_card', 'worked_example',
+      'pyq_set', 'common_mistakes', 'exam_tips',
+    ];
+    const deliveredSet = new Set(mandatoryDelivered);
+    const missingAtoms = ALL_MANDATORY_TYPES.filter(t => !deliveredSet.has(t));
+
+    systemPrompt += `\n\n═══ CONTENT LAYER AWARENESS ═══
+The student has received these mandatory content atoms: ${mandatoryDelivered.length > 0 ? mandatoryDelivered.join(', ') : 'none yet'}.
+Your role is Layer 2 (personalization) for this session.
+DO NOT re-explain atoms already in the mandatory layer unless student explicitly asks.
+BUILD ON the mandatory foundation with:
+- Socratic questions that test understanding of delivered content
+- Style-adapted elaborations based on ${persona.learningStyle ?? 'the student\'s learning style'}
+- Connection to exam patterns beyond what mandatory covers
+MANDATORY GAPS (not yet delivered): ${missingAtoms.length > 0 ? missingAtoms.join(', ') : 'none — full baseline delivered'}
+If student asks about a missing mandatory topic, acknowledge it and provide it — that becomes a dynamic mandatory delivery.`;
   }
 
   // ── Inject content strategy directive ─────────────────────────────────────
@@ -812,7 +834,17 @@ export function buildMandatoryContentDirective(
  * @param topic   - e.g. 'eigenvalues', 'laplace-transform'
  * @param examId  - e.g. 'gate-engineering-maths', 'jee-main'
  */
-export function buildVisualSageDirective(topic: string, examId: string): string {
+export function buildVisualSageDirective(
+  topic: string,
+  examId: string,
+  layer?: 'mandatory' | 'personalized',
+): string {
+  // Visual cards are Layer 2 (personalized) only.
+  // The mandatory layer is text-first (accuracy > visual richness).
+  if (layer === 'mandatory') {
+    return `[MANDATORY LAYER — TEXT-FIRST]: For this ${topic} content, prioritize accuracy and completeness over visual formatting. Ensure all key formulas, definitions, and worked examples are present. Visual elaboration is Layer 2 (personalized) — do not substitute style for substance.`;
+  }
+
   const isGate = examId.toLowerCase().includes('gate');
   const isJee  = examId.toLowerCase().includes('jee');
   const isCat  = examId.toLowerCase().includes('cat');
@@ -830,7 +862,8 @@ export function buildVisualSageDirective(topic: string, examId: string): string 
     : '';
 
   return `
-## VISUAL-FIRST RESPONSE STRUCTURE
+## VISUAL-FIRST RESPONSE STRUCTURE [Layer 2 — Personalized]
+This visual structure is personalized content (Layer 2). The mandatory baseline (Layer 1) for ${topic} has already been delivered. Build on that foundation with visual depth.
 For this ${topic} question, structure your response EXACTLY as follows:
 
 **📌 Context:** What is this concept and why does it matter for ${examId.toUpperCase()}?

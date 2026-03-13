@@ -10,6 +10,7 @@
 
 import { callLLM } from './llmService';
 import type { ContentAtom } from './contentFramework';
+import type { GenerationLayer } from './contentGenerationService';
 
 // ─── Supported exams & audiences ─────────────────────────────────────────────
 
@@ -126,6 +127,10 @@ export interface ContentGenerationRequest {
   audience: ContentAudience;
   tone?: 'inspiring' | 'educational' | 'conversational' | 'urgent' | 'professional';
   atom?: ContentAtom;   // optionally seed from existing atom
+
+  // Two-layer model fields (optional, backward compat)
+  layer?: GenerationLayer;
+  mandatoryAtomType?: string;
 }
 
 // ─── Exam subreddit map ───────────────────────────────────────────────────────
@@ -151,6 +156,21 @@ const AUDIENCE_DESC: Record<ContentAudience, string> = {
 };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
+
+/**
+ * Returns a layer-specific framing prefix for channel prompts.
+ * Mandatory: complete topic coverage, exam-accurate, no style optimization.
+ * Personalized: audience-adapted, builds on mandatory assumed-delivered.
+ */
+function buildHubLayerPrefix(req: ContentGenerationRequest): string {
+  if (req.layer === 'mandatory') {
+    return `[MANDATORY BASELINE] This content MUST provide complete topic coverage for ${req.exam} — ${req.topic}. Accuracy is paramount. Do not optimize for style or audience preferences — optimize for completeness and exam accuracy.\n\n`;
+  }
+  if (req.layer === 'personalized') {
+    return `[PERSONALIZED LAYER] This content builds on the mandatory baseline already delivered to the audience. Assume the reader has basic knowledge of ${req.topic}. Build on that foundation with audience-adapted framing for ${AUDIENCE_DESC[req.audience]}. Do not repeat basics already covered.\n\n`;
+  }
+  return '';
+}
 
 function baseContext(req: ContentGenerationRequest): string {
   const audienceDesc = AUDIENCE_DESC[req.audience];
@@ -305,19 +325,24 @@ Return JSON:
 // ─── Prompt dispatcher ────────────────────────────────────────────────────────
 
 function buildPrompt(req: ContentGenerationRequest): string {
+  const layerPrefix = buildHubLayerPrefix(req);
+  let channelPrompt: string;
+
   switch (req.channel) {
-    case 'blog':        return buildBlogPrompt(req);
+    case 'blog':        channelPrompt = buildBlogPrompt(req); break;
     case 'vlog':
-    case 'youtube':     return buildVlogPrompt(req);
-    case 'short_video': return buildShortVideoPrompt(req);
-    case 'x_twitter':   return buildXThreadPrompt(req);
-    case 'reddit':      return buildRedditPrompt(req);
-    case 'quora':       return buildQuoraPrompt(req);
-    case 'linkedin':    return buildLinkedInPrompt(req);
-    case 'instagram':   return buildInstagramPrompt(req);
-    case 'email':       return buildEmailPrompt(req);
-    default:            return buildBlogPrompt(req);
+    case 'youtube':     channelPrompt = buildVlogPrompt(req); break;
+    case 'short_video': channelPrompt = buildShortVideoPrompt(req); break;
+    case 'x_twitter':   channelPrompt = buildXThreadPrompt(req); break;
+    case 'reddit':      channelPrompt = buildRedditPrompt(req); break;
+    case 'quora':       channelPrompt = buildQuoraPrompt(req); break;
+    case 'linkedin':    channelPrompt = buildLinkedInPrompt(req); break;
+    case 'instagram':   channelPrompt = buildInstagramPrompt(req); break;
+    case 'email':       channelPrompt = buildEmailPrompt(req); break;
+    default:            channelPrompt = buildBlogPrompt(req); break;
   }
+
+  return layerPrefix + channelPrompt;
 }
 
 // ─── Fallback content ─────────────────────────────────────────────────────────
@@ -426,11 +451,12 @@ export async function generateAllChannels(
   topic: string,
   audience: ContentAudience,
   channels: ContentChannel[] = ['blog', 'x_twitter', 'instagram', 'email', 'reddit'],
+  layer?: GenerationLayer,
 ): Promise<Map<ContentChannel, GeneratedContent>> {
   const results = new Map<ContentChannel, GeneratedContent>();
   await Promise.all(
     channels.map(async channel => {
-      const content = await generateContent({ exam, topic, channel, audience });
+      const content = await generateContent({ exam, topic, channel, audience, layer });
       results.set(channel, content);
     })
   );

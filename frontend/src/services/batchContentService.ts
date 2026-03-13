@@ -17,6 +17,7 @@ import {
   type GenerationRequest,
   type GeneratedContent,
   type ContentOutputFormat,
+  type GenerationLayer,
 } from './contentGenerationService';
 import {
   arbitrateContentSource,
@@ -47,6 +48,10 @@ export interface BatchItem {
   startedAt?: Date;
   completedAt?: Date;
   durationMs?: number;
+
+  // Two-layer model fields (optional, backward compat)
+  layer?: GenerationLayer;
+  mandatoryAtomType?: string;
 }
 
 export interface BatchJob {
@@ -89,6 +94,10 @@ export interface BatchResult {
   verifiedCount: number;       // wolframVerified === true
   totalDurationMs: number;
   exportedAt: Date;
+
+  // Two-layer tracking
+  mandatoryCompleted: number;  // items with layer === 'mandatory' that succeeded
+  personalizedCompleted: number; // items with layer === 'personalized' that succeeded
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -192,6 +201,9 @@ export function createBatchJob(
       arbitration,
       status: 'pending',
       retryCount: 0,
+      // Propagate layer fields from request
+      layer: req.layer,
+      mandatoryAtomType: req.mandatoryAtomType,
     };
   });
 
@@ -220,6 +232,13 @@ export async function runBatchJob(
 ): Promise<BatchResult> {
   const jobStart = Date.now();
   job.startedAt = new Date(jobStart);
+
+  // Sort: mandatory items always processed FIRST regardless of queue order
+  job.items.sort((a, b) => {
+    if (a.layer === 'mandatory' && b.layer !== 'mandatory') return -1;
+    if (a.layer !== 'mandatory' && b.layer === 'mandatory') return 1;
+    return 0;
+  });
 
   const items = job.items;
   const { maxRetries } = job;
@@ -368,6 +387,8 @@ export async function runBatchJob(
   const successCount = items.filter(i => i.status === 'done').length;
   const failCount = items.filter(i => i.status === 'failed').length;
   const verifiedCount = items.filter(i => i.result?.wolframVerified === true).length;
+  const mandatoryCompleted = items.filter(i => i.status === 'done' && i.layer === 'mandatory').length;
+  const personalizedCompleted = items.filter(i => i.status === 'done' && i.layer === 'personalized').length;
 
   return {
     jobId: job.id,
@@ -378,6 +399,8 @@ export async function runBatchJob(
     verifiedCount,
     totalDurationMs,
     exportedAt: new Date(),
+    mandatoryCompleted,
+    personalizedCompleted,
   };
 }
 
@@ -404,6 +427,13 @@ export async function runBatchJobWithPrefetch(
 ): Promise<BatchResult> {
   const jobStart = Date.now();
   job.startedAt = new Date(jobStart);
+
+  // Sort: mandatory items always processed FIRST regardless of queue order
+  job.items.sort((a, b) => {
+    if (a.layer === 'mandatory' && b.layer !== 'mandatory') return -1;
+    if (a.layer !== 'mandatory' && b.layer === 'mandatory') return 1;
+    return 0;
+  });
 
   const items = job.items;
   const completedDurations: number[] = [];
@@ -587,6 +617,8 @@ export async function runBatchJobWithPrefetch(
   const successCount = items.filter(i => i.status === 'done').length;
   const failCount = items.filter(i => i.status === 'failed').length;
   const verifiedCount = items.filter(i => i.result?.wolframVerified === true).length;
+  const mandatoryCompleted = items.filter(i => i.status === 'done' && i.layer === 'mandatory').length;
+  const personalizedCompleted = items.filter(i => i.status === 'done' && i.layer === 'personalized').length;
 
   return {
     jobId: job.id,
@@ -597,6 +629,8 @@ export async function runBatchJobWithPrefetch(
     verifiedCount,
     totalDurationMs,
     exportedAt: new Date(),
+    mandatoryCompleted,
+    personalizedCompleted,
   };
 }
 

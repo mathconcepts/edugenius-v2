@@ -158,6 +158,10 @@ export interface ContentAtom {
   id: string;
   type: ContentAtomType;
 
+  // Two-layer generation model
+  layer?: 'mandatory' | 'personalized';  // which generation layer produced this
+  generationIntent?: string;              // e.g. 'mandatory:concept_core' or 'personalized:visual:exam_readiness'
+
   // Content fields (raw — before presentation transformation)
   title: string;
   body: string;                 // main content text

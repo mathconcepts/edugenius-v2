@@ -18,7 +18,8 @@ import {
   type BatchProgress,
   type BatchResult,
 } from './batchContentService';
-import type { GenerationRequest, GeneratedContent, ContentOutputFormat } from './contentGenerationService';
+import type { GenerationRequest, GeneratedContent, ContentOutputFormat, GenerationLayer } from './contentGenerationService';
+import { getStaticTopicCompleteness } from './mandatoryContentService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,7 @@ export interface ScoredTopic {
   reasons: string[];             // why this score
   suggestedFormat: ContentOutputFormat;
   suggestedWolframQuery: string;
+  mandatoryCompleteness: number; // 0–100 from static library check
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -241,6 +243,15 @@ export function scoreTopicsForGeneration(
         reasons.push('+5 mathematical (Wolfram path)');
       }
 
+      // Two-layer model: strong boost for mandatory-incomplete topics
+      const mandatorySpec = getStaticTopicCompleteness(examId, topicId);
+      const mandatoryCompleteness = mandatorySpec.coverage;
+      if (mandatoryCompleteness < 100) {
+        const mandatoryBoost = (100 - mandatoryCompleteness) * 2;
+        score += mandatoryBoost;
+        reasons.push(`+${mandatoryBoost} mandatory gap (${mandatoryCompleteness}% complete)`);
+      }
+
       // Clamp to 0–100
       score = Math.min(100, Math.max(0, score));
 
@@ -252,6 +263,7 @@ export function scoreTopicsForGeneration(
         reasons,
         suggestedFormat: suggestFormat(topicId),
         suggestedWolframQuery: buildWolframQueryForTopic(topicId, exam.name),
+        mandatoryCompleteness,
       });
     }
   }
@@ -338,20 +350,54 @@ function buildRequestsFromScoredTopics(
   topics: ScoredTopic[],
   config: AutomationConfig,
 ): GenerationRequest[] {
-  return topics.map(t => ({
-    source: isMathematical(t.topicId) ? ('wolfram_grounded' as const) : ('direct_prompt' as const),
-    sourceData: {
-      prompt: buildWolframQueryForTopic(t.topicId, t.examName),
-      wolframQuery: t.suggestedWolframQuery,
-    },
-    outputFormat: t.suggestedFormat,
-    examTarget: t.examName,
-    topicId: t.topicId,
-    difficultyLevel: 'mixed' as const,
-    count: config.countPerTopic,
-    useWolframVerification: isMathematical(t.topicId),
-    useWolframGrounding: isMathematical(t.topicId),
-  }));
+  const requests: GenerationRequest[] = [];
+
+  // First pass: mandatory requests for topics with incomplete baseline
+  for (const t of topics) {
+    if (t.mandatoryCompleteness < 100) {
+      const layer: GenerationLayer = 'mandatory';
+      requests.push({
+        source: isMathematical(t.topicId) ? ('wolfram_grounded' as const) : ('direct_prompt' as const),
+        sourceData: {
+          prompt: buildWolframQueryForTopic(t.topicId, t.examName),
+          wolframQuery: t.suggestedWolframQuery,
+        },
+        outputFormat: t.suggestedFormat,
+        examTarget: t.examName,
+        topicId: t.topicId,
+        difficultyLevel: 'mixed' as const,
+        count: config.countPerTopic,
+        useWolframVerification: isMathematical(t.topicId),
+        useWolframGrounding: isMathematical(t.topicId),
+        layer,
+        mandatoryAtomType: t.suggestedFormat === 'mcq_set' ? 'pyq_set' : 'concept_core',
+      });
+    }
+  }
+
+  // Second pass: personalized requests for topics with complete baseline
+  for (const t of topics) {
+    if (t.mandatoryCompleteness >= 100) {
+      const layer: GenerationLayer = 'personalized';
+      requests.push({
+        source: isMathematical(t.topicId) ? ('wolfram_grounded' as const) : ('direct_prompt' as const),
+        sourceData: {
+          prompt: buildWolframQueryForTopic(t.topicId, t.examName),
+          wolframQuery: t.suggestedWolframQuery,
+        },
+        outputFormat: t.suggestedFormat,
+        examTarget: t.examName,
+        topicId: t.topicId,
+        difficultyLevel: 'mixed' as const,
+        count: config.countPerTopic,
+        useWolframVerification: isMathematical(t.topicId),
+        useWolframGrounding: isMathematical(t.topicId),
+        layer,
+      });
+    }
+  }
+
+  return requests;
 }
 
 // ─── Main automation run ──────────────────────────────────────────────────────
