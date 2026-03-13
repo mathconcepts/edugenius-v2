@@ -7,6 +7,7 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
 import { EduGeniusOrchestrator, getOrchestrator } from '../orchestrator';
 import { contentRoutes } from './content-routes';
+import { eventRoutes } from './events-routes';
 
 // ============================================================================
 // Types
@@ -311,6 +312,11 @@ export class APIServer {
 
     // Content Delivery Routes (prompts, blogs, vlogs, landing pages, deployments, exams)
     for (const route of contentRoutes) {
+      this.registerRoute(route.method, route.path, route.handler);
+    }
+
+    // Event Webhook Routes (Sage session milestones → Mentor nudges + badges)
+    for (const route of eventRoutes) {
       this.registerRoute(route.method, route.path, route.handler);
     }
   }
