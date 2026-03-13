@@ -11,6 +11,7 @@ import { getEffectiveStrategy } from './contentStrategyService';
 import type { FeedbackEvent, AtomPerformance } from './contentFeedbackService';
 import { getAllPerformance, getRegenerationQueue } from './contentFeedbackService';
 import { loadCurrentUser, getActiveExamForSession } from './userService';
+import { auditMandatoryContent } from './mandatoryContentService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,10 @@ export interface NextContentRecommendation {
   urgency: 'high' | 'normal' | 'low';
   estimatedTimeMin: number;
   sourceAgent: 'sequencer' | 'oracle' | 'mentor' | 'scout';
+  /** Which content layer this recommendation belongs to */
+  layer: 'mandatory' | 'personalized';
+  /** Present when a mandatory atom is missing for the current topic */
+  mandatoryGapAlert?: string;
 }
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
@@ -123,6 +128,39 @@ export function getNextContentRecommendation(
 
   const strategy = ctx.strategy;
 
+  // ── 0. Mandatory Gap Check (highest priority — always first) ─────────────
+  // If the current topic has missing mandatory atoms, surface them first.
+  if (ctx.currentTopic) {
+    const examId = ctx.examType.toUpperCase();
+    const topicId = ctx.currentTopic.toLowerCase().replace(/\s+/g, '_');
+    try {
+      const mandatorySpec = auditMandatoryContent(examId, topicId);
+      if (mandatorySpec.missingAtoms.length > 0) {
+        const firstMissing = mandatorySpec.missingAtoms[0];
+        const atomTypeMap: Record<string, ContentAtomType> = {
+          concept_core:    'lesson_block',
+          formula_card:    'formula_card',
+          worked_example:  'worked_example',
+          pyq_set:         'mcq',
+          common_mistakes: 'misconception',
+          exam_tips:       'exam_tip',
+        };
+        return {
+          atomType: atomTypeMap[firstMissing] ?? 'lesson_block',
+          topic: ctx.currentTopic,
+          reason: `Mandatory baseline gap: ${firstMissing} not yet delivered for ${ctx.currentTopic}`,
+          urgency: firstMissing === 'concept_core' || firstMissing === 'formula_card' ? 'high' : 'normal',
+          estimatedTimeMin: 5,
+          sourceAgent: 'sequencer',
+          layer: 'mandatory',
+          mandatoryGapAlert: `Student missing: ${firstMissing} for ${mandatorySpec.topicName} (${examId})`,
+        };
+      }
+    } catch {
+      // If mandatory audit fails, continue with normal sequencing
+    }
+  }
+
   // ── 1. Spaced Repetition ─────────────────────────────────────────────────
   if (strategy.id === 'spaced_rep') {
     // Find the atom with the lowest score that hasn't been seen this session
@@ -139,6 +177,7 @@ export function getNextContentRecommendation(
         urgency: weakest.performanceScore < 40 ? 'high' : 'normal',
         estimatedTimeMin: 3,
         sourceAgent: 'sequencer',
+        layer: 'personalized',
       };
     }
   }
@@ -158,6 +197,7 @@ export function getNextContentRecommendation(
         urgency: 'high',
         estimatedTimeMin: 2,
         sourceAgent: 'sequencer',
+        layer: 'personalized',
       };
     }
 
@@ -169,6 +209,7 @@ export function getNextContentRecommendation(
       urgency: 'high',
       estimatedTimeMin: 1,
       sourceAgent: 'sequencer',
+      layer: 'personalized',
     };
   }
 
@@ -189,6 +230,7 @@ export function getNextContentRecommendation(
       urgency: 'normal',
       estimatedTimeMin: nextType === 'mcq' ? 4 : 6,
       sourceAgent: 'sequencer',
+      layer: 'personalized',
     };
   }
 
@@ -205,6 +247,7 @@ export function getNextContentRecommendation(
         urgency: 'normal',
         estimatedTimeMin: 5,
         sourceAgent: 'mentor',
+        layer: 'personalized',
       };
     }
   }
@@ -226,6 +269,7 @@ export function getNextContentRecommendation(
     urgency: weakest && weakest.performanceScore < 40 ? 'high' : 'low',
     estimatedTimeMin: strategy.id === 'story_mode' ? 8 : 5,
     sourceAgent: 'sequencer',
+    layer: 'personalized',
   };
 }
 

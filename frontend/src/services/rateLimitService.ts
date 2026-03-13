@@ -239,6 +239,119 @@ export async function withRateLimit<T>(
   }
 }
 
+// ─── Content Generation Budget ───────────────────────────────────────────────
+//
+// Layered daily budget system on top of the token bucket:
+//   - Total: dailyLLMCallsLimit calls/day (default 100)
+//   - mandatoryReserve: calls reserved exclusively for mandatory content
+//   - personalizationBudget: remaining after mandatory reserve
+//   - Resets daily (localStorage key: eg_content_budget_{YYYY-MM-DD})
+
+export interface ContentGenerationBudget {
+  dailyLLMCallsLimit: number;    // default: 100
+  dailyLLMCallsUsed: number;
+  mandatoryReserve: number;      // calls reserved for mandatory generation (default: 20)
+  personalizationBudget: number; // remaining for hyper-personalization
+  resetAt: string;               // ISO date of next reset (tomorrow midnight)
+}
+
+function todayKey(): string {
+  return `eg_content_budget_${new Date().toISOString().slice(0, 10)}`;
+}
+
+function tomorrowIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+const DAILY_LIMIT = 100;
+const MANDATORY_RESERVE = 20;
+
+function readBudget(): ContentGenerationBudget {
+  try {
+    const raw = localStorage.getItem(todayKey());
+    if (raw) {
+      const parsed = JSON.parse(raw) as ContentGenerationBudget;
+      return parsed;
+    }
+  } catch { /* corrupted */ }
+
+  // Fresh daily budget
+  return {
+    dailyLLMCallsLimit: DAILY_LIMIT,
+    dailyLLMCallsUsed: 0,
+    mandatoryReserve: MANDATORY_RESERVE,
+    personalizationBudget: DAILY_LIMIT - MANDATORY_RESERVE,
+    resetAt: tomorrowIso(),
+  };
+}
+
+function writeBudget(budget: ContentGenerationBudget): void {
+  try {
+    localStorage.setItem(todayKey(), JSON.stringify(budget));
+  } catch { /* quota exceeded */ }
+}
+
+/**
+ * Returns the current content generation budget for today.
+ */
+export function getContentBudget(): ContentGenerationBudget {
+  return readBudget();
+}
+
+/**
+ * Consumes one call from the appropriate budget pool.
+ * - 'mandatory': uses from mandatory reserve first, then general limit
+ * - 'personalized': uses from personalization budget only
+ *
+ * Returns true if budget was available and consumed, false if exhausted.
+ */
+export function consumeContentBudget(type: 'mandatory' | 'personalized'): boolean {
+  const budget = readBudget();
+
+  if (budget.dailyLLMCallsUsed >= budget.dailyLLMCallsLimit) {
+    return false; // total daily limit hit
+  }
+
+  if (type === 'personalized') {
+    if (budget.personalizationBudget <= 0) {
+      return false; // personalization pool exhausted
+    }
+    budget.personalizationBudget = Math.max(0, budget.personalizationBudget - 1);
+    budget.dailyLLMCallsUsed += 1;
+    writeBudget(budget);
+    return true;
+  }
+
+  // type === 'mandatory': always prioritized
+  if (budget.mandatoryReserve > 0) {
+    budget.mandatoryReserve = Math.max(0, budget.mandatoryReserve - 1);
+  } else {
+    // Use from personalization budget as overflow
+    budget.personalizationBudget = Math.max(0, budget.personalizationBudget - 1);
+  }
+  budget.dailyLLMCallsUsed += 1;
+  writeBudget(budget);
+  return true;
+}
+
+/**
+ * Returns a human-readable budget status.
+ * 'healthy'   — plenty of calls remaining
+ * 'caution'   — < 30% remaining
+ * 'exhausted' — no personalization budget remaining
+ */
+export function getContentBudgetStatus(): 'healthy' | 'caution' | 'exhausted' {
+  const budget = readBudget();
+  if (budget.personalizationBudget <= 0) return 'exhausted';
+  const remaining = budget.dailyLLMCallsLimit - budget.dailyLLMCallsUsed;
+  const pct = remaining / budget.dailyLLMCallsLimit;
+  if (pct < 0.3) return 'caution';
+  return 'healthy';
+}
+
 // ─── Utility: format backoff remaining as human string ────────────────────────
 
 export function formatBackoffRemaining(api: ApiType): string {

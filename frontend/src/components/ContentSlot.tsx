@@ -455,19 +455,78 @@ interface LayoutProps {
   onModuleClick?: (moduleId: ContentModule, data: unknown) => void;
 }
 
-function StackLayout({ config, compact, onModuleClick }: LayoutProps) {
+// ─── Layer Separator ──────────────────────────────────────────────────────────
+
+interface LayerSeparatorProps {
+  label: string;
+  variant: 'mandatory' | 'personalized';
+  ceoMode?: boolean;
+  showBadge?: boolean;
+}
+
+function LayerSeparator({ label, variant, ceoMode = false, showBadge = false }: LayerSeparatorProps) {
+  if (!ceoMode && !showBadge) return null;
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <div className="flex-1 h-px bg-surface-700/50" />
+      <span className={clsx(
+        'text-[10px] font-medium px-2 py-0.5 rounded-full',
+        variant === 'mandatory'
+          ? 'bg-surface-800 text-surface-400 border border-surface-700'
+          : 'bg-primary-500/10 text-primary-400 border border-primary-500/20',
+      )}>
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-surface-700/50" />
+    </div>
+  );
+}
+
+function StackLayout({ config, compact, onModuleClick, showPersonalizationBadge }: LayoutProps & { showPersonalizationBadge?: boolean }) {
+  const isCeoMode = typeof window !== 'undefined' &&
+    (window.location.pathname.includes('content-personalization') || window.location.pathname.includes('admin'));
+
+  const visibleModules = config.modules.filter(m => m.visible);
+  let mandatoryRendered = false;
+  let separatorInserted = false;
+
   return (
     <div className="space-y-3">
-      {config.modules.filter(m => m.visible).map((m, i) => (
-        <motion.div
-          key={m.moduleId}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.07, duration: 0.3 }}
-        >
-          <ModuleRenderer config={m} compact={compact} onModuleClick={onModuleClick} />
-        </motion.div>
-      ))}
+      {visibleModules.map((m, i) => {
+        const isFirstPersonalized = m.layer !== 'mandatory' && !separatorInserted && mandatoryRendered;
+        if (m.layer === 'mandatory') mandatoryRendered = true;
+        if (isFirstPersonalized) separatorInserted = true;
+
+        return (
+          <div key={m.moduleId}>
+            {/* Mandatory foundation label (CEO/debug mode only) */}
+            {i === 0 && m.layer === 'mandatory' && (
+              <LayerSeparator
+                label="📚 Foundation"
+                variant="mandatory"
+                ceoMode={isCeoMode}
+                showBadge={isCeoMode}
+              />
+            )}
+            {/* Personalized layer label */}
+            {isFirstPersonalized && (
+              <LayerSeparator
+                label="✨ For You"
+                variant="personalized"
+                ceoMode={isCeoMode}
+                showBadge={showPersonalizationBadge}
+              />
+            )}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07, duration: 0.3 }}
+            >
+              <ModuleRenderer config={m} compact={compact} onModuleClick={onModuleClick} />
+            </motion.div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -657,12 +716,12 @@ export function ContentSlot({
 
   const renderLayout = () => {
     switch (config.layout) {
-      case 'stack':    return <StackLayout    config={config} compact={compact} onModuleClick={onModuleClick} />;
+      case 'stack':    return <StackLayout    config={config} compact={compact} onModuleClick={onModuleClick} showPersonalizationBadge={showPersonalizationBadge} />;
       case 'carousel': return <CarouselLayout config={config} compact={compact} onModuleClick={onModuleClick} />;
       case 'grid':     return <GridLayout     config={config} compact={compact} onModuleClick={onModuleClick} />;
       case 'single':   return <SingleLayout   config={config} compact={compact} onModuleClick={onModuleClick} />;
       case 'inline':   return <InlineLayout   config={config} compact={compact} onModuleClick={onModuleClick} />;
-      default:         return <StackLayout    config={config} compact={compact} onModuleClick={onModuleClick} />;
+      default:         return <StackLayout    config={config} compact={compact} onModuleClick={onModuleClick} showPersonalizationBadge={showPersonalizationBadge} />;
     }
   };
 

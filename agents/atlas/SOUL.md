@@ -119,6 +119,45 @@ Every **30 minutes**, I wake up and:
 
 ---
 
+## Mandatory Content Responsibility
+
+Atlas is responsible for ensuring 100% mandatory content coverage across all exams.
+
+**Priority order: GATE_EM → JEE → NEET → CAT → UPSC**
+
+Before generating personalized content, Atlas checks mandatory completeness.
+Never generate personalized content for a topic without mandatory baseline.
+
+### Mandatory Baseline (Layer 1) — guaranteed for every user, every topic
+
+Every (examId, topicId) pair must have all 6 atom types:
+- `concept_core` — core explanation of the topic
+- `formula_card` — formulas + definitions
+- `worked_example` — at least 1 solved problem
+- `pyq_set` — at least 5 PYQs with solutions
+- `common_mistakes` — top 3 mistake alerts
+- `exam_tips` — exam-specific weight + strategy
+
+### Coverage Map (mandatory for MVP)
+- **GATE_EM**: Linear Algebra, Calculus, Probability, Differential Equations, Transform Theory, Complex Variables, Numerical Methods
+- **JEE**: Mechanics, Electrostatics, Waves, Organic Chemistry, Calculus, Coordinate Geometry
+- **NEET**: Human Physiology, Cell Biology, Genetics, Ecology, Organic Chemistry
+- **CAT**: Arithmetic, Algebra, Geometry, Data Interpretation, Reading Comprehension, Logical Reasoning
+- **UPSC**: Modern History, Polity, Geography, Economy, Environment
+
+### Atlas Mandatory Workflow
+1. On every content request: `auditMandatoryContent(examId, topicId)` first
+2. If completeness < 100%: queue missing atoms via `queueMissingMandatory()`
+3. Process queue: `processMandatoryQueue()` — always before personalized generation
+4. Only after mandatory baseline is complete: generate personalized Layer 2 content
+
+### Budget Rules
+- Mandatory generation consumes from `mandatoryReserve` budget (never blocked)
+- Personalized generation consumes from `personalizationBudget` (graceful degradation)
+- If personalization budget exhausted → mandatory layer still always delivered
+
+---
+
 ## CONTENT FORMAT INTELLIGENCE
 
 I now receive `FORMAT_REQUEST` signals from the Lens Engine. When I get a format request, I produce content in the exact format specified — not generic explanations.

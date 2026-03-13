@@ -21,6 +21,19 @@
 
 // ─── Interface ────────────────────────────────────────────────────────────────
 
+/**
+ * Mandatory content marker for a TemplateOverride.
+ * Templates with this flag MUST produce all specified atom types.
+ */
+export interface MandatoryTemplateSpec {
+  /** Atom types this template must produce */
+  ensureAtoms: string[];
+  /** 0-100 quality floor for each atom */
+  minimumQuality: number;
+  /** Exam-specific validation rules */
+  examSpecificChecks: string[];
+}
+
 export interface TemplateOverride {
   /** Unique readable ID (matches the registry key for traceability). */
   id: string;
@@ -56,6 +69,12 @@ export interface TemplateOverride {
    * Unit: tokens (approximate — 1 token ≈ 4 characters).
    */
   tokenBudget?: number;
+
+  /**
+   * Mandatory content spec. When present, this template is used for
+   * generating the mandatory baseline layer (Layer 1).
+   */
+  mandatory?: MandatoryTemplateSpec;
 }
 
 // ─── Helper to build a key ────────────────────────────────────────────────────
@@ -878,6 +897,301 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateOverride> = {
     ],
     tokenBudget: 1500,
   },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  MANDATORY BASELINE TEMPLATES (Layer 1 — guaranteed for every user)
+  //
+  //  Each template produces all 6 mandatory atom types:
+  //    concept_core, formula_card, worked_example,
+  //    pyq_set, common_mistakes, exam_tips
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GATE × Linear Algebra — mandatory baseline
+   */
+  'gate__linear-algebra__mandatory_baseline': {
+    id: 'gate__linear-algebra__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: GATE — Linear Algebra',
+      'You are generating the MANDATORY foundation content for GATE Linear Algebra.',
+      'This content is guaranteed to every student regardless of their persona.',
+      '',
+      'You MUST produce all 6 atom types in this response:',
+      '  1. CONCEPT_CORE: Core explanation of Linear Algebra fundamentals for GATE',
+      '  2. FORMULA_CARD: All key formulas (eigenvalues, rank-nullity, matrix operations)',
+      '  3. WORKED_EXAMPLE: 1 complete GATE-style worked problem',
+      '  4. PYQ_SET: 5 GATE previous-year-style questions with solutions',
+      '  5. COMMON_MISTAKES: Top 3 mistakes students make in GATE Linear Algebra',
+      '  6. EXAM_TIPS: GATE-specific strategy (topic weight, question patterns, shortcuts)',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present in output',
+      'Eigenvalue/rank-nullity theorem covered in CONCEPT_CORE',
+      'Cayley-Hamilton in FORMULA_CARD',
+      'GATE-style 2-mark problem in WORKED_EXAMPLE',
+      'PYQ_SET has exactly 5 questions with complete solutions',
+      'COMMON_MISTAKES covers rank confusion and Cayley-Hamilton errors',
+      'EXAM_TIPS mentions 10-15% GATE weightage',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: [
+        'Covers GATE EC/CS/IN syllabus scope',
+        'NAT-format answers included',
+        '2-mark problem difficulty',
+      ],
+    },
+    tokenBudget: 3500,
+  },
+
+  /**
+   * GATE × Calculus — mandatory baseline
+   */
+  'gate__calculus__mandatory_baseline': {
+    id: 'gate__calculus__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: GATE — Calculus',
+      'Generate mandatory foundation content for GATE Calculus.',
+      '',
+      'Produce all 6 atom types:',
+      '  1. CONCEPT_CORE: Limits, differentiation, integration, multivariate calculus',
+      '  2. FORMULA_CARD: Taylor series, key limits, Leibniz rule, partial derivatives',
+      '  3. WORKED_EXAMPLE: Leibniz rule or double integral GATE-style problem',
+      '  4. PYQ_SET: 5 GATE calculus questions with full solutions',
+      '  5. COMMON_MISTAKES: L\'Hôpital misuse, limit evaluation errors, chain rule errors',
+      '  6. EXAM_TIPS: 8-12 marks in GATE; multivariate calculus high-frequency',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'Leibniz rule in FORMULA_CARD',
+      'Taylor/Maclaurin series included',
+      'GATE weightage stated in EXAM_TIPS',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: ['GATE calculus scope', 'NAT answers included', 'Multivariate coverage'],
+    },
+    tokenBudget: 3500,
+  },
+
+  /**
+   * GATE × Probability — mandatory baseline
+   */
+  'gate__probability__mandatory_baseline': {
+    id: 'gate__probability__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: GATE — Probability & Statistics',
+      'Generate mandatory foundation content for GATE Probability.',
+      '',
+      'Produce all 6 atom types covering: Bayes, distributions, CLT, hypothesis testing.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'Bayes theorem with worked example',
+      'Distribution table (mean/variance) in FORMULA_CARD',
+      'CLT application in EXAM_TIPS',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: ['Poisson distribution included', 'GATE NAT format', 'Statistics coverage'],
+    },
+    tokenBudget: 3200,
+  },
+
+  /**
+   * JEE × Mechanics — mandatory baseline
+   */
+  'jee__mechanics__mandatory_baseline': {
+    id: 'jee__mechanics__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: JEE — Mechanics',
+      'Generate mandatory foundation content for JEE Mechanics.',
+      '',
+      'Produce all 6 atom types covering: kinematics, Newton\'s laws, energy, rotation, SHM.',
+      'JEE Main + Advanced scope. Negative marking strategy in EXAM_TIPS.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'Free body diagram in WORKED_EXAMPLE',
+      'SHM and rotational motion in CONCEPT_CORE',
+      'JEE negative marking in EXAM_TIPS',
+      'PYQ_SET has 5 JEE-style questions',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: ['JEE Main + Advanced scope', 'Numerical and MCQ formats', 'FBD approach shown'],
+    },
+    tokenBudget: 3500,
+  },
+
+  /**
+   * JEE × Electrostatics — mandatory baseline
+   */
+  'jee__electrostatics__mandatory_baseline': {
+    id: 'jee__electrostatics__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: JEE — Electrostatics',
+      'Generate mandatory foundation content for JEE Electrostatics.',
+      '',
+      'Produce all 6 atom types covering: Coulomb\'s law, Gauss\'s law, potential, capacitance.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'Gauss\'s law canonical geometries in FORMULA_CARD',
+      'Capacitor energy formula included',
+      'Common mistake: sign convention for potential',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: ['JEE scope', 'Superposition principle covered', 'Conductor boundary conditions'],
+    },
+    tokenBudget: 3200,
+  },
+
+  /**
+   * NEET × Human Physiology — mandatory baseline
+   */
+  'neet__human-physiology__mandatory_baseline': {
+    id: 'neet__human-physiology__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: NEET — Human Physiology',
+      'Generate mandatory foundation content for NEET Human Physiology.',
+      '',
+      'Produce all 6 atom types covering: digestion, circulation, respiration, excretion, neural.',
+      'NCERT-accurate. Exact NCERT language matters for NEET scoring.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'NCERT-aligned terminology',
+      'Diagram descriptions for key processes',
+      'NEET assertion-reason format in PYQ_SET',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 85,
+      examSpecificChecks: ['NCERT accuracy', 'Assertion-reason questions', '5-7 questions per year frequency'],
+    },
+    tokenBudget: 3200,
+  },
+
+  /**
+   * CAT × Arithmetic — mandatory baseline
+   */
+  'cat__arithmetic__mandatory_baseline': {
+    id: 'cat__arithmetic__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: CAT — Arithmetic',
+      'Generate mandatory foundation content for CAT Arithmetic.',
+      '',
+      'Produce all 6 atom types covering: percentages, profit/loss, ratio, time-speed-distance, mixtures.',
+      'Speed shortcuts are MANDATORY — CAT is time-pressured.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'Alligation method in FORMULA_CARD',
+      'Speed shortcut for each topic in EXAM_TIPS',
+      '90-second rule mentioned',
+      'TITA vs MCQ strategy in EXAM_TIPS',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: ['CAT time pressure', 'TITA strategy', 'Shortcut methods'],
+    },
+    tokenBudget: 3200,
+  },
+
+  /**
+   * CAT × Data Interpretation — mandatory baseline
+   */
+  'cat__data-interpretation__mandatory_baseline': {
+    id: 'cat__data-interpretation__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: CAT — Data Interpretation',
+      'Generate mandatory foundation content for CAT Data Interpretation.',
+      '',
+      'Produce all 6 atom types covering: bar charts, pie charts, tables, caselets.',
+      'Set selection strategy is MANDATORY — most critical DILR skill.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'Set selection strategy in EXAM_TIPS',
+      'Table construction approach in WORKED_EXAMPLE',
+      'Constraint elimination in COMMON_MISTAKES',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: ['CAT DILR format', 'Set selection strategy', 'Time management'],
+    },
+    tokenBudget: 3200,
+  },
+
+  /**
+   * UPSC × Modern History — mandatory baseline
+   */
+  'upsc__modern-history__mandatory_baseline': {
+    id: 'upsc__modern-history__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: UPSC — Modern History',
+      'Generate mandatory foundation content for UPSC Modern History.',
+      '',
+      'Produce all 6 atom types covering: 1857, Congress, Gandhi movements, independence.',
+      'UPSC Mains answer structure (Introduction → Body → Conclusion) in EXAM_TIPS.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types present',
+      'Timeline of key events in CONCEPT_CORE',
+      'UPSC Prelims MCQ format in PYQ_SET',
+      'Mains answer structure in EXAM_TIPS',
+      'Current affairs linkage in EXAM_TIPS',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 80,
+      examSpecificChecks: ['UPSC Prelims + Mains scope', 'Mains answer structure', 'Multidimensional analysis'],
+    },
+    tokenBudget: 3200,
+  },
+
+  /**
+   * Generic mandatory baseline — fallback for any exam/topic
+   */
+  '__mandatory_baseline': {
+    id: '__mandatory_baseline',
+    systemPromptPrefix: [
+      '## MANDATORY BASELINE: Generic',
+      'Generate mandatory foundation content for any exam and topic.',
+      '',
+      'You MUST produce all 6 atom types:',
+      '  1. CONCEPT_CORE: Clear explanation of the topic from first principles',
+      '  2. FORMULA_CARD: All key formulas, definitions, and relationships',
+      '  3. WORKED_EXAMPLE: 1 complete step-by-step solved problem',
+      '  4. PYQ_SET: 5 exam-style questions with complete solutions',
+      '  5. COMMON_MISTAKES: Top 3 mistakes + how to avoid them',
+      '  6. EXAM_TIPS: Exam-specific weight, patterns, shortcuts',
+      '',
+      'Mark each section clearly: ### CONCEPT_CORE, ### FORMULA_CARD, etc.',
+    ].join('\n'),
+    qualityChecks: [
+      'All 6 mandatory atom types clearly labelled',
+      'Exam-specific relevance in each section',
+      'PYQ_SET has exactly 5 questions',
+      'EXAM_TIPS includes topic weight estimate',
+    ],
+    mandatory: {
+      ensureAtoms: ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'],
+      minimumQuality: 75,
+      examSpecificChecks: ['Topic mapped to exam syllabus', 'Difficulty appropriate for exam'],
+    },
+    tokenBudget: 3000,
+  },
+
 };
 
 // ─── Registry Lookup ──────────────────────────────────────────────────────────

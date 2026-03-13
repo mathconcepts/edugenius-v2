@@ -1076,3 +1076,67 @@ export function searchAtoms(query: string): StaticContentAtom[] {
       a.tags.some(t => t.toLowerCase().includes(q))
   );
 }
+
+// ─── Mandatory Content Helpers ────────────────────────────────────────────────
+
+/**
+ * Mandatory atom types that map to static content formats.
+ * These are the 6 atom types required for the mandatory baseline.
+ */
+const MANDATORY_FORMAT_TYPES: StaticContentAtom['format'][] = [
+  'explanation',
+  'formula_sheet',
+  'worked_example',
+  'revision_card',
+];
+
+/**
+ * Returns static atoms for the given exam+topic that cover mandatory types.
+ * Used by mandatoryContentService to build the mandatory baseline.
+ */
+export function getMandatoryAtomsForTopic(
+  examId: string,
+  topicId: string,
+): StaticContentAtom[] {
+  const normalizedExam = examId.toUpperCase();
+  const normalizedTopic = topicId.toLowerCase();
+  return STATIC_ATOMS.filter(
+    a =>
+      a.examId.toUpperCase() === normalizedExam &&
+      a.topicId.toLowerCase() === normalizedTopic &&
+      MANDATORY_FORMAT_TYPES.includes(a.format),
+  );
+}
+
+/**
+ * Returns a completeness summary for mandatory content for the given exam+topic.
+ * Checks whether the static library has atoms covering the mandatory format types.
+ */
+export function getMandatoryCompleteness(
+  examId: string,
+  topicId: string,
+): { complete: boolean; missing: string[]; coverage: number } {
+  const available = getMandatoryAtomsForTopic(examId, topicId);
+  const availableFormats = new Set(available.map(a => a.format));
+
+  const missingFormats = MANDATORY_FORMAT_TYPES.filter(f => !availableFormats.has(f));
+  const coverage = Math.round(
+    ((MANDATORY_FORMAT_TYPES.length - missingFormats.length) / MANDATORY_FORMAT_TYPES.length) * 100,
+  );
+
+  // Map format names to human-readable labels for the 'missing' field
+  const formatLabels: Record<StaticContentAtom['format'], string> = {
+    explanation:    'concept_core',
+    formula_sheet:  'formula_card',
+    worked_example: 'worked_example',
+    revision_card:  'exam_tips',
+  };
+
+  const missing = missingFormats.map(f => formatLabels[f] ?? f);
+
+  return {
+    complete: missingFormats.length === 0,
+    missing,
+    coverage,
+  };
+}

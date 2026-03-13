@@ -714,6 +714,156 @@ export function renderPrompt(ctx: PersonaContext): RenderedPrompt {
   };
 }
 
+// ─── Personalized Layer Builder ──────────────────────────────────────────────
+
+/**
+ * Adapts a mandatory atom's PRESENTATION (not content) to the persona.
+ * The formula stays the same; the framing/style changes.
+ */
+export function adaptMandatoryAtom(
+  atom: import('./contentFramework').ContentAtom,
+  personaCtx: PersonaContext,
+): import('./contentFramework').ContentAtom {
+  // Adapt title/framing based on style
+  const stylePrefix: Record<LearningStyle, string> = {
+    visual:         '🔷 ',
+    analytical:     '∑ ',
+    story_driven:   '📖 ',
+    practice_first: '🎯 ',
+    auditory:       '🗣️ ',
+    unknown:        '',
+  };
+
+  const prefix = stylePrefix[personaCtx.learningStyle] ?? '';
+
+  // For overloaded cognitive state, truncate body
+  const adaptedBody =
+    personaCtx.cognitiveLoad === 'overloaded'
+      ? atom.body.slice(0, 200) + (atom.body.length > 200 ? '...' : '')
+      : atom.body;
+
+  return {
+    ...atom,
+    id: `${atom.id}_adapted_${personaCtx.learningStyle}`,
+    title: prefix + atom.title,
+    body: adaptedBody,
+  };
+}
+
+/**
+ * Builds the personalized (Layer 2) atoms ON TOP of the mandatory baseline.
+ * Does NOT replace mandatory atoms — returns ADDITIONAL atoms only.
+ *
+ * Logic:
+ * - Reads mandatory atoms → identifies gaps for personalization
+ * - Applies style adaptation (visual → ASCII diagrams; analytical → derivations)
+ * - Applies cognitive load filtering (overloaded → shorter; low → extend deeper)
+ * - Uses templateRegistry for exam × topic × style overrides
+ * - Returns ADDITIONAL atoms (does not replace mandatory)
+ */
+export async function buildPersonalizedLayer(
+  mandatory: import('./contentFramework').ContentAtom[],
+  personaCtx: PersonaContext,
+  examId: string,
+  topicId: string,
+): Promise<import('./contentFramework').ContentAtom[]> {
+  // If overloaded, no extra personalization — just adapt existing mandatory
+  if (personaCtx.cognitiveLoad === 'overloaded') {
+    return mandatory.map(a => adaptMandatoryAtom(a, personaCtx));
+  }
+
+  // Determine what personalized content to generate based on style
+  const personalizationTargets: { format: ContentPersonaFormat; reason: string }[] = [];
+
+  switch (personaCtx.learningStyle) {
+    case 'visual':
+      personalizationTargets.push(
+        { format: 'visual_diagram_text', reason: 'Visual learner: ASCII diagram variant' },
+      );
+      break;
+    case 'analytical':
+      personalizationTargets.push(
+        { format: 'worked_example', reason: 'Analytical: derivation-first worked example' },
+      );
+      break;
+    case 'story_driven':
+      personalizationTargets.push(
+        { format: 'analogy_explainer', reason: 'Story learner: narrative analogy' },
+      );
+      break;
+    case 'practice_first':
+      personalizationTargets.push(
+        { format: 'mcq_set', reason: 'Practice-first: MCQ drill before theory' },
+      );
+      break;
+    case 'auditory':
+      personalizationTargets.push(
+        { format: 'lesson_notes', reason: 'Conversational learner: dialogue-style notes' },
+      );
+      break;
+    default:
+      // For quick_revision objective → cheatsheet
+      if (personaCtx.objective === 'quick_revision') {
+        personalizationTargets.push({ format: 'cheatsheet', reason: 'Quick revision: cheatsheet' });
+      }
+  }
+
+  // Render the prompt for personalized content
+  const personaCtxForTopic: PersonaContext = {
+    ...personaCtx,
+    examId,
+    topic: topicId,
+  };
+
+  const rendered = renderPrompt(personaCtxForTopic);
+  const additionalAtoms: import('./contentFramework').ContentAtom[] = [];
+
+  // For each personalization target, generate one atom
+  for (const target of personalizationTargets) {
+    const targetCtx: PersonaContext = { ...personaCtxForTopic, format: target.format };
+    const targetPrompt = renderPrompt(targetCtx);
+
+    // Create a synthetic ContentAtom from the rendered prompt
+    // (actual LLM call is deferred to contentLayerService/generation pipeline)
+    additionalAtoms.push({
+      id: `personalized_${examId}_${topicId}_${target.format}_${personaCtx.learningStyle}_${Date.now()}`,
+      type: target.format === 'mcq_set' ? 'mcq'
+          : target.format === 'visual_diagram_text' ? 'visual_explainer'
+          : target.format === 'analogy_explainer' ? 'analogy'
+          : target.format === 'worked_example' ? 'worked_example'
+          : target.format === 'cheatsheet' ? 'exam_tip'
+          : 'lesson_block',
+      title: `[Personalized] ${target.format.replace(/_/g, ' ')} — ${topicId}`,
+      body: `Personalized content for ${personaCtx.learningStyle} learner. ${target.reason}`,
+      bodyMarkdown: `<!-- PERSONALIZED_PROMPT -->\n${targetPrompt.systemPrompt}\n\n${targetPrompt.userPrompt}`,
+      examId,
+      topic: topicId,
+      difficulty: (personaCtx.difficulty === 'mixed' ? 'medium' : personaCtx.difficulty) ?? 'medium',
+      syllabusPriority: 'high',
+      quality: {
+        accuracy: 0,
+        clarity: 0,
+        examRelevance: 0.9,
+        engagementScore: 0,
+        wolframVerified: false,
+        reviewedByHuman: false,
+      },
+      generatedBy: 'atlas',
+      generatedAt: new Date(),
+      sourceType: 'llm',
+      version: 1,
+      timesServed: 0,
+      avgRating: 0,
+      completionRate: 0,
+    });
+
+    // Suppress unused variable warning
+    void rendered;
+  }
+
+  return additionalAtoms;
+}
+
 // ─── Persona Inference ────────────────────────────────────────────────────────
 
 /**

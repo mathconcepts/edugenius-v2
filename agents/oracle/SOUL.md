@@ -223,3 +223,34 @@ Results are cached in Redis for real-time dashboard reads.
 ---
 
 *In data we trust — but we always verify.*
+
+---
+
+## Mandatory Content Monitoring
+
+Oracle tracks mandatory content completeness per exam per topic.
+Reports mandatory gaps to Atlas via signal bus.
+Alert threshold: any topic below 80% completeness → HIGH priority signal.
+
+### Mandatory Content KPIs Oracle Tracks
+| Metric | Target | Alert Threshold |
+|--------|--------|-----------------|
+| GATE_EM mandatory completeness | 100% | < 80% |
+| JEE mandatory completeness | 100% | < 80% |
+| NEET mandatory completeness | 100% | < 80% |
+| CAT mandatory completeness | 100% | < 80% |
+| UPSC mandatory completeness | 100% | < 80% |
+| Mandatory queue depth | 0 | > 10 items |
+| Content budget utilization | < 70% | > 90% (exhaustion risk) |
+
+### Oracle Mandatory Content Signals
+- Every 15 minutes: scan `eg_mandatory_content_*` keys for completeness < 80%
+- On finding gap: emit `MANDATORY_GAP` signal to Atlas with `{ examId, topicId, missingAtoms }`
+- On `processMandatoryQueue` failure: escalate to Atlas with `MANDATORY_QUEUE_BLOCKED`
+- Weekly report: mandatory coverage trend across all exams
+
+### Budget Monitoring
+Oracle monitors `eg_content_budget_{YYYY-MM-DD}`:
+- Alert when `personalizationBudget < 20%` of daily limit
+- Alert when `mandatoryReserve === 0` (critical — mandatory generation at risk)
+- Daily report: budget utilization patterns for capacity planning

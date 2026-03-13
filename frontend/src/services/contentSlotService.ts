@@ -78,6 +78,8 @@ export interface SlotConfig {
   layout: 'stack' | 'carousel' | 'grid' | 'single' | 'inline';
   maxModules: number;
   refreshIntervalMs?: number; // auto-refresh interval
+  /** When true, mandatory modules always appear before personalized modules */
+  mandatoryFirst: boolean;
 }
 
 export interface ModuleConfig {
@@ -87,6 +89,8 @@ export interface ModuleConfig {
   visible: boolean;
   reason: string;             // why this was selected (for debugging/CEO view)
   personalizationSignals: string[];  // which signals drove this
+  /** Layer this module belongs to */
+  layer: 'mandatory' | 'personalized';
 }
 
 // ─── Signal Weights (adjustable per-platform) ─────────────────────────────────
@@ -161,6 +165,7 @@ function makeModule(
   reason: string,
   signals: string[],
   props: Record<string, unknown> = {},
+  layer: 'mandatory' | 'personalized' = 'personalized',
 ): ModuleConfig {
   return {
     moduleId,
@@ -169,6 +174,7 @@ function makeModule(
     visible: true,
     reason,
     personalizationSignals: signals,
+    layer,
   };
 }
 
@@ -349,6 +355,12 @@ function applyABOverrides(
 
 /**
  * Main entry point. Resolves a SlotContext into a SlotConfig.
+ *
+ * Mandatory-first ordering:
+ *   - If mandatory atoms are available for the current topic, inject at
+ *     least 1 mandatory module (formula_flash or visual_concept_card)
+ *     as the first item in the stack.
+ *   - Personalized modules follow after mandatory modules.
  */
 export function resolveSlot(ctx: SlotContext, weights?: Partial<SignalWeights>): SlotConfig {
   const effectiveWeights = { ...DEFAULT_SIGNAL_WEIGHTS, ...weights };
@@ -357,6 +369,32 @@ export function resolveSlot(ctx: SlotContext, weights?: Partial<SignalWeights>):
   // Core resolution
   let modules = resolveModulesForContext(ctx);
 
+  // ── Mandatory-first injection ────────────────────────────────────────────
+  // If a topic is set, inject a mandatory module at the front of the stack
+  // (slots that support it: dashboard_hero, learn_topic_intro, chat_pre_session)
+  const mandatoryEligibleSlots: SlotId[] = [
+    'dashboard_hero',
+    'learn_topic_intro',
+    'chat_pre_session',
+    'practice_between_q',
+    'dashboard_sidebar',
+  ];
+  if (
+    ctx.topic &&
+    mandatoryEligibleSlots.includes(ctx.slotId) &&
+    !modules.some(m => m.layer === 'mandatory')
+  ) {
+    const mandatoryModule = makeModule(
+      'formula_flash',
+      0, // priority 0 = before all personalized
+      'Mandatory baseline: foundation content for this topic',
+      ['mandatory_layer'],
+      { topic: ctx.topic, examId: ctx.examId },
+      'mandatory',
+    );
+    modules = [mandatoryModule, ...modules];
+  }
+
   // Apply slot-specific filtering
   modules = applySlotFiltering(ctx.slotId, modules);
 
@@ -364,8 +402,9 @@ export function resolveSlot(ctx: SlotContext, weights?: Partial<SignalWeights>):
   modules = applyABOverrides(ctx.slotId, ctx.userId, modules);
 
   // Apply weight-based visibility: if a signal weight is very low (< 0.2),
-  // hide modules purely driven by that signal
+  // hide modules purely driven by that signal (but NEVER hide mandatory modules)
   modules = modules.map(m => {
+    if (m.layer === 'mandatory') return m; // mandatory modules always visible
     const isHidden = m.personalizationSignals.every(sig => {
       const weightKey = sig as keyof SignalWeights;
       const w = effectiveWeights[weightKey];
@@ -377,9 +416,13 @@ export function resolveSlot(ctx: SlotContext, weights?: Partial<SignalWeights>):
     return m;
   });
 
-  // Sort by priority, take maxModules, filter visible
+  // Sort: mandatory first (priority 0), then personalized by priority
   const sorted = [...modules]
-    .sort((a, b) => a.priority - b.priority)
+    .sort((a, b) => {
+      if (a.layer === 'mandatory' && b.layer !== 'mandatory') return -1;
+      if (a.layer !== 'mandatory' && b.layer === 'mandatory') return 1;
+      return a.priority - b.priority;
+    })
     .slice(0, layoutDefaults.maxModules);
 
   return {
@@ -388,6 +431,7 @@ export function resolveSlot(ctx: SlotContext, weights?: Partial<SignalWeights>):
     layout: layoutDefaults.layout,
     maxModules: layoutDefaults.maxModules,
     refreshIntervalMs: layoutDefaults.refreshIntervalMs,
+    mandatoryFirst: true,
   };
 }
 

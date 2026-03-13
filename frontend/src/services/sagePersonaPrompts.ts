@@ -733,6 +733,75 @@ export function buildPersonaSystemPrompt(
   return buildSageSystemPrompt(persona, topicId, knowledgeContext);
 }
 
+// ── Mandatory Content Directive ────────────────────────────────────────────────
+
+/**
+ * buildMandatoryContentDirective()
+ *
+ * Injects a mandatory content awareness block into Sage's system prompt.
+ * Tells Sage:
+ *   - What mandatory content has already been delivered
+ *   - Not to re-explain covered material
+ *   - To build Socratic questions on top of the foundation
+ *   - Which mandatory gaps are still pending
+ */
+export function buildMandatoryContentDirective(
+  mandatoryAtoms: import('./contentFramework').ContentAtom[],
+  examId: string,
+  topicId: string,
+): string {
+  if (mandatoryAtoms.length === 0) {
+    return [
+      '## MANDATORY CONTENT STATUS',
+      `No mandatory baseline atoms have been delivered yet for ${examId}/${topicId}.`,
+      'If the student asks about this topic, cover the core concept first before going deeper.',
+      'Priority order: concept explanation → key formulas → worked example → common mistakes.',
+    ].join('\n');
+  }
+
+  const atomSummaries = mandatoryAtoms.map(a => {
+    const typeLabel =
+      a.type === 'lesson_block'    ? 'Concept Explanation'
+      : a.type === 'formula_card'  ? 'Formula Card'
+      : a.type === 'worked_example'? 'Worked Example'
+      : a.type === 'mcq'           ? 'Practice Questions (PYQ-style)'
+      : a.type === 'exam_tip'      ? 'Exam Tips'
+      : a.type === 'misconception' ? 'Common Mistakes'
+      : (a.type as string);
+    return `  • ${typeLabel}: "${a.title}"`;
+  });
+
+  // Determine missing mandatory types
+  const coveredTypes = new Set(mandatoryAtoms.map(a => a.type));
+  const missingTypes: string[] = [];
+  if (!coveredTypes.has('lesson_block'))   missingTypes.push('concept explanation');
+  if (!coveredTypes.has('formula_card'))   missingTypes.push('formula card');
+  if (!coveredTypes.has('worked_example')) missingTypes.push('worked example');
+  if (!coveredTypes.has('mcq'))            missingTypes.push('practice questions');
+  if (!coveredTypes.has('exam_tip') && !coveredTypes.has('misconception')) missingTypes.push('exam tips / common mistakes');
+
+  const lines: string[] = [
+    '## MANDATORY CONTENT BASELINE',
+    `The following mandatory content has been delivered to this student for ${examId} — topic: ${topicId}:`,
+    '',
+    ...atomSummaries,
+    '',
+    'SAGE RULES:',
+    '• Do NOT re-explain content already covered in the mandatory layer above.',
+    '• Build your Socratic questions and explanations ON TOP of this foundation.',
+    `• Ask questions that probe DEEPER into the mandatory content, not repeat it.`,
+    `• Specific Socratic focus for ${examId}/${topicId}: Ask "why does this formula apply here?" and "what happens at the boundary condition?"`,
+  ];
+
+  if (missingTypes.length > 0) {
+    lines.push('');
+    lines.push(`MANDATORY GAPS STILL PENDING: ${missingTypes.join(', ')}`);
+    lines.push('If the student asks about any of these topics, surface this content first before going deeper.');
+  }
+
+  return lines.join('\n');
+}
+
 // ── Visual Sage Directive — Customer-Centric Visual Framework ────────────────
 
 /**
