@@ -27,7 +27,8 @@ export type SlotId =
   | 'blog_sidebar'         // blog page right column
   | 'blog_post_bottom'     // below blog article
   | 'leaderboard_personal' // personal summary on leaderboard
-  | 'notification_push';   // WhatsApp/push notification content
+  | 'notification_push'    // WhatsApp/push notification content
+  | 'course_material_cta'; // Course material CTA on Learn page
 
 export type ContentModule =
   | 'visual_concept_card'  // VisualConceptCard component
@@ -155,6 +156,7 @@ const SLOT_LAYOUT_DEFAULTS: Record<SlotId, Pick<SlotConfig, 'layout' | 'maxModul
   blog_post_bottom:     { layout: 'grid',     maxModules: 2 },
   leaderboard_personal: { layout: 'stack',    maxModules: 2 },
   notification_push:    { layout: 'single',   maxModules: 1 },
+  course_material_cta:  { layout: 'single',   maxModules: 1 },
 };
 
 // ─── Module Builder Helpers ───────────────────────────────────────────────────
@@ -279,6 +281,30 @@ function resolveModulesForContext(ctx: SlotContext): ModuleConfig[] {
     return modules;
   }
 
+  // ── Scenario: Course Material CTA ──────────────────────────────────────────
+  if (ctx.slotId === 'course_material_cta' && ctx.topic) {
+    // Check if a course material exists for this topic in localStorage
+    const savedMaterial = (() => {
+      try {
+        const lib = localStorage.getItem('eg_course_library');
+        if (!lib) return null;
+        const materials = JSON.parse(lib) as Array<{ examId: string; subtopicsCovered: string[]; id: string; title: string; estimatedTotalMinutes: number; personalizationSummary: string }>;
+        return materials.find(m => m.examId === ctx.examId && m.subtopicsCovered.some(s => s === ctx.topic));
+      } catch { return null; }
+    })();
+    if (savedMaterial) {
+      addModule('practice_cta', 'A personalized course material exists for this topic', ['learningMoment'], {
+        materialId: savedMaterial.id,
+        materialTitle: savedMaterial.title,
+        estimatedMinutes: savedMaterial.estimatedTotalMinutes,
+        personalizationSummary: savedMaterial.personalizationSummary,
+        href: `/course-material-studio?material=${savedMaterial.id}`,
+        label: `📚 ${savedMaterial.title} — ${savedMaterial.estimatedTotalMinutes} min`,
+      });
+      return modules;
+    }
+  }
+
   // ── Standard / Baseline ────────────────────────────────────────────────────
   addModule('visual_concept_card',  'Standard session — learn with visual card',  ['learningStyle', 'learningMoment'], { topic: ctx.topic, examId: ctx.examId, learningStyle: ctx.learningStyle });
   addModule('topic_recommendation', 'Show next best topic based on persona',       ['learningMoment', 'readinessScore'], { topic: ctx.topic, examId: ctx.examId });
@@ -310,6 +336,7 @@ const SLOT_MODULE_ALLOWLIST: Partial<Record<SlotId, ContentModule[]>> = {
   blog_post_bottom:     ['topic_recommendation', 'pyq_spotlight', 'practice_cta'],
   notification_push:    ['streak_motivation', 'nudge_card', 'exam_countdown', 'daily_brief'],
   daily_brief_card:     ['daily_brief'],
+  course_material_cta:  ['practice_cta'],
 };
 
 function applySlotFiltering(slotId: SlotId, modules: ModuleConfig[]): ModuleConfig[] {

@@ -982,3 +982,72 @@ export function buildBibleAwareDirective(
 
   return lines.join('\n');
 }
+
+// ─── Course Material Prompt Builder ──────────────────────────────────────────
+
+import type { CourseMaterial } from './courseMaterialGenerator';
+
+/**
+ * buildCourseMaterialPrompt
+ *
+ * Tells Sage that a CourseMaterial has been prepared for this student.
+ * Instructs Sage to:
+ * 1. Teach mandatory sections first (concept, formula, example)
+ * 2. Use the bible's socraticQuestions embedded in socratic sections
+ * 3. Extend with personalized depth based on student response
+ * 4. Keep to the section order without jumping ahead
+ *
+ * This allows Sage to "teach the course material" rather than improvise.
+ */
+export function buildCourseMaterialPrompt(
+  material: CourseMaterial,
+  personaCtx: PersonaContext,
+): string {
+  const mandatoryFirst = material.sections.filter(s => s.layer === 'mandatory');
+  const personalizedAfter = material.sections.filter(s => s.layer === 'personalized');
+
+  const sectionList = [
+    ...mandatoryFirst.map((s, i) => `  ${i + 1}. [MANDATORY] ${s.title} (${s.estimatedMinutes} min) — source: ${s.bibleSource}`),
+    ...personalizedAfter.map((s, i) => `  ${mandatoryFirst.length + i + 1}. [PERSONALIZED] ${s.title} (${s.estimatedMinutes} min)`),
+  ].join('\n');
+
+  const socraticSections = material.sections.filter(s => s.type === 'socratic');
+  const socraticContent = socraticSections.length > 0
+    ? `\n\nSOCRATIC QUESTIONS TO USE:\n${socraticSections.map(s => s.content).join('\n\n')}`
+    : '';
+
+  const misconceptionSections = material.sections.filter(s => s.type === 'misconception');
+  const misconceptionContent = misconceptionSections.length > 0
+    ? `\n\nMISCONCEPTIONS TO PROACTIVELY ADDRESS:\n${misconceptionSections.map(s => s.content).join('\n\n')}`
+    : '';
+
+  const formulaSections = material.sections.filter(s => s.type === 'formula');
+  const formulaHighlight = formulaSections.length > 0
+    ? `\n\nKEY FORMULAS IN THIS MATERIAL:\n${formulaSections[0].content.slice(0, 300)}`
+    : '';
+
+  return [
+    '## COURSE MATERIAL CONTEXT',
+    `A structured course material has been generated for this student.`,
+    `Material: "${material.title}"`,
+    `Template: ${material.template} | Total time: ~${material.estimatedTotalMinutes} min`,
+    `Personalization: ${material.personalizationSummary}`,
+    '',
+    'TEACH IN THIS SECTION ORDER:',
+    sectionList,
+    '',
+    'SAGE TEACHING PROTOCOL:',
+    '1. START with mandatory sections (marked [MANDATORY]) — these form the foundation',
+    '2. Use the Socratic questions in each section to probe understanding before explaining',
+    '3. After mandatory foundation is covered, extend with personalized depth',
+    '4. Do NOT skip ahead to personalized sections until mandatory ones are understood',
+    '5. Adapt your explanation style to: ' + personaCtx.learningStyle + ' learner, ' + personaCtx.cognitiveTier + ' tier',
+    '6. At session end: confirm student can answer the checkpoint questions',
+    socraticContent,
+    misconceptionContent,
+    formulaHighlight,
+    '',
+    `Bible sources used: ${material.biblesRead.join(', ')}`,
+    `Agents involved: ${material.agentsInvolved.join(', ')}`,
+  ].filter(Boolean).join('\n');
+}

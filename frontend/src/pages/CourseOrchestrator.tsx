@@ -16,7 +16,7 @@ import {
   Target, BookOpen, Link2, Settings2, Play, RefreshCw, CheckCircle2,
   AlertTriangle, XCircle, Zap, ChevronRight, Eye, User, Brain,
   BarChart3, Clock, Layers, Send, Filter,
-  ListTree, ToggleLeft, ToggleRight, Pencil, ThumbsUp, Minus, Plus,
+  ListTree, ToggleLeft, ToggleRight, Pencil, ThumbsUp, Minus, Plus, Sparkles,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
@@ -60,6 +60,7 @@ import {
   type StaticContentAtom,
 } from '@/services/staticContentLibrary';
 import { auditContentSync } from '@/services/contentSyncService';
+import CourseMaterialStudio from '@/pages/CourseMaterialStudio';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ const TABS = [
   { id: 'library',     label: 'Content Library',  icon: BookOpen  },
   { id: 'connections', label: 'Agent Connections', icon: Link2     },
   { id: 'rules',       label: 'Rules',             icon: Settings2 },
+  { id: 'studio',      label: 'Course Studio',     icon: Sparkles  },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -1498,6 +1500,7 @@ export default function CourseOrchestrator() {
           {activeTab === 'library'     && <ContentLibraryTab />}
           {activeTab === 'connections' && <AgentConnectionsTab />}
           {activeTab === 'rules'       && <OrchestrationRulesTab />}
+          {activeTab === 'studio'      && <div className='h-full'><CourseMaterialStudio ceoMode /></div>}
         </motion.div>
       </AnimatePresence>
     </div>
