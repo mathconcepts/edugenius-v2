@@ -1,8 +1,8 @@
 /**
- * bibleProgressiveUpdater.ts — Progressive Bible Update Engine
+ * playbookProgressiveUpdater.ts — Progressive Playbook Update Engine
  *
- * Wires all agent signals and student interactions into the SubTopicBible.
- * Called once on app startup via initBibleUpdater().
+ * Wires all agent signals and student interactions into the CoursePlaybook.
+ * Called once on app startup via initPlaybookUpdater().
  *
  * Connections:
  *   signalBus events → updateFromX calls
@@ -12,18 +12,18 @@
  */
 
 import {
-  getBiblesWithGaps,
-  getBiblesNeedingContent,
-  getBible,
-  getBibleOrCreate,
-  saveBible,
-  getBibleCompleteness,
+  getPlaybooksWithGaps,
+  getPlaybooksNeedingContent,
+  getPlaybook,
+  getPlaybookOrCreate,
+  savePlaybook,
+  getPlaybookCompleteness,
   updateFromAtlasGeneration,
   updateFromFeedback,
   updateFromKnowledgeRouter,
-  seedDefaultBibles,
-  type SubTopicBible,
-} from './subTopicBibleService';
+  seedDefaultPlaybooks,
+  type CoursePlaybook,
+} from './coursePlaybookService';
 import type { FeedbackEvent } from './contentFeedbackService';
 import type { KnowledgeResult } from './knowledgeRouter';
 import { MANDATORY_COVERAGE_MAP } from './mandatoryContentService';
@@ -110,7 +110,7 @@ const RECONCILE_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 // ─── Signal Bus Listener (localStorage polling) ───────────────────────────────
 
 /**
- * Watch localStorage keys that agents write to and update bibles accordingly.
+ * Watch localStorage keys that agents write to and update playbooks accordingly.
  * This is the lightweight alternative to a full event emitter when no backend.
  */
 function watchSignalKey(key: string, handler: (payload: unknown) => void): void {
@@ -135,20 +135,20 @@ function pollSignalKey(key: string, handler: (payload: unknown) => void): void {
   } catch { /* ignore */ }
 }
 
-// ─── initBibleUpdater ─────────────────────────────────────────────────────────
+// ─── initPlaybookUpdater ─────────────────────────────────────────────────────────
 
 /**
  * Wire all update hooks. Call once from main.tsx.
  */
-export function initBibleUpdater(): void {
+export function initPlaybookUpdater(): void {
   if (_initialized) return;
   _initialized = true;
 
-  // 1. Seed default bibles on first load
-  seedDefaultBibles();
+  // 1. Seed default playbooks on first load
+  seedDefaultPlaybooks();
 
   // 2. Wire Atlas content generation signals
-  watchSignalKey('atlas:bible_update', (raw) => {
+  watchSignalKey('atlas:playbook_update', (raw) => {
     const p = raw as AtlasSignalPayload;
     if (p.examId && p.topicId && p.subtopicId && p.atomType && p.atomId) {
       const validTypes = ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'] as const;
@@ -166,7 +166,7 @@ export function initBibleUpdater(): void {
   });
 
   // 3. Wire feedback signals
-  watchSignalKey('bible:feedback', (raw) => {
+  watchSignalKey('playbook:feedback', (raw) => {
     const ev = raw as FeedbackEvent & { examId?: string; topicId?: string; subtopicId?: string };
     if (ev.examId && ev.topicId && ev.subtopicId) {
       updateFromFeedback(ev.examId, ev.topicId, ev.subtopicId, ev);
@@ -174,7 +174,7 @@ export function initBibleUpdater(): void {
   });
 
   // 4. Wire knowledge router signals
-  watchSignalKey('bible:knowledge_result', (raw) => {
+  watchSignalKey('playbook:knowledge_result', (raw) => {
     const payload = raw as { examId?: string; topicId?: string; subtopicId?: string; result?: KnowledgeResult; query?: string };
     if (payload.examId && payload.topicId && payload.subtopicId && payload.result) {
       updateFromKnowledgeRouter(
@@ -185,7 +185,7 @@ export function initBibleUpdater(): void {
   });
 
   // 5. Wire Sage session signals
-  watchSignalKey('bible:sage_session', (raw) => {
+  watchSignalKey('playbook:sage_session', (raw) => {
     const p = raw as SageSignalPayload;
     if (p.examId && p.topicId && p.subtopicId) {
       _handleSageSignal(p);
@@ -193,7 +193,7 @@ export function initBibleUpdater(): void {
   });
 
   // 6. Wire Oracle analytics signals
-  watchSignalKey('bible:oracle_analytics', (raw) => {
+  watchSignalKey('playbook:oracle_analytics', (raw) => {
     const p = raw as OracleSignalPayload;
     if (p.examId && p.topicId && p.subtopicId) {
       _handleOracleSignal(p);
@@ -201,7 +201,7 @@ export function initBibleUpdater(): void {
   });
 
   // 7. Wire Scout research signals
-  watchSignalKey('bible:scout_research', (raw) => {
+  watchSignalKey('playbook:scout_research', (raw) => {
     const p = raw as ScoutSignalPayload;
     if (p.examId && p.topicId && p.subtopicId) {
       _handleScoutSignal(p);
@@ -209,7 +209,7 @@ export function initBibleUpdater(): void {
   });
 
   // 8. Wire Mentor nudge signals
-  watchSignalKey('bible:mentor_nudge', (raw) => {
+  watchSignalKey('playbook:mentor_nudge', (raw) => {
     const p = raw as MentorSignalPayload;
     if (p.examId && p.topicId && p.subtopicId) {
       _handleMentorSignal(p);
@@ -217,7 +217,7 @@ export function initBibleUpdater(): void {
   });
 
   // 9. Wire Herald content signals
-  watchSignalKey('bible:herald_content', (raw) => {
+  watchSignalKey('playbook:herald_content', (raw) => {
     const p = raw as HeraldSignalPayload;
     if (p.examId && p.topicId && p.subtopicId) {
       _handleHeraldSignal(p);
@@ -225,7 +225,7 @@ export function initBibleUpdater(): void {
   });
 
   // 10. Poll existing signals that may have been written before init
-  pollSignalKey('atlas:bible_update', (raw) => {
+  pollSignalKey('atlas:playbook_update', (raw) => {
     const p = raw as AtlasSignalPayload;
     if (p.examId && p.topicId && p.subtopicId && p.atomType && p.atomId) {
       const validTypes = ['concept_core', 'formula_card', 'worked_example', 'pyq_set', 'common_mistakes', 'exam_tips'] as const;
@@ -250,7 +250,7 @@ export function initBibleUpdater(): void {
 
 function _handleSageSignal(p: SageSignalPayload): void {
   if (!p.examId || !p.topicId || !p.subtopicId) return;
-  const { updateFromSageSession } = require('./subTopicBibleService') as typeof import('./subTopicBibleService');
+  const { updateFromSageSession } = require('./coursePlaybookService') as typeof import('./coursePlaybookService');
   updateFromSageSession(p.examId, p.topicId, p.subtopicId, {
     sessionDurationMs: p.sessionDurationMs ?? 0,
     socraticDepth: p.socraticDepth ?? 0,
@@ -263,7 +263,7 @@ function _handleSageSignal(p: SageSignalPayload): void {
 
 function _handleOracleSignal(p: OracleSignalPayload): void {
   if (!p.examId || !p.topicId || !p.subtopicId) return;
-  const { updateFromOracleAnalytics } = require('./subTopicBibleService') as typeof import('./subTopicBibleService');
+  const { updateFromOracleAnalytics } = require('./coursePlaybookService') as typeof import('./coursePlaybookService');
   updateFromOracleAnalytics(p.examId, p.topicId, p.subtopicId, {
     averageMasteryScore: p.averageMasteryScore,
     dropoffRate: p.dropoffRate,
@@ -276,7 +276,7 @@ function _handleOracleSignal(p: OracleSignalPayload): void {
 
 function _handleScoutSignal(p: ScoutSignalPayload): void {
   if (!p.examId || !p.topicId || !p.subtopicId) return;
-  const { updateFromScoutResearch } = require('./subTopicBibleService') as typeof import('./subTopicBibleService');
+  const { updateFromScoutResearch } = require('./coursePlaybookService') as typeof import('./coursePlaybookService');
   updateFromScoutResearch(p.examId, p.topicId, p.subtopicId, {
     searchQuery: p.searchQuery,
     relatedTerms: p.relatedTerms,
@@ -288,7 +288,7 @@ function _handleScoutSignal(p: ScoutSignalPayload): void {
 
 function _handleMentorSignal(p: MentorSignalPayload): void {
   if (!p.examId || !p.topicId || !p.subtopicId) return;
-  const { updateFromMentorNudge } = require('./subTopicBibleService') as typeof import('./subTopicBibleService');
+  const { updateFromMentorNudge } = require('./coursePlaybookService') as typeof import('./coursePlaybookService');
   updateFromMentorNudge(p.examId, p.topicId, p.subtopicId, {
     nudgeType: p.nudgeType ?? 'generic',
     effectiveness: p.effectiveness ?? 0.5,
@@ -297,7 +297,7 @@ function _handleMentorSignal(p: MentorSignalPayload): void {
 
 function _handleHeraldSignal(p: HeraldSignalPayload): void {
   if (!p.examId || !p.topicId || !p.subtopicId) return;
-  const { updateFromHeraldContent } = require('./subTopicBibleService') as typeof import('./subTopicBibleService');
+  const { updateFromHeraldContent } = require('./coursePlaybookService') as typeof import('./coursePlaybookService');
   updateFromHeraldContent(p.examId, p.topicId, p.subtopicId, {
     contentId: p.contentId ?? '',
     contentTitle: p.contentTitle ?? '',
@@ -309,22 +309,22 @@ function _handleHeraldSignal(p: HeraldSignalPayload): void {
 function _scheduleReconcile(): void {
   if (_reconcileTimer) clearTimeout(_reconcileTimer);
   _reconcileTimer = setTimeout(() => {
-    reconcileBibles().catch(() => {});
+    reconcilePlaybooks().catch(() => {});
     _scheduleReconcile(); // reschedule
   }, RECONCILE_INTERVAL_MS);
 }
 
 /**
- * Scan all bibles, find gaps, queue generation for critical ones.
+ * Scan all playbooks, find gaps, queue generation for critical ones.
  */
-export async function reconcileBibles(): Promise<ReconcileResult> {
-  const withGaps = getBiblesWithGaps();
-  const needingContent = getBiblesNeedingContent(10);
+export async function reconcilePlaybooks(): Promise<ReconcileResult> {
+  const withGaps = getPlaybooksWithGaps();
+  const needingContent = getPlaybooksNeedingContent(10);
 
   let queued = 0;
   for (const item of needingContent) {
-    const { scheduleBibleGeneration } = await import('./subTopicBibleService');
-    scheduleBibleGeneration(item.examId, item.topicId, item.subtopicId);
+    const { schedulePlaybookGeneration } = await import('./coursePlaybookService');
+    schedulePlaybookGeneration(item.examId, item.topicId, item.subtopicId);
     queued++;
   }
 
@@ -338,20 +338,20 @@ export async function reconcileBibles(): Promise<ReconcileResult> {
 // ─── Enrichment ───────────────────────────────────────────────────────────────
 
 /**
- * Enrich a bible by filling gaps using existing service data.
+ * Enrich a playbook by filling gaps using existing service data.
  */
-export async function enrichBible(
-  bible: SubTopicBible,
+export async function enrichPlaybook(
+  playbook: CoursePlaybook,
   _maxAgentCalls = 5,
-): Promise<SubTopicBible> {
+): Promise<CoursePlaybook> {
   // Re-read to get latest
-  const current = getBible(bible.examId, bible.topicId, bible.subtopicId);
-  if (!current) return bible;
+  const current = getPlaybook(playbook.examId, playbook.topicId, playbook.subtopicId);
+  if (!current) return playbook;
 
   // Fill from static content library
   await seedFromStaticLibrary();
 
-  return getBible(bible.examId, bible.topicId, bible.subtopicId) ?? current;
+  return getPlaybook(playbook.examId, playbook.topicId, playbook.subtopicId) ?? current;
 }
 
 // ─── Seed from existing services ─────────────────────────────────────────────
@@ -366,22 +366,22 @@ export async function seedFromStaticLibrary(): Promise<void> {
   for (const examId of examIds) {
     const atoms = getAllStaticAtoms(examId);
     for (const atom of atoms) {
-      const bible = getBibleOrCreate(examId, atom.topicId, atom.topicId, atom.topicName);
+      const playbook = getPlaybookOrCreate(examId, atom.topicId, atom.topicId, atom.topicName);
       // Mark search terms from tags
-      const updatedQueries = [...new Set([...bible.searchIntelligence.topSearchQueries, ...atom.tags])].slice(-20);
-      if (updatedQueries.length > bible.searchIntelligence.topSearchQueries.length) {
-        const updated: SubTopicBible = {
-          ...bible,
+      const updatedQueries = [...new Set([...playbook.searchIntelligence.topSearchQueries, ...atom.tags])].slice(-20);
+      if (updatedQueries.length > playbook.searchIntelligence.topSearchQueries.length) {
+        const updated: CoursePlaybook = {
+          ...playbook,
           searchIntelligence: {
-            ...bible.searchIntelligence,
+            ...playbook.searchIntelligence,
             topSearchQueries: updatedQueries,
             relatedSearchTerms: atom.tags,
           },
-          version: bible.version + 1,
+          version: playbook.version + 1,
           lastUpdatedAt: new Date().toISOString(),
           lastUpdatedBy: 'seed_static_library',
         };
-        saveBible(updated);
+        savePlaybook(updated);
       }
     }
   }
@@ -407,19 +407,19 @@ export async function seedFromTemplateRegistry(): Promise<void> {
     const examId = examPrefix.toUpperCase() === 'GATE' ? 'GATE_EM' : examPrefix.toUpperCase();
     const topicSlug = topicSlugOrStyle.replace(/-/g, '_');
 
-    // Try to find matching bibles
-    const { getAllBibles } = await import('./subTopicBibleService');
-    const bibles = getAllBibles(examId, topicSlug);
+    // Try to find matching playbooks
+    const { getAllPlaybooks } = await import('./coursePlaybookService');
+    const playbooks = getAllPlaybooks(examId, topicSlug);
 
-    for (const bible of bibles) {
-      if (bible.promptIntelligence.bestTemplateKey) continue; // already has one
-      const updated: SubTopicBible = {
-        ...bible,
+    for (const playbook of playbooks) {
+      if (playbook.promptIntelligence.bestTemplateKey) continue; // already has one
+      const updated: CoursePlaybook = {
+        ...playbook,
         promptIntelligence: {
-          ...bible.promptIntelligence,
+          ...playbook.promptIntelligence,
           bestTemplateKey: key,
           effectiveSystemPrompts: [
-            ...bible.promptIntelligence.effectiveSystemPrompts,
+            ...playbook.promptIntelligence.effectiveSystemPrompts,
             {
               promptId: template.id,
               style: parts[2] ?? 'unknown',
@@ -430,11 +430,11 @@ export async function seedFromTemplateRegistry(): Promise<void> {
             },
           ].slice(-10),
         },
-        version: bible.version + 1,
+        version: playbook.version + 1,
         lastUpdatedAt: new Date().toISOString(),
         lastUpdatedBy: 'seed_template_registry',
       };
-      saveBible(updated);
+      savePlaybook(updated);
     }
   }
 }
@@ -448,10 +448,10 @@ export async function seedFromMandatoryService(): Promise<void> {
   for (const [examId, topics] of Object.entries(MANDATORY_COVERAGE_MAP)) {
     for (const topic of topics) {
       const spec = auditMandatoryContent(examId, topic.topicId);
-      const bible = getBibleOrCreate(examId, topic.topicId, topic.topicId, topic.topicName);
+      const playbook = getPlaybookOrCreate(examId, topic.topicId, topic.topicId, topic.topicName);
 
       // Update mandatory atom presence flags
-      const mandatoryUpdate: SubTopicBible['contentAtoms']['mandatory'] = {};
+      const mandatoryUpdate: CoursePlaybook['contentAtoms']['mandatory'] = {};
       if (spec.atoms.concept_core) mandatoryUpdate.concept_core = `static_${examId}_${topic.topicId}_concept_core`;
       if (spec.atoms.formula_card) mandatoryUpdate.formula_card = `static_${examId}_${topic.topicId}_formula_card`;
       if (spec.atoms.worked_example) mandatoryUpdate.worked_example = `static_${examId}_${topic.topicId}_worked_example`;
@@ -461,25 +461,25 @@ export async function seedFromMandatoryService(): Promise<void> {
 
       if (Object.keys(mandatoryUpdate).length > 0) {
         const coverage = Math.round((Object.keys(mandatoryUpdate).length / 6) * 100);
-        const updated: SubTopicBible = {
-          ...bible,
+        const updated: CoursePlaybook = {
+          ...playbook,
           contentAtoms: {
-            ...bible.contentAtoms,
-            mandatory: { ...bible.contentAtoms.mandatory, ...mandatoryUpdate },
-            lastGeneratedAt: bible.contentAtoms.lastGeneratedAt || new Date().toISOString(),
+            ...playbook.contentAtoms,
+            mandatory: { ...playbook.contentAtoms.mandatory, ...mandatoryUpdate },
+            lastGeneratedAt: playbook.contentAtoms.lastGeneratedAt || new Date().toISOString(),
           },
           agentConnections: {
-            ...bible.agentConnections,
+            ...playbook.agentConnections,
             atlas: {
-              ...bible.agentConnections.atlas,
-              contentCoverage: Math.max(bible.agentConnections.atlas.contentCoverage, coverage),
+              ...playbook.agentConnections.atlas,
+              contentCoverage: Math.max(playbook.agentConnections.atlas.contentCoverage, coverage),
             },
           },
-          version: bible.version + 1,
+          version: playbook.version + 1,
           lastUpdatedAt: new Date().toISOString(),
           lastUpdatedBy: 'seed_mandatory_service',
         };
-        saveBible(updated);
+        savePlaybook(updated);
       }
     }
   }
@@ -492,24 +492,24 @@ export async function seedFromCourseOrchestrator(): Promise<void> {
   // Pull exam topic catalogue knowledge to populate academic sections
   for (const [examId, topics] of Object.entries(MANDATORY_COVERAGE_MAP)) {
     for (const topic of topics) {
-      const bible = getBibleOrCreate(examId, topic.topicId, topic.topicId, topic.topicName);
-      if (bible.academic.definition.length > 10) continue; // already has content
+      const playbook = getPlaybookOrCreate(examId, topic.topicId, topic.topicId, topic.topicName);
+      if (playbook.academic.definition.length > 10) continue; // already has content
 
       // Set basic academic data from known exam patterns
-      const updated: SubTopicBible = {
-        ...bible,
+      const updated: CoursePlaybook = {
+        ...playbook,
         academic: {
-          ...bible.academic,
-          definition: bible.academic.definition || `Core ${topic.topicName} concepts for ${examId} examination preparation.`,
+          ...playbook.academic,
+          definition: playbook.academic.definition || `Core ${topic.topicName} concepts for ${examId} examination preparation.`,
           difficulty: 'intermediate',
           estimatedMasteryHours: 4,
           bloomsLevel: 'apply',
         },
-        version: bible.version + 1,
+        version: playbook.version + 1,
         lastUpdatedAt: new Date().toISOString(),
         lastUpdatedBy: 'seed_course_orchestrator',
       };
-      saveBible(updated);
+      savePlaybook(updated);
     }
   }
 }
@@ -517,10 +517,10 @@ export async function seedFromCourseOrchestrator(): Promise<void> {
 // ─── Emit helpers (for agents to use) ────────────────────────────────────────
 
 /**
- * Emit a bible update signal from Atlas.
+ * Emit a playbook update signal from Atlas.
  * Agents call this after generating content.
  */
-export function emitAtlasBibleUpdate(
+export function emitAtlasPlaybookUpdate(
   examId: string,
   topicId: string,
   subtopicId: string,
@@ -530,7 +530,7 @@ export function emitAtlasBibleUpdate(
   styleKey?: string,
 ): void {
   try {
-    localStorage.setItem('atlas:bible_update', JSON.stringify({
+    localStorage.setItem('atlas:playbook_update', JSON.stringify({
       examId, topicId, subtopicId, atomType, atomId, layer, styleKey,
       timestamp: Date.now(),
     }));
@@ -538,41 +538,41 @@ export function emitAtlasBibleUpdate(
 }
 
 /**
- * Emit a Sage session update to the bible.
+ * Emit a Sage session update to the playbook.
  */
-export function emitSageBibleSession(
+export function emitSagePlaybookSession(
   examId: string,
   topicId: string,
   subtopicId: string,
   sessionData: Omit<SageSignalPayload, 'examId' | 'topicId' | 'subtopicId'>,
 ): void {
   try {
-    localStorage.setItem('bible:sage_session', JSON.stringify({
+    localStorage.setItem('playbook:sage_session', JSON.stringify({
       examId, topicId, subtopicId, ...sessionData, timestamp: Date.now(),
     }));
   } catch { /* quota exceeded */ }
 }
 
 /**
- * Emit a feedback event to the bible.
+ * Emit a feedback event to the playbook.
  */
-export function emitFeedbackToBible(
+export function emitFeedbackToPlaybook(
   examId: string,
   topicId: string,
   subtopicId: string,
   feedback: FeedbackEvent,
 ): void {
   try {
-    localStorage.setItem('bible:feedback', JSON.stringify({
+    localStorage.setItem('playbook:feedback', JSON.stringify({
       ...feedback, examId, topicId, subtopicId, timestamp: Date.now(),
     }));
   } catch { /* quota exceeded */ }
 }
 
 /**
- * Emit a knowledge router result to the bible.
+ * Emit a knowledge router result to the playbook.
  */
-export function emitKnowledgeResultToBible(
+export function emitKnowledgeResultToPlaybook(
   examId: string,
   topicId: string,
   subtopicId: string,
@@ -580,20 +580,20 @@ export function emitKnowledgeResultToBible(
   query?: string,
 ): void {
   try {
-    localStorage.setItem('bible:knowledge_result', JSON.stringify({
+    localStorage.setItem('playbook:knowledge_result', JSON.stringify({
       examId, topicId, subtopicId, result, query, timestamp: Date.now(),
     }));
   } catch { /* quota exceeded */ }
 }
 
 /**
- * Get the completeness summary for all bibles (used in health dashboard).
+ * Get the completeness summary for all playbooks (used in health dashboard).
  */
-export function getBibleHealthSummary(): { total: number; healthy: number; needsAttention: number } {
-  const { getAllBibles: getAll } = require('./subTopicBibleService') as typeof import('./subTopicBibleService');
-  const bibles = getAll();
-  const total = bibles.length;
-  const healthy = bibles.filter(b => getBibleCompleteness(b) >= 70).length;
+export function getPlaybookHealthSummary(): { total: number; healthy: number; needsAttention: number } {
+  const { getAllPlaybooks: getAll } = require('./coursePlaybookService') as typeof import('./coursePlaybookService');
+  const playbooks = getAll();
+  const total = playbooks.length;
+  const healthy = playbooks.filter(b => getPlaybookCompleteness(b) >= 70).length;
   const needsAttention = total - healthy;
   return { total, healthy, needsAttention };
 }

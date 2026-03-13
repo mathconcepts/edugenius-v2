@@ -1,14 +1,14 @@
 /**
- * subTopicBibleService.ts — SubTopic Bible: Universal Knowledge Graph
+ * coursePlaybookService.ts — Course Playbook: Universal Knowledge Graph
  *
  * The single source of truth for every course subtopic.
  * Every agent reads from it. Every agent writes to it.
  * Every student interaction updates it.
  *
  * Storage:
- *   localStorage key: `eg_bible_{examId}_{topicId}_{subtopicId}` per bible
- *   Index key:        `eg_bible_index` → string[] of all bible IDs
- *   Supabase table:   `subtopic_bibles` (when available)
+ *   localStorage key: `eg_playbook_{examId}_{topicId}_{subtopicId}` per playbook
+ *   Index key:        `eg_playbook_index` → string[] of all playbook IDs
+ *   Supabase table:   `subtopic_playbooks` (when available)
  */
 
 import type { FeedbackEvent } from './contentFeedbackService';
@@ -17,7 +17,7 @@ import { MANDATORY_COVERAGE_MAP } from './mandatoryContentService';
 
 // ─── Core Schema ──────────────────────────────────────────────────────────────
 
-export interface SubTopicBible {
+export interface CoursePlaybook {
   // ── Identity ──────────────────────────────────────────────────────────────
   id: string;                    // '{examId}__{topicId}__{subtopicId}'
   examId: string;                // 'GATE_EM' | 'JEE' | 'NEET' | 'CAT' | 'UPSC'
@@ -282,14 +282,14 @@ export interface HeraldContentResult {
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 
-const BIBLE_KEY_PREFIX = 'eg_bible_';
-const BIBLE_INDEX_KEY = 'eg_bible_index';
+const PLAYBOOK_KEY_PREFIX = 'eg_playbook_';
+const PLAYBOOK_INDEX_KEY = 'eg_playbook_index';
 
-function bibleStorageKey(examId: string, topicId: string, subtopicId: string): string {
-  return `${BIBLE_KEY_PREFIX}${examId.toLowerCase()}_${topicId.toLowerCase()}_${subtopicId.toLowerCase()}`;
+function playbookStorageKey(examId: string, topicId: string, subtopicId: string): string {
+  return `${PLAYBOOK_KEY_PREFIX}${examId.toLowerCase()}_${topicId.toLowerCase()}_${subtopicId.toLowerCase()}`;
 }
 
-function bibleId(examId: string, topicId: string, subtopicId: string): string {
+function playbookId(examId: string, topicId: string, subtopicId: string): string {
   return `${examId}__${topicId}__${subtopicId}`;
 }
 
@@ -304,7 +304,7 @@ export function isSupabaseAvailable(): boolean {
 
 function readIndex(): string[] {
   try {
-    const raw = localStorage.getItem(BIBLE_INDEX_KEY);
+    const raw = localStorage.getItem(PLAYBOOK_INDEX_KEY);
     return raw ? (JSON.parse(raw) as string[]) : [];
   } catch {
     return [];
@@ -316,22 +316,22 @@ function addToIndex(id: string): void {
     const idx = readIndex();
     if (!idx.includes(id)) {
       idx.push(id);
-      localStorage.setItem(BIBLE_INDEX_KEY, JSON.stringify(idx));
+      localStorage.setItem(PLAYBOOK_INDEX_KEY, JSON.stringify(idx));
     }
   } catch { /* quota exceeded */ }
 }
 
-// ─── Default Bible Factory ─────────────────────────────────────────────────────
+// ─── Default Playbook Factory ─────────────────────────────────────────────────────
 
-function createDefaultBible(
+function createDefaultPlaybook(
   examId: string,
   topicId: string,
   subtopicId: string,
   subtopicName?: string,
-): SubTopicBible {
+): CoursePlaybook {
   const now = new Date().toISOString();
   return {
-    id: bibleId(examId, topicId, subtopicId),
+    id: playbookId(examId, topicId, subtopicId),
     examId,
     topicId,
     subtopicId,
@@ -437,83 +437,83 @@ function createDefaultBible(
 // ─── READ Functions ───────────────────────────────────────────────────────────
 
 /**
- * Get a bible by examId, topicId, subtopicId. Returns null if not found.
+ * Get a playbook by examId, topicId, subtopicId. Returns null if not found.
  */
-export function getBible(
+export function getPlaybook(
   examId: string,
   topicId: string,
   subtopicId: string,
-): SubTopicBible | null {
+): CoursePlaybook | null {
   try {
-    const raw = localStorage.getItem(bibleStorageKey(examId, topicId, subtopicId));
-    return raw ? (JSON.parse(raw) as SubTopicBible) : null;
+    const raw = localStorage.getItem(playbookStorageKey(examId, topicId, subtopicId));
+    return raw ? (JSON.parse(raw) as CoursePlaybook) : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Get a bible, creating a skeleton if it doesn't exist.
+ * Get a playbook, creating a skeleton if it doesn't exist.
  */
-export function getBibleOrCreate(
+export function getPlaybookOrCreate(
   examId: string,
   topicId: string,
   subtopicId: string,
   subtopicName?: string,
-): SubTopicBible {
-  const existing = getBible(examId, topicId, subtopicId);
+): CoursePlaybook {
+  const existing = getPlaybook(examId, topicId, subtopicId);
   if (existing) return existing;
-  const bible = createDefaultBible(examId, topicId, subtopicId, subtopicName);
-  saveBible(bible);
-  return bible;
+  const playbook = createDefaultPlaybook(examId, topicId, subtopicId, subtopicName);
+  savePlaybook(playbook);
+  return playbook;
 }
 
 /**
- * Get all bibles, optionally filtered by examId and/or topicId.
+ * Get all playbooks, optionally filtered by examId and/or topicId.
  */
-export function getAllBibles(examId?: string, topicId?: string): SubTopicBible[] {
+export function getAllPlaybooks(examId?: string, topicId?: string): CoursePlaybook[] {
   const index = readIndex();
-  const bibles: SubTopicBible[] = [];
+  const playbooks: CoursePlaybook[] = [];
   for (const id of index) {
     const parts = id.split('__');
     if (parts.length < 3) continue;
     const [eId, tId, sId] = parts;
     if (examId && eId.toLowerCase() !== examId.toLowerCase()) continue;
     if (topicId && tId.toLowerCase() !== topicId.toLowerCase()) continue;
-    const bible = getBible(eId, tId, sId);
-    if (bible) bibles.push(bible);
+    const playbook = getPlaybook(eId, tId, sId);
+    if (playbook) playbooks.push(playbook);
   }
-  return bibles;
+  return playbooks;
 }
 
 /**
- * Compute completeness percentage for a bible (0-100).
+ * Compute completeness percentage for a playbook (0-100).
  * Based on how many fields are non-empty/non-zero.
  */
-export function getBibleCompleteness(bible: SubTopicBible): number {
+export function getPlaybookCompleteness(playbook: CoursePlaybook): number {
   let filled = 0;
   const total = 20;
 
-  if (bible.academic.definition.length > 10) filled++;
-  if (bible.academic.prerequisites.length > 0) filled++;
-  if (bible.academic.realWorldApplications.length > 0) filled++;
-  if (bible.pedagogy.teachingSequence.length > 0) filled++;
-  if (bible.pedagogy.commonMisconceptions.length > 0) filled++;
-  if (bible.pedagogy.socraticQuestions.length > 0) filled++;
-  if (bible.pedagogy.effectiveAnalogies.length > 0) filled++;
-  if (bible.examIntelligence.weightage > 0) filled++;
-  if (bible.examIntelligence.pyqs.length > 0) filled++;
-  if (bible.examIntelligence.highYieldFormulas.length > 0) filled++;
-  if (Object.keys(bible.contentAtoms.mandatory).length > 0) filled++;
-  if (bible.analytics.totalStudentsTaught > 0) filled++;
-  if (bible.analytics.commonStuckPoints.length > 0) filled++;
-  if (Object.keys(bible.studentPreferences.preferredLearningStyles).length > 0) filled++;
-  if (bible.searchIntelligence.topSearchQueries.length > 0) filled++;
-  if (bible.agentConnections.atlas.contentCoverage > 0) filled++;
-  if (bible.agentConnections.sage.totalSessions > 0) filled++;
-  if (bible.promptIntelligence.effectiveSystemPrompts.length > 0) filled++;
-  if (bible.knowledgeGraph.incomingLinks.length + bible.knowledgeGraph.outgoingLinks.length > 0) filled++;
-  if (bible.examIntelligence.examSpecificTips.length > 5) filled++;
+  if (playbook.academic.definition.length > 10) filled++;
+  if (playbook.academic.prerequisites.length > 0) filled++;
+  if (playbook.academic.realWorldApplications.length > 0) filled++;
+  if (playbook.pedagogy.teachingSequence.length > 0) filled++;
+  if (playbook.pedagogy.commonMisconceptions.length > 0) filled++;
+  if (playbook.pedagogy.socraticQuestions.length > 0) filled++;
+  if (playbook.pedagogy.effectiveAnalogies.length > 0) filled++;
+  if (playbook.examIntelligence.weightage > 0) filled++;
+  if (playbook.examIntelligence.pyqs.length > 0) filled++;
+  if (playbook.examIntelligence.highYieldFormulas.length > 0) filled++;
+  if (Object.keys(playbook.contentAtoms.mandatory).length > 0) filled++;
+  if (playbook.analytics.totalStudentsTaught > 0) filled++;
+  if (playbook.analytics.commonStuckPoints.length > 0) filled++;
+  if (Object.keys(playbook.studentPreferences.preferredLearningStyles).length > 0) filled++;
+  if (playbook.searchIntelligence.topSearchQueries.length > 0) filled++;
+  if (playbook.agentConnections.atlas.contentCoverage > 0) filled++;
+  if (playbook.agentConnections.sage.totalSessions > 0) filled++;
+  if (playbook.promptIntelligence.effectiveSystemPrompts.length > 0) filled++;
+  if (playbook.knowledgeGraph.incomingLinks.length + playbook.knowledgeGraph.outgoingLinks.length > 0) filled++;
+  if (playbook.examIntelligence.examSpecificTips.length > 5) filled++;
 
   return Math.round((filled / total) * 100);
 }
@@ -521,42 +521,42 @@ export function getBibleCompleteness(bible: SubTopicBible): number {
 // ─── WRITE Functions ──────────────────────────────────────────────────────────
 
 /**
- * Save/overwrite a bible in localStorage.
+ * Save/overwrite a playbook in localStorage.
  */
-export function saveBible(bible: SubTopicBible): void {
+export function savePlaybook(playbook: CoursePlaybook): void {
   try {
     localStorage.setItem(
-      bibleStorageKey(bible.examId, bible.topicId, bible.subtopicId),
-      JSON.stringify(bible),
+      playbookStorageKey(playbook.examId, playbook.topicId, playbook.subtopicId),
+      JSON.stringify(playbook),
     );
-    addToIndex(bible.id);
+    addToIndex(playbook.id);
   } catch { /* quota exceeded */ }
 }
 
 /**
- * Update a single top-level field on a bible.
+ * Update a single top-level field on a playbook.
  */
-export function updateBibleField<K extends keyof SubTopicBible>(
+export function updatePlaybookField<K extends keyof CoursePlaybook>(
   id: string,
   field: K,
-  value: SubTopicBible[K],
+  value: CoursePlaybook[K],
   updatedBy: string,
 ): void {
   const parts = id.split('__');
   if (parts.length < 3) return;
   const [examId, topicId, subtopicId] = parts;
-  const bible = getBible(examId, topicId, subtopicId);
-  if (!bible) return;
+  const playbook = getPlaybook(examId, topicId, subtopicId);
+  if (!playbook) return;
 
-  const oldValue = JSON.stringify(bible[field]).slice(0, 200);
-  const newBible: SubTopicBible = {
-    ...bible,
+  const oldValue = JSON.stringify(playbook[field]).slice(0, 200);
+  const newPlaybook: CoursePlaybook = {
+    ...playbook,
     [field]: value,
-    version: bible.version + 1,
+    version: playbook.version + 1,
     lastUpdatedAt: new Date().toISOString(),
     lastUpdatedBy: updatedBy,
     updateHistory: [
-      ...bible.updateHistory.slice(-49),
+      ...playbook.updateHistory.slice(-49),
       {
         field: String(field),
         oldValue,
@@ -567,57 +567,57 @@ export function updateBibleField<K extends keyof SubTopicBible>(
       },
     ],
   };
-  saveBible(newBible);
+  savePlaybook(newPlaybook);
 }
 
 /**
- * Deep-merge a partial bible update into the stored bible.
+ * Deep-merge a partial playbook update into the stored playbook.
  */
-export function mergeBibleUpdate(
+export function mergePlaybookUpdate(
   id: string,
-  partial: Partial<SubTopicBible>,
+  partial: Partial<CoursePlaybook>,
   updatedBy: string,
 ): void {
   const parts = id.split('__');
   if (parts.length < 3) return;
   const [examId, topicId, subtopicId] = parts;
-  const bible = getBible(examId, topicId, subtopicId);
-  if (!bible) return;
+  const playbook = getPlaybook(examId, topicId, subtopicId);
+  if (!playbook) return;
 
   const now = new Date().toISOString();
   const changedFields = Object.keys(partial).filter(k => k !== 'updateHistory');
 
-  const merged: SubTopicBible = {
-    ...bible,
+  const merged: CoursePlaybook = {
+    ...playbook,
     ...partial,
     // Deep merge nested objects
-    academic: partial.academic ? { ...bible.academic, ...partial.academic } : bible.academic,
-    pedagogy: partial.pedagogy ? { ...bible.pedagogy, ...partial.pedagogy } : bible.pedagogy,
-    examIntelligence: partial.examIntelligence ? { ...bible.examIntelligence, ...partial.examIntelligence } : bible.examIntelligence,
+    academic: partial.academic ? { ...playbook.academic, ...partial.academic } : playbook.academic,
+    pedagogy: partial.pedagogy ? { ...playbook.pedagogy, ...partial.pedagogy } : playbook.pedagogy,
+    examIntelligence: partial.examIntelligence ? { ...playbook.examIntelligence, ...partial.examIntelligence } : playbook.examIntelligence,
     contentAtoms: partial.contentAtoms ? {
-      ...bible.contentAtoms,
+      ...playbook.contentAtoms,
       ...partial.contentAtoms,
-      mandatory: { ...bible.contentAtoms.mandatory, ...(partial.contentAtoms.mandatory ?? {}) },
-      personalized: { ...bible.contentAtoms.personalized, ...(partial.contentAtoms.personalized ?? {}) },
-    } : bible.contentAtoms,
-    analytics: partial.analytics ? { ...bible.analytics, ...partial.analytics } : bible.analytics,
-    studentPreferences: partial.studentPreferences ? { ...bible.studentPreferences, ...partial.studentPreferences } : bible.studentPreferences,
-    searchIntelligence: partial.searchIntelligence ? { ...bible.searchIntelligence, ...partial.searchIntelligence } : bible.searchIntelligence,
+      mandatory: { ...playbook.contentAtoms.mandatory, ...(partial.contentAtoms.mandatory ?? {}) },
+      personalized: { ...playbook.contentAtoms.personalized, ...(partial.contentAtoms.personalized ?? {}) },
+    } : playbook.contentAtoms,
+    analytics: partial.analytics ? { ...playbook.analytics, ...partial.analytics } : playbook.analytics,
+    studentPreferences: partial.studentPreferences ? { ...playbook.studentPreferences, ...partial.studentPreferences } : playbook.studentPreferences,
+    searchIntelligence: partial.searchIntelligence ? { ...playbook.searchIntelligence, ...partial.searchIntelligence } : playbook.searchIntelligence,
     agentConnections: partial.agentConnections ? {
-      atlas: partial.agentConnections.atlas ? { ...bible.agentConnections.atlas, ...partial.agentConnections.atlas } : bible.agentConnections.atlas,
-      sage: partial.agentConnections.sage ? { ...bible.agentConnections.sage, ...partial.agentConnections.sage } : bible.agentConnections.sage,
-      oracle: partial.agentConnections.oracle ? { ...bible.agentConnections.oracle, ...partial.agentConnections.oracle } : bible.agentConnections.oracle,
-      scout: partial.agentConnections.scout ? { ...bible.agentConnections.scout, ...partial.agentConnections.scout } : bible.agentConnections.scout,
-      mentor: partial.agentConnections.mentor ? { ...bible.agentConnections.mentor, ...partial.agentConnections.mentor } : bible.agentConnections.mentor,
-      herald: partial.agentConnections.herald ? { ...bible.agentConnections.herald, ...partial.agentConnections.herald } : bible.agentConnections.herald,
-    } : bible.agentConnections,
-    promptIntelligence: partial.promptIntelligence ? { ...bible.promptIntelligence, ...partial.promptIntelligence } : bible.promptIntelligence,
-    knowledgeGraph: partial.knowledgeGraph ? { ...bible.knowledgeGraph, ...partial.knowledgeGraph } : bible.knowledgeGraph,
-    version: bible.version + 1,
+      atlas: partial.agentConnections.atlas ? { ...playbook.agentConnections.atlas, ...partial.agentConnections.atlas } : playbook.agentConnections.atlas,
+      sage: partial.agentConnections.sage ? { ...playbook.agentConnections.sage, ...partial.agentConnections.sage } : playbook.agentConnections.sage,
+      oracle: partial.agentConnections.oracle ? { ...playbook.agentConnections.oracle, ...partial.agentConnections.oracle } : playbook.agentConnections.oracle,
+      scout: partial.agentConnections.scout ? { ...playbook.agentConnections.scout, ...partial.agentConnections.scout } : playbook.agentConnections.scout,
+      mentor: partial.agentConnections.mentor ? { ...playbook.agentConnections.mentor, ...partial.agentConnections.mentor } : playbook.agentConnections.mentor,
+      herald: partial.agentConnections.herald ? { ...playbook.agentConnections.herald, ...partial.agentConnections.herald } : playbook.agentConnections.herald,
+    } : playbook.agentConnections,
+    promptIntelligence: partial.promptIntelligence ? { ...playbook.promptIntelligence, ...partial.promptIntelligence } : playbook.promptIntelligence,
+    knowledgeGraph: partial.knowledgeGraph ? { ...playbook.knowledgeGraph, ...partial.knowledgeGraph } : playbook.knowledgeGraph,
+    version: playbook.version + 1,
     lastUpdatedAt: now,
     lastUpdatedBy: updatedBy,
     updateHistory: [
-      ...bible.updateHistory.slice(-49),
+      ...playbook.updateHistory.slice(-49),
       {
         field: changedFields.join(', '),
         oldValue: '',
@@ -629,7 +629,7 @@ export function mergeBibleUpdate(
     ],
   };
 
-  saveBible(merged);
+  savePlaybook(merged);
 }
 
 // ─── Progressive Update Triggers ─────────────────────────────────────────────
@@ -641,34 +641,34 @@ export function updateFromAtlasGeneration(
   examId: string,
   topicId: string,
   subtopicId: string,
-  atomType: keyof SubTopicBible['contentAtoms']['mandatory'],
+  atomType: keyof CoursePlaybook['contentAtoms']['mandatory'],
   atomId: string,
   layer: 'mandatory' | 'personalized',
   styleKey?: string,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const now = new Date().toISOString();
   const updatedMandatory = layer === 'mandatory'
-    ? { ...bible.contentAtoms.mandatory, [atomType]: atomId }
-    : bible.contentAtoms.mandatory;
+    ? { ...playbook.contentAtoms.mandatory, [atomType]: atomId }
+    : playbook.contentAtoms.mandatory;
   const updatedPersonalized = layer === 'personalized' && styleKey
-    ? { ...bible.contentAtoms.personalized, [styleKey]: atomId }
-    : bible.contentAtoms.personalized;
+    ? { ...playbook.contentAtoms.personalized, [styleKey]: atomId }
+    : playbook.contentAtoms.personalized;
 
   const mandatoryCount = Object.keys(updatedMandatory).length;
   const coverage = Math.round((mandatoryCount / 6) * 100);
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     contentAtoms: {
       mandatory: updatedMandatory,
       personalized: updatedPersonalized,
       lastGeneratedAt: now,
-      generationVersion: bible.contentAtoms.generationVersion + 1,
+      generationVersion: playbook.contentAtoms.generationVersion + 1,
     },
     agentConnections: {
-      ...bible.agentConnections,
+      ...playbook.agentConnections,
       atlas: {
-        ...bible.agentConnections.atlas,
+        ...playbook.agentConnections.atlas,
         lastGenerated: now,
         contentCoverage: coverage,
         generationPriority: coverage < 50 ? 'critical' : coverage < 80 ? 'high' : 'normal',
@@ -686,9 +686,9 @@ export function updateFromSageSession(
   subtopicId: string,
   sessionData: Omit<SageSessionUpdate, 'subtopicId' | 'examId' | 'topicId'>,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const now = new Date().toISOString();
-  const currentSage = bible.agentConnections.sage;
+  const currentSage = playbook.agentConnections.sage;
   const newTotal = currentSage.totalSessions + 1;
   const newAvgDepth = (currentSage.avgSocraticDepth * currentSage.totalSessions + sessionData.socraticDepth) / newTotal;
 
@@ -698,7 +698,7 @@ export function updateFromSageSession(
 
   const updatedPrompts = sessionData.promptId && sessionData.successSignal
     ? [
-        ...bible.promptIntelligence.effectiveSystemPrompts,
+        ...playbook.promptIntelligence.effectiveSystemPrompts,
         {
           promptId: sessionData.promptId,
           style: sessionData.promptStyle ?? 'unknown',
@@ -708,11 +708,11 @@ export function updateFromSageSession(
           usageCount: 1,
         },
       ].slice(-20)
-    : bible.promptIntelligence.effectiveSystemPrompts;
+    : playbook.promptIntelligence.effectiveSystemPrompts;
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     agentConnections: {
-      ...bible.agentConnections,
+      ...playbook.agentConnections,
       sage: {
         lastTaughtAt: now,
         totalSessions: newTotal,
@@ -721,7 +721,7 @@ export function updateFromSageSession(
       },
     },
     promptIntelligence: {
-      ...bible.promptIntelligence,
+      ...playbook.promptIntelligence,
       effectiveSystemPrompts: updatedPrompts,
     },
   }, 'sage');
@@ -736,31 +736,31 @@ export function updateFromOracleAnalytics(
   subtopicId: string,
   analyticsUpdate: Omit<AnalyticsUpdate, 'subtopicId' | 'examId' | 'topicId'>,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const now = new Date().toISOString();
 
   const alertLevel: 'green' | 'amber' | 'red' = (() => {
     if (analyticsUpdate.alertLevel) return analyticsUpdate.alertLevel;
-    const dropoff = analyticsUpdate.dropoffRate ?? bible.analytics.dropoffRate;
-    const engagement = analyticsUpdate.engagementScore ?? bible.analytics.engagementScore;
+    const dropoff = analyticsUpdate.dropoffRate ?? playbook.analytics.dropoffRate;
+    const engagement = analyticsUpdate.engagementScore ?? playbook.analytics.engagementScore;
     if (dropoff > 0.5 || engagement < 30) return 'red';
     if (dropoff > 0.3 || engagement < 50) return 'amber';
     return 'green';
   })();
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     analytics: {
-      ...bible.analytics,
+      ...playbook.analytics,
       ...(analyticsUpdate.dropoffRate !== undefined && { dropoffRate: analyticsUpdate.dropoffRate }),
       ...(analyticsUpdate.engagementScore !== undefined && { engagementScore: analyticsUpdate.engagementScore }),
       ...(analyticsUpdate.totalStudentsTaught !== undefined && { totalStudentsTaught: analyticsUpdate.totalStudentsTaught }),
       lastAnalyticsUpdate: now,
     },
     agentConnections: {
-      ...bible.agentConnections,
+      ...playbook.agentConnections,
       oracle: {
         lastAnalyzed: now,
-        masteryDistribution: analyticsUpdate.masteryDistribution ?? bible.agentConnections.oracle.masteryDistribution,
+        masteryDistribution: analyticsUpdate.masteryDistribution ?? playbook.agentConnections.oracle.masteryDistribution,
         alertLevel,
       },
     },
@@ -776,36 +776,36 @@ export function updateFromScoutResearch(
   subtopicId: string,
   searchUpdate: Omit<SearchIntelligenceUpdate, 'subtopicId' | 'examId' | 'topicId'>,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const now = new Date().toISOString();
 
   const updatedTrends = searchUpdate.externalTrend
-    ? [...bible.searchIntelligence.externalSearchTrends.filter(t => t.keyword !== searchUpdate.externalTrend!.keyword), searchUpdate.externalTrend]
-    : bible.searchIntelligence.externalSearchTrends;
+    ? [...playbook.searchIntelligence.externalSearchTrends.filter(t => t.keyword !== searchUpdate.externalTrend!.keyword), searchUpdate.externalTrend]
+    : playbook.searchIntelligence.externalSearchTrends;
 
   const updatedGaps = searchUpdate.contentGap
-    ? [...new Set([...bible.searchIntelligence.contentGaps, searchUpdate.contentGap])].slice(-20)
-    : bible.searchIntelligence.contentGaps;
+    ? [...new Set([...playbook.searchIntelligence.contentGaps, searchUpdate.contentGap])].slice(-20)
+    : playbook.searchIntelligence.contentGaps;
 
   const updatedRelated = searchUpdate.relatedTerms
-    ? [...new Set([...bible.searchIntelligence.relatedSearchTerms, ...searchUpdate.relatedTerms])].slice(-30)
-    : bible.searchIntelligence.relatedSearchTerms;
+    ? [...new Set([...playbook.searchIntelligence.relatedSearchTerms, ...searchUpdate.relatedTerms])].slice(-30)
+    : playbook.searchIntelligence.relatedSearchTerms;
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     searchIntelligence: {
-      ...bible.searchIntelligence,
+      ...playbook.searchIntelligence,
       externalSearchTrends: updatedTrends,
       contentGaps: updatedGaps,
       relatedSearchTerms: updatedRelated,
       lastSearchUpdate: now,
     },
     examIntelligence: searchUpdate.yearwiseTrend
-      ? { ...bible.examIntelligence, yearwiseTrend: { ...bible.examIntelligence.yearwiseTrend, ...searchUpdate.yearwiseTrend } }
-      : bible.examIntelligence,
+      ? { ...playbook.examIntelligence, yearwiseTrend: { ...playbook.examIntelligence.yearwiseTrend, ...searchUpdate.yearwiseTrend } }
+      : playbook.examIntelligence,
     agentConnections: {
-      ...bible.agentConnections,
+      ...playbook.agentConnections,
       scout: {
-        ...bible.agentConnections.scout,
+        ...playbook.agentConnections.scout,
         lastResearched: now,
       },
     },
@@ -821,14 +821,14 @@ export function updateFromMentorNudge(
   subtopicId: string,
   nudgeResult: Omit<NudgeResult, 'subtopicId' | 'examId' | 'topicId'>,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
-  const currentMentor = bible.agentConnections.mentor;
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
+  const currentMentor = playbook.agentConnections.mentor;
   const newCount = currentMentor.nudgesSent + 1;
   const newEff = (currentMentor.nudgeEffectiveness * currentMentor.nudgesSent + nudgeResult.effectiveness) / newCount;
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     agentConnections: {
-      ...bible.agentConnections,
+      ...playbook.agentConnections,
       mentor: {
         nudgesSent: newCount,
         nudgeEffectiveness: Math.round(newEff * 100) / 100,
@@ -849,14 +849,14 @@ export function updateFromHeraldContent(
   subtopicId: string,
   contentResult: Omit<HeraldContentResult, 'subtopicId' | 'examId' | 'topicId'>,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const now = new Date().toISOString();
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     agentConnections: {
-      ...bible.agentConnections,
+      ...playbook.agentConnections,
       herald: {
-        contentPublished: bible.agentConnections.herald.contentPublished + 1,
+        contentPublished: playbook.agentConnections.herald.contentPublished + 1,
         lastPublishedAt: now,
         topPerformingContent: contentResult.contentTitle,
       },
@@ -873,16 +873,16 @@ export function updateFromStudentSearch(
   subtopicId: string,
   searchQuery: string,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const now = new Date().toISOString();
   const updatedQueries = [
     searchQuery,
-    ...bible.searchIntelligence.topSearchQueries.filter(q => q !== searchQuery),
+    ...playbook.searchIntelligence.topSearchQueries.filter(q => q !== searchQuery),
   ].slice(-20);
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     searchIntelligence: {
-      ...bible.searchIntelligence,
+      ...playbook.searchIntelligence,
       topSearchQueries: updatedQueries,
       lastSearchUpdate: now,
     },
@@ -898,9 +898,9 @@ export function updateFromFeedback(
   subtopicId: string,
   feedback: FeedbackEvent,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const formatKey = String(feedback.atomType);
-  const currentScore = bible.studentPreferences.preferredFormats[formatKey] ?? 50;
+  const currentScore = playbook.studentPreferences.preferredFormats[formatKey] ?? 50;
   const delta =
     feedback.signal === 'thumbs_up' ? 5
     : feedback.signal === 'thumbs_down' ? -5
@@ -910,28 +910,28 @@ export function updateFromFeedback(
 
   const updatedStuckPoints =
     feedback.signal === 'thumbs_down' && feedback.topic
-      ? [...new Set([...bible.analytics.commonStuckPoints, feedback.topic])].slice(-10)
-      : bible.analytics.commonStuckPoints;
+      ? [...new Set([...playbook.analytics.commonStuckPoints, feedback.topic])].slice(-10)
+      : playbook.analytics.commonStuckPoints;
 
   const sentimentMap: Record<string, number> = {
     thumbs_up: 1, thumbs_down: -1, completed: 0.5, skipped: -0.3,
   };
   const sentimentSignal = sentimentMap[feedback.signal] ?? 0;
-  const currentSentiment = bible.analytics.feedbackSentiment;
-  const newSentiment: SubTopicBible['analytics']['feedbackSentiment'] =
+  const currentSentiment = playbook.analytics.feedbackSentiment;
+  const newSentiment: CoursePlaybook['analytics']['feedbackSentiment'] =
     sentimentSignal > 0.5 ? 'positive'
     : sentimentSignal < -0.5 ? 'negative'
     : currentSentiment === 'positive' && sentimentSignal < 0 ? 'mixed'
     : currentSentiment === 'negative' && sentimentSignal > 0 ? 'mixed'
     : currentSentiment;
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     studentPreferences: {
-      ...bible.studentPreferences,
-      preferredFormats: { ...bible.studentPreferences.preferredFormats, [formatKey]: newScore },
+      ...playbook.studentPreferences,
+      preferredFormats: { ...playbook.studentPreferences.preferredFormats, [formatKey]: newScore },
     },
     analytics: {
-      ...bible.analytics,
+      ...playbook.analytics,
       commonStuckPoints: updatedStuckPoints,
       feedbackSentiment: newSentiment,
     },
@@ -948,21 +948,21 @@ export function updateFromKnowledgeRouter(
   routerResult: KnowledgeResult,
   queryText?: string,
 ): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
   const now = new Date().toISOString();
 
   const updatedQueries = queryText
-    ? [queryText, ...bible.searchIntelligence.topSearchQueries.filter(q => q !== queryText)].slice(-20)
-    : bible.searchIntelligence.topSearchQueries;
+    ? [queryText, ...playbook.searchIntelligence.topSearchQueries.filter(q => q !== queryText)].slice(-20)
+    : playbook.searchIntelligence.topSearchQueries;
 
   const updatedGaps =
     routerResult.confidence < 0.4 && queryText
-      ? [...new Set([...bible.searchIntelligence.contentGaps, queryText])].slice(-20)
-      : bible.searchIntelligence.contentGaps;
+      ? [...new Set([...playbook.searchIntelligence.contentGaps, queryText])].slice(-20)
+      : playbook.searchIntelligence.contentGaps;
 
-  mergeBibleUpdate(bible.id, {
+  mergePlaybookUpdate(playbook.id, {
     searchIntelligence: {
-      ...bible.searchIntelligence,
+      ...playbook.searchIntelligence,
       topSearchQueries: updatedQueries,
       contentGaps: updatedGaps,
       lastSearchUpdate: now,
@@ -972,9 +972,9 @@ export function updateFromKnowledgeRouter(
 
 // ─── Generation Triggers ──────────────────────────────────────────────────────
 
-export function getBiblesNeedingContent(limit = 20): SubTopicBible[] {
+export function getPlaybooksNeedingContent(limit = 20): CoursePlaybook[] {
   const priorityOrder: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
-  return getAllBibles()
+  return getAllPlaybooks()
     .filter(b => b.agentConnections.atlas.contentCoverage < 80)
     .sort((a, b) => {
       const pa = priorityOrder[a.agentConnections.atlas.generationPriority] ?? 2;
@@ -985,27 +985,27 @@ export function getBiblesNeedingContent(limit = 20): SubTopicBible[] {
     .slice(0, limit);
 }
 
-export function getBiblesWithGaps(): { bible: SubTopicBible; gaps: string[] }[] {
-  return getAllBibles().map(bible => {
+export function getPlaybooksWithGaps(): { playbook: CoursePlaybook; gaps: string[] }[] {
+  return getAllPlaybooks().map(playbook => {
     const gaps: string[] = [];
-    if (!bible.contentAtoms.mandatory.concept_core) gaps.push('concept_core');
-    if (!bible.contentAtoms.mandatory.formula_card) gaps.push('formula_card');
-    if (!bible.contentAtoms.mandatory.worked_example) gaps.push('worked_example');
-    if (!bible.contentAtoms.mandatory.pyq_set) gaps.push('pyq_set');
-    if (!bible.contentAtoms.mandatory.common_mistakes) gaps.push('common_mistakes');
-    if (!bible.contentAtoms.mandatory.exam_tips) gaps.push('exam_tips');
-    if (bible.pedagogy.socraticQuestions.length === 0) gaps.push('socratic_questions');
-    return { bible, gaps };
+    if (!playbook.contentAtoms.mandatory.concept_core) gaps.push('concept_core');
+    if (!playbook.contentAtoms.mandatory.formula_card) gaps.push('formula_card');
+    if (!playbook.contentAtoms.mandatory.worked_example) gaps.push('worked_example');
+    if (!playbook.contentAtoms.mandatory.pyq_set) gaps.push('pyq_set');
+    if (!playbook.contentAtoms.mandatory.common_mistakes) gaps.push('common_mistakes');
+    if (!playbook.contentAtoms.mandatory.exam_tips) gaps.push('exam_tips');
+    if (playbook.pedagogy.socraticQuestions.length === 0) gaps.push('socratic_questions');
+    return { playbook, gaps };
   }).filter(({ gaps }) => gaps.length > 0);
 }
 
-export function scheduleBibleGeneration(examId: string, topicId: string, subtopicId: string): void {
-  const bible = getBibleOrCreate(examId, topicId, subtopicId);
-  mergeBibleUpdate(bible.id, {
+export function schedulePlaybookGeneration(examId: string, topicId: string, subtopicId: string): void {
+  const playbook = getPlaybookOrCreate(examId, topicId, subtopicId);
+  mergePlaybookUpdate(playbook.id, {
     agentConnections: {
-      ...bible.agentConnections,
+      ...playbook.agentConnections,
       atlas: {
-        ...bible.agentConnections.atlas,
+        ...playbook.agentConnections.atlas,
         generationPriority: 'critical',
         nextGenerationScheduled: new Date(Date.now() + 5 * 60000).toISOString(),
       },
@@ -1015,23 +1015,23 @@ export function scheduleBibleGeneration(examId: string, topicId: string, subtopi
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
-export function getBibleHealthScore(bible: SubTopicBible): number {
-  const completeness = getBibleCompleteness(bible);
-  const engagement = bible.analytics.engagementScore;
+export function getPlaybookHealthScore(playbook: CoursePlaybook): number {
+  const completeness = getPlaybookCompleteness(playbook);
+  const engagement = playbook.analytics.engagementScore;
   const alertPenalty =
-    bible.agentConnections.oracle.alertLevel === 'red' ? 20
-    : bible.agentConnections.oracle.alertLevel === 'amber' ? 10 : 0;
+    playbook.agentConnections.oracle.alertLevel === 'red' ? 20
+    : playbook.agentConnections.oracle.alertLevel === 'amber' ? 10 : 0;
   return Math.max(0, Math.round(completeness * 0.6 + engagement * 0.4 - alertPenalty));
 }
 
-export function getTopSubtopicsByEngagement(examId: string, limit: number): SubTopicBible[] {
-  return getAllBibles(examId)
+export function getTopSubtopicsByEngagement(examId: string, limit: number): CoursePlaybook[] {
+  return getAllPlaybooks(examId)
     .sort((a, b) => b.analytics.engagementScore - a.analytics.engagementScore)
     .slice(0, limit);
 }
 
-export function getSubtopicsWithAlerts(): SubTopicBible[] {
-  return getAllBibles().filter(b =>
+export function getSubtopicsWithAlerts(): CoursePlaybook[] {
+  return getAllPlaybooks().filter(b =>
     b.agentConnections.oracle.alertLevel === 'red' ||
     b.agentConnections.oracle.alertLevel === 'amber',
   );
@@ -1041,10 +1041,10 @@ export function getSubtopicsWithAlerts(): SubTopicBible[] {
 
 const GATE_EM_LINEAR_ALGEBRA_SUBTOPICS: Array<{
   id: string; name: string; def: string; prereqs: string[];
-  bloom: SubTopicBible['academic']['bloomsLevel'];
-  diff: SubTopicBible['academic']['difficulty'];
+  bloom: CoursePlaybook['academic']['bloomsLevel'];
+  diff: CoursePlaybook['academic']['difficulty'];
   hours: number; formulas: string[]; weightage: number; tips: string;
-  pyqs: Array<{ year: number; q: string; a: string; exp: string; m: number; d: SubTopicBible['examIntelligence']['pyqs'][0]['difficulty']; s: string }>;
+  pyqs: Array<{ year: number; q: string; a: string; exp: string; m: number; d: CoursePlaybook['examIntelligence']['pyqs'][0]['difficulty']; s: string }>;
 }> = [
   {
     id: 'eigenvalues_eigenvectors', name: 'Eigenvalues and Eigenvectors',
@@ -1090,10 +1090,10 @@ const GATE_EM_LINEAR_ALGEBRA_SUBTOPICS: Array<{
 
 const GATE_EM_CALCULUS_SUBTOPICS: Array<{
   id: string; name: string; def: string; prereqs: string[];
-  bloom: SubTopicBible['academic']['bloomsLevel'];
-  diff: SubTopicBible['academic']['difficulty'];
+  bloom: CoursePlaybook['academic']['bloomsLevel'];
+  diff: CoursePlaybook['academic']['difficulty'];
   hours: number; formulas: string[]; weightage: number; tips: string;
-  pyqs: Array<{ year: number; q: string; a: string; exp: string; m: number; d: SubTopicBible['examIntelligence']['pyqs'][0]['difficulty']; s: string }>;
+  pyqs: Array<{ year: number; q: string; a: string; exp: string; m: number; d: CoursePlaybook['examIntelligence']['pyqs'][0]['difficulty']; s: string }>;
 }> = [
   {
     id: 'limits_continuity', name: 'Limits and Continuity',
@@ -1137,99 +1137,99 @@ const GATE_EM_CALCULUS_SUBTOPICS: Array<{
   },
 ];
 
-export function seedDefaultBibles(): void {
-  const alreadySeeded = localStorage.getItem('eg_bible_seeded_v1');
+export function seedDefaultPlaybooks(): void {
+  const alreadySeeded = localStorage.getItem('eg_playbook_seeded_v1');
   if (alreadySeeded) return;
 
   const now = new Date().toISOString();
 
   // ── Seed GATE_EM Linear Algebra subtopics ─────────────────────────────────
   for (const sub of GATE_EM_LINEAR_ALGEBRA_SUBTOPICS) {
-    const bible = createDefaultBible('GATE_EM', 'linear_algebra', sub.id, sub.name);
-    bible.academic.definition = sub.def;
-    bible.academic.prerequisites = sub.prereqs;
-    bible.academic.difficulty = sub.diff;
-    bible.academic.estimatedMasteryHours = sub.hours;
-    bible.academic.bloomsLevel = sub.bloom;
-    bible.academic.crossSubjectConnections = ['quantum mechanics', 'machine learning', 'signal processing'];
-    bible.academic.realWorldApplications = ['PCA in ML', 'vibration analysis', 'quantum state representation'];
-    bible.pedagogy.socraticQuestions = [
+    const playbook = createDefaultPlaybook('GATE_EM', 'linear_algebra', sub.id, sub.name);
+    playbook.academic.definition = sub.def;
+    playbook.academic.prerequisites = sub.prereqs;
+    playbook.academic.difficulty = sub.diff;
+    playbook.academic.estimatedMasteryHours = sub.hours;
+    playbook.academic.bloomsLevel = sub.bloom;
+    playbook.academic.crossSubjectConnections = ['quantum mechanics', 'machine learning', 'signal processing'];
+    playbook.academic.realWorldApplications = ['PCA in ML', 'vibration analysis', 'quantum state representation'];
+    playbook.pedagogy.socraticQuestions = [
       `What is the geometric meaning of an eigenvalue for ${sub.name}?`,
       `How does the determinant tell you whether a system has a unique solution?`,
       `What happens to eigenvalues when you scale the matrix?`,
     ];
-    bible.pedagogy.teachingSequence = [
+    playbook.pedagogy.teachingSequence = [
       'Review matrix basics', `Define ${sub.name}`, 'Work 2×2 example', 'Generalize to n×n', 'Apply to GATE patterns',
     ];
-    bible.pedagogy.commonMisconceptions = [{
+    playbook.pedagogy.commonMisconceptions = [{
       misconception: 'Eigenvalues of A² must be computed fresh by solving det(A²-λI)=0',
       correction: 'No — if λ is an eigenvalue of A, then λ² is an eigenvalue of A². Use this shortcut.',
       frequency: 'very_common',
     }];
-    bible.examIntelligence.weightage = sub.weightage;
-    bible.examIntelligence.highYieldFormulas = sub.formulas;
-    bible.examIntelligence.examSpecificTips = sub.tips;
-    bible.examIntelligence.yearwiseTrend = { '2019': 2, '2020': 2, '2021': 3, '2022': 2, '2023': 3, '2024': 2 };
-    bible.examIntelligence.difficultyCurve = 'balanced';
-    bible.examIntelligence.pyqs = sub.pyqs.map(p => ({
+    playbook.examIntelligence.weightage = sub.weightage;
+    playbook.examIntelligence.highYieldFormulas = sub.formulas;
+    playbook.examIntelligence.examSpecificTips = sub.tips;
+    playbook.examIntelligence.yearwiseTrend = { '2019': 2, '2020': 2, '2021': 3, '2022': 2, '2023': 3, '2024': 2 };
+    playbook.examIntelligence.difficultyCurve = 'balanced';
+    playbook.examIntelligence.pyqs = sub.pyqs.map(p => ({
       year: p.year, question: p.q, answer: p.a, explanation: p.exp,
       marks: p.m, difficulty: p.d, source: p.s,
     }));
-    bible.promptIntelligence.bestTemplateKey = 'gate__linear-algebra__analytical__exam_readiness';
-    bible.knowledgeGraph.clusterTag = 'linear_algebra_core';
-    bible.knowledgeGraph.crossExamRelevance = { GATE_EM: 1.0, JEE: 0.7, CAT: 0.2 };
-    bible.contentAtoms.lastGeneratedAt = now;
-    saveBible(bible);
+    playbook.promptIntelligence.bestTemplateKey = 'gate__linear-algebra__analytical__exam_readiness';
+    playbook.knowledgeGraph.clusterTag = 'linear_algebra_core';
+    playbook.knowledgeGraph.crossExamRelevance = { GATE_EM: 1.0, JEE: 0.7, CAT: 0.2 };
+    playbook.contentAtoms.lastGeneratedAt = now;
+    savePlaybook(playbook);
   }
 
   // ── Seed GATE_EM Calculus subtopics ──────────────────────────────────────
   for (const sub of GATE_EM_CALCULUS_SUBTOPICS) {
-    const bible = createDefaultBible('GATE_EM', 'calculus', sub.id, sub.name);
-    bible.academic.definition = sub.def;
-    bible.academic.prerequisites = sub.prereqs;
-    bible.academic.difficulty = sub.diff;
-    bible.academic.estimatedMasteryHours = sub.hours;
-    bible.academic.bloomsLevel = sub.bloom;
-    bible.academic.realWorldApplications = ['physics', 'engineering analysis', 'optimization'];
-    bible.pedagogy.socraticQuestions = [
+    const playbook = createDefaultPlaybook('GATE_EM', 'calculus', sub.id, sub.name);
+    playbook.academic.definition = sub.def;
+    playbook.academic.prerequisites = sub.prereqs;
+    playbook.academic.difficulty = sub.diff;
+    playbook.academic.estimatedMasteryHours = sub.hours;
+    playbook.academic.bloomsLevel = sub.bloom;
+    playbook.academic.realWorldApplications = ['physics', 'engineering analysis', 'optimization'];
+    playbook.pedagogy.socraticQuestions = [
       `What is the precise definition of the limit for ${sub.name}?`,
       `Where does this concept appear in GATE problems — NAT or MCQ format?`,
       `Can you identify a scenario where the shortcut fails?`,
     ];
-    bible.pedagogy.teachingSequence = [
+    playbook.pedagogy.teachingSequence = [
       'Review prerequisites', `Define ${sub.name}`, 'Worked example', 'GATE-style problems',
     ];
-    bible.examIntelligence.weightage = sub.weightage;
-    bible.examIntelligence.highYieldFormulas = sub.formulas;
-    bible.examIntelligence.examSpecificTips = sub.tips;
-    bible.examIntelligence.yearwiseTrend = { '2019': 2, '2020': 3, '2021': 2, '2022': 3, '2023': 2, '2024': 3 };
-    bible.examIntelligence.pyqs = sub.pyqs.map(p => ({
+    playbook.examIntelligence.weightage = sub.weightage;
+    playbook.examIntelligence.highYieldFormulas = sub.formulas;
+    playbook.examIntelligence.examSpecificTips = sub.tips;
+    playbook.examIntelligence.yearwiseTrend = { '2019': 2, '2020': 3, '2021': 2, '2022': 3, '2023': 2, '2024': 3 };
+    playbook.examIntelligence.pyqs = sub.pyqs.map(p => ({
       year: p.year, question: p.q, answer: p.a, explanation: p.exp,
       marks: p.m, difficulty: p.d, source: p.s,
     }));
-    bible.promptIntelligence.bestTemplateKey = 'gate__calculus__mandatory_baseline';
-    bible.knowledgeGraph.clusterTag = 'calculus_core';
-    bible.knowledgeGraph.crossExamRelevance = { GATE_EM: 1.0, JEE: 0.9, NEET: 0.3 };
-    bible.contentAtoms.lastGeneratedAt = now;
-    saveBible(bible);
+    playbook.promptIntelligence.bestTemplateKey = 'gate__calculus__mandatory_baseline';
+    playbook.knowledgeGraph.clusterTag = 'calculus_core';
+    playbook.knowledgeGraph.crossExamRelevance = { GATE_EM: 1.0, JEE: 0.9, NEET: 0.3 };
+    playbook.contentAtoms.lastGeneratedAt = now;
+    savePlaybook(playbook);
   }
 
-  // ── Seed skeleton bibles for all mandatory coverage map entries ──────────
+  // ── Seed skeleton playbooks for all mandatory coverage map entries ──────────
   for (const [examId, topics] of Object.entries(MANDATORY_COVERAGE_MAP)) {
     for (const topic of topics) {
-      const existing = getBible(examId, topic.topicId, topic.topicId);
+      const existing = getPlaybook(examId, topic.topicId, topic.topicId);
       if (!existing) {
-        const bible = createDefaultBible(examId, topic.topicId, topic.topicId, topic.topicName);
-        bible.academic.difficulty = 'intermediate';
-        bible.examIntelligence.weightage = 5;
-        bible.promptIntelligence.bestTemplateKey =
+        const playbook = createDefaultPlaybook(examId, topic.topicId, topic.topicId, topic.topicName);
+        playbook.academic.difficulty = 'intermediate';
+        playbook.examIntelligence.weightage = 5;
+        playbook.promptIntelligence.bestTemplateKey =
           `${examId.toLowerCase().split('_')[0]}__${topic.topicId.replace(/_/g, '-')}__mandatory_baseline`;
-        bible.knowledgeGraph.clusterTag = topic.topicId;
-        bible.contentAtoms.lastGeneratedAt = now;
-        saveBible(bible);
+        playbook.knowledgeGraph.clusterTag = topic.topicId;
+        playbook.contentAtoms.lastGeneratedAt = now;
+        savePlaybook(playbook);
       }
     }
   }
 
-  localStorage.setItem('eg_bible_seeded_v1', new Date().toISOString());
+  localStorage.setItem('eg_playbook_seeded_v1', new Date().toISOString());
 }

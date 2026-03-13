@@ -36,7 +36,7 @@ const ceoNavItems: NavItem[] = [
   { to: '/content-strategy',      icon: Sliders,     label: 'Content Strategy' },
   { to: '/content-orchestrator',  icon: Cpu,         label: 'Orchestrator' },
   { to: '/course-orchestrator',  icon: BookOpen,     label: 'Course Engine' },
-  { to: '/subtopic-bible',       icon: Library,      label: 'SubTopic Bible', highlight: true },
+  { to: '/course-playbook',       icon: Library,      label: 'Course Playbook', highlight: true },
   { to: '/course-material-studio', icon: BookOpen,    label: 'Course Studio',  highlight: true },
   { to: '/agent-skills',          icon: Zap,         label: 'Agent Skills' },
   { to: '/social-intent',         icon: Radio,       label: 'Social Intel' },

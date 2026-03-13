@@ -4,11 +4,11 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './styles/globals.css';
-import { initBibleUpdater } from './services/bibleProgressiveUpdater';
+import { initPlaybookUpdater } from './services/playbookProgressiveUpdater';
 
-// Initialise SubTopic Bible progressive updater
-// Non-blocking — seeds default bibles and wires all agent hooks
-try { initBibleUpdater(); } catch { /* graceful fallback */ }
+// Initialise Course Playbook progressive updater
+// Non-blocking — seeds default playbooks and wires all agent hooks
+try { initPlaybookUpdater(); } catch { /* graceful fallback */ }
 
 // Apply saved theme immediately to prevent flash of wrong theme
 (function applyInitialTheme() {

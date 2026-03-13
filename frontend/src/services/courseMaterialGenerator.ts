@@ -1,27 +1,27 @@
 /**
- * courseMaterialGenerator.ts — Bible-Driven Course Material Generator
+ * courseMaterialGenerator.ts — Playbook-Driven Course Material Generator
  *
  * Takes a CourseMaterialRequest and returns fully-assembled CourseMaterial
- * by reading from the SubTopic Bible. Supports predefined templates AND
+ * by reading from the Course Playbook. Supports predefined templates AND
  * personalized user requests.
  *
  * Architecture:
- *   1. Read SubTopicBible for each subtopicId
- *   2. Auto-resolve PersonalizationConfig from student profile + bible
+ *   1. Read CoursePlaybook for each subtopicId
+ *   2. Auto-resolve PersonalizationConfig from student profile + playbook
  *   3. Assemble mandatory sections first (Layer 1), then personalized (Layer 2)
  *   4. Apply template filter (quick_revision → formula+pyq+exam_tips)
  *   5. Apply customRequest overrides
- *   6. Tag each section with bibleSource + personalizationApplied
- *   7. Record generation event back to bible
+ *   6. Tag each section with playbookSource + personalizationApplied
+ *   7. Record generation event back to playbook
  */
 
 import {
-  getBibleOrCreate,
-  getBibleCompleteness,
-  getBibleHealthScore,
+  getPlaybookOrCreate,
+  getPlaybookCompleteness,
+  getPlaybookHealthScore,
   updateFromAtlasGeneration,
-  type SubTopicBible,
-} from './subTopicBibleService';
+  type CoursePlaybook,
+} from './coursePlaybookService';
 import { loadPersona } from './studentPersonaEngine';
 import { buildLearnerProfile } from './courseOrchestrator';
 import {
@@ -48,7 +48,7 @@ export type CourseTemplate =
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 export interface PersonalizationConfig {
-  // Learner identity (read from existing services + bible)
+  // Learner identity (read from existing services + playbook)
   learningStyle?: LearningStyle;
   cognitiveTier?: CognitiveTier;
   cognitiveLoad?: 'low' | 'medium' | 'high' | 'overloaded';
@@ -57,14 +57,14 @@ export interface PersonalizationConfig {
   streakDays?: number;
   studyTimePattern?: string;
 
-  // Exam & topic (read from bible)
+  // Exam & topic (read from playbook)
   examId: string;
   topicId: string;
   subtopicIds: string[];        // which subtopics to cover
   daysToExam?: number;
   topicMasteryPct?: number;
 
-  // Content preferences (read from bible.studentPreferences)
+  // Content preferences (read from playbook.studentPreferences)
   preferredFormat?: ContentPersonaFormat;
   sessionLengthMinutes?: number;  // 5 | 10 | 15 | 30 | 60
   preferredDifficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
@@ -102,7 +102,7 @@ export interface CourseSection {
   type: CourseSectionType;
   title: string;
   content: string;
-  bibleSource: string;              // which bible field this came from
+  playbookSource: string;              // which playbook field this came from
   personalizationApplied: string[]; // which variables shaped this section
   estimatedMinutes: number;
   layer: 'mandatory' | 'personalized';
@@ -123,7 +123,7 @@ export interface CourseMaterial {
   sections: CourseSection[];
 
   // Traceability
-  biblesRead: string[];                       // bible IDs consulted
+  playbooksRead: string[];                       // playbook IDs consulted
   personalizationVariables: Record<string, string>; // all vars used
   agentsInvolved: string[];                   // atlas, sage, oracle, etc.
   generationTrace: {
@@ -131,7 +131,7 @@ export interface CourseMaterial {
     templateKeyResolved?: string;
     mandatoryAtomsFulfilled: string[];
     personalizedSectionsAdded: number;
-    bibleHealthAtGeneration: number;          // avg bible completeness
+    playbookHealthAtGeneration: number;          // avg playbook completeness
   };
 
   generatedAt: string;
@@ -279,65 +279,65 @@ const SECTION_TIME_MINUTES: Record<CourseSectionType, number> = {
 // ─── Section Builders ─────────────────────────────────────────────────────────
 
 function buildConceptSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  if (!bible.academic.definition) return null;
+  if (!playbook.academic.definition) return null;
 
   const personalizationApplied: string[] = ['academic.definition'];
-  let content = `**${bible.subtopicName}**\n\n${bible.academic.definition}`;
+  let content = `**${playbook.subtopicName}**\n\n${playbook.academic.definition}`;
 
   // Add real-world applications based on role
   if (config.role === 'teacher') {
-    if (bible.academic.realWorldApplications.length > 0) {
-      content += `\n\n**Real-World Applications:**\n${bible.academic.realWorldApplications.map(a => `• ${a}`).join('\n')}`;
+    if (playbook.academic.realWorldApplications.length > 0) {
+      content += `\n\n**Real-World Applications:**\n${playbook.academic.realWorldApplications.map(a => `• ${a}`).join('\n')}`;
       personalizationApplied.push('academic.realWorldApplications');
     }
   }
 
   // Add cross-subject connections for advanced tier
-  if (config.cognitiveTier === 'advanced' && bible.academic.crossSubjectConnections.length > 0) {
-    content += `\n\n**Cross-Subject Connections:**\n${bible.academic.crossSubjectConnections.map(c => `• ${c}`).join('\n')}`;
+  if (config.cognitiveTier === 'advanced' && playbook.academic.crossSubjectConnections.length > 0) {
+    content += `\n\n**Cross-Subject Connections:**\n${playbook.academic.crossSubjectConnections.map(c => `• ${c}`).join('\n')}`;
     personalizationApplied.push('academic.crossSubjectConnections');
   }
 
   // Add prerequisites
-  if (bible.academic.prerequisites.length > 0) {
-    content += `\n\n**Prerequisites:** ${bible.academic.prerequisites.join(', ')}`;
+  if (playbook.academic.prerequisites.length > 0) {
+    content += `\n\n**Prerequisites:** ${playbook.academic.prerequisites.join(', ')}`;
     personalizationApplied.push('academic.prerequisites');
   }
 
   // Teaching sequence
-  if (bible.pedagogy.teachingSequence.length > 0) {
-    content += `\n\n**Learning Sequence:**\n${bible.pedagogy.teachingSequence.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
+  if (playbook.pedagogy.teachingSequence.length > 0) {
+    content += `\n\n**Learning Sequence:**\n${playbook.pedagogy.teachingSequence.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
     personalizationApplied.push('pedagogy.teachingSequence');
   }
 
   return {
-    id: `section-${bible.subtopicId}-concept-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-concept-${sectionIdx}`,
     type: 'concept',
-    title: `Core Concept: ${bible.subtopicName}`,
+    title: `Core Concept: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'academic.definition + pedagogy.teachingSequence',
+    playbookSource: 'academic.definition + pedagogy.teachingSequence',
     personalizationApplied,
     estimatedMinutes: SECTION_TIME_MINUTES.concept,
     layer: 'mandatory',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildFormulaSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  const formulas = bible.examIntelligence.highYieldFormulas;
+  const formulas = playbook.examIntelligence.highYieldFormulas;
   if (formulas.length === 0) return null;
 
   const personalizationApplied: string[] = ['examIntelligence.highYieldFormulas'];
 
-  let content = `**High-Yield Formulas for ${bible.examId}:**\n\n`;
+  let content = `**High-Yield Formulas for ${playbook.examId}:**\n\n`;
 
   // Limit formulas based on session length
   const maxFormulas = config.sessionLengthMinutes !== undefined && config.sessionLengthMinutes <= 10
@@ -347,39 +347,39 @@ function buildFormulaSection(
   content += formulas.slice(0, maxFormulas).map((f, i) => `${i + 1}. \`${f}\``).join('\n');
 
   // Add exam tips inline if short session
-  if (bible.examIntelligence.examSpecificTips) {
-    content += `\n\n**Exam Strategy:** ${bible.examIntelligence.examSpecificTips}`;
+  if (playbook.examIntelligence.examSpecificTips) {
+    content += `\n\n**Exam Strategy:** ${playbook.examIntelligence.examSpecificTips}`;
     personalizationApplied.push('examIntelligence.examSpecificTips');
   }
 
   // Trap topics for advanced learners
   if (
     (config.cognitiveTier === 'advanced' || config.cognitiveTier === 'proficient') &&
-    bible.examIntelligence.trapTopics.length > 0
+    playbook.examIntelligence.trapTopics.length > 0
   ) {
-    content += `\n\n**⚠️ Trap Topics:** ${bible.examIntelligence.trapTopics.join(', ')}`;
+    content += `\n\n**⚠️ Trap Topics:** ${playbook.examIntelligence.trapTopics.join(', ')}`;
     personalizationApplied.push('examIntelligence.trapTopics', 'cognitiveTier');
   }
 
   return {
-    id: `section-${bible.subtopicId}-formula-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-formula-${sectionIdx}`,
     type: 'formula',
-    title: `Formula Card: ${bible.subtopicName}`,
+    title: `Formula Card: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'examIntelligence.highYieldFormulas',
+    playbookSource: 'examIntelligence.highYieldFormulas',
     personalizationApplied,
     estimatedMinutes: SECTION_TIME_MINUTES.formula,
     layer: 'mandatory',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildPYQSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  const pyqs = bible.examIntelligence.pyqs;
+  const pyqs = playbook.examIntelligence.pyqs;
   if (pyqs.length === 0) return null;
 
   const personalizationApplied: string[] = ['examIntelligence.pyqs'];
@@ -401,7 +401,7 @@ function buildPYQSection(
 
   const selected = filteredPYQs.slice(0, maxPYQs);
 
-  let content = `**Previous Year Questions — ${bible.subtopicName}:**\n\n`;
+  let content = `**Previous Year Questions — ${playbook.subtopicName}:**\n\n`;
   content += selected.map((pyq, i) => [
     `**Q${i + 1} (${pyq.year}) [${pyq.difficulty}] — ${pyq.marks} marks**`,
     pyq.question,
@@ -411,51 +411,51 @@ function buildPYQSection(
   ].filter(Boolean).join('\n')).join('\n\n---\n\n');
 
   return {
-    id: `section-${bible.subtopicId}-pyq-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-pyq-${sectionIdx}`,
     type: 'pyq',
-    title: `PYQ Set: ${bible.subtopicName} (${selected.length} questions)`,
+    title: `PYQ Set: ${playbook.subtopicName} (${selected.length} questions)`,
     content,
-    bibleSource: 'examIntelligence.pyqs',
+    playbookSource: 'examIntelligence.pyqs',
     personalizationApplied,
     estimatedMinutes: Math.ceil(selected.length * SECTION_TIME_MINUTES.pyq),
     layer: 'mandatory',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildMisconceptionSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   _config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  if (bible.pedagogy.commonMisconceptions.length === 0) return null;
+  if (playbook.pedagogy.commonMisconceptions.length === 0) return null;
 
-  const content = `**Common Mistakes in ${bible.subtopicName}:**\n\n` +
-    bible.pedagogy.commonMisconceptions.slice(0, 3).map((m, i) => [
+  const content = `**Common Mistakes in ${playbook.subtopicName}:**\n\n` +
+    playbook.pedagogy.commonMisconceptions.slice(0, 3).map((m, i) => [
       `**Mistake ${i + 1} [${m.frequency}]:**`,
       `❌ *What students think:* ${m.misconception}`,
       `✅ *Correction:* ${m.correction}`,
     ].join('\n')).join('\n\n');
 
   return {
-    id: `section-${bible.subtopicId}-misconception-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-misconception-${sectionIdx}`,
     type: 'misconception',
-    title: `Common Mistakes: ${bible.subtopicName}`,
+    title: `Common Mistakes: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'pedagogy.commonMisconceptions',
+    playbookSource: 'pedagogy.commonMisconceptions',
     personalizationApplied: ['pedagogy.commonMisconceptions'],
     estimatedMinutes: SECTION_TIME_MINUTES.misconception,
     layer: 'mandatory',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildExamTipSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  if (!bible.examIntelligence.examSpecificTips && bible.examIntelligence.trapTopics.length === 0) {
+  if (!playbook.examIntelligence.examSpecificTips && playbook.examIntelligence.trapTopics.length === 0) {
     return null;
   }
 
@@ -463,17 +463,17 @@ function buildExamTipSection(
   let content = '';
 
   // Weight info
-  if (bible.examIntelligence.weightage > 0) {
-    content += `**📊 Exam Weight:** ${bible.examIntelligence.weightage}% of ${bible.examId} marks\n\n`;
+  if (playbook.examIntelligence.weightage > 0) {
+    content += `**📊 Exam Weight:** ${playbook.examIntelligence.weightage}% of ${playbook.examId} marks\n\n`;
     personalizationApplied.push('examIntelligence.weightage');
   }
 
-  if (bible.examIntelligence.examSpecificTips) {
-    content += `**💡 Exam Strategy:**\n${bible.examIntelligence.examSpecificTips}\n\n`;
+  if (playbook.examIntelligence.examSpecificTips) {
+    content += `**💡 Exam Strategy:**\n${playbook.examIntelligence.examSpecificTips}\n\n`;
   }
 
   // Year-wise trend
-  const trends = bible.examIntelligence.yearwiseTrend;
+  const trends = playbook.examIntelligence.yearwiseTrend;
   if (Object.keys(trends).length > 0) {
     const trendStr = Object.entries(trends)
       .sort(([a], [b]) => Number(a) - Number(b))
@@ -484,8 +484,8 @@ function buildExamTipSection(
   }
 
   // Trap topics
-  if (bible.examIntelligence.trapTopics.length > 0) {
-    content += `**⚠️ Trap Topics to Watch:**\n${bible.examIntelligence.trapTopics.map(t => `• ${t}`).join('\n')}`;
+  if (playbook.examIntelligence.trapTopics.length > 0) {
+    content += `**⚠️ Trap Topics to Watch:**\n${playbook.examIntelligence.trapTopics.map(t => `• ${t}`).join('\n')}`;
     personalizationApplied.push('examIntelligence.trapTopics');
   }
 
@@ -496,31 +496,31 @@ function buildExamTipSection(
   }
 
   return {
-    id: `section-${bible.subtopicId}-examtip-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-examtip-${sectionIdx}`,
     type: 'exam_tip',
-    title: `Exam Tips: ${bible.subtopicName}`,
+    title: `Exam Tips: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'examIntelligence.examSpecificTips + examIntelligence.trapTopics',
+    playbookSource: 'examIntelligence.examSpecificTips + examIntelligence.trapTopics',
     personalizationApplied,
     estimatedMinutes: SECTION_TIME_MINUTES.exam_tip,
     layer: 'mandatory',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildAnalogySection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  if (bible.pedagogy.effectiveAnalogies.length === 0) return null;
+  if (playbook.pedagogy.effectiveAnalogies.length === 0) return null;
 
   const learningStyle = config.learningStyle ?? 'unknown';
 
   // Pick the best analogy for this learning style
-  const bestAnalogy = bible.pedagogy.effectiveAnalogies.find(a =>
+  const bestAnalogy = playbook.pedagogy.effectiveAnalogies.find(a =>
     a.worksFor.includes(learningStyle as string),
-  ) ?? bible.pedagogy.effectiveAnalogies[0];
+  ) ?? playbook.pedagogy.effectiveAnalogies[0];
 
   if (!bestAnalogy) return null;
 
@@ -529,38 +529,38 @@ function buildAnalogySection(
   // Role-specific framing
   let intro = '';
   if (config.role === 'parent') {
-    intro = `Here's how to understand ${bible.subtopicName} without technical background:\n\n`;
+    intro = `Here's how to understand ${playbook.subtopicName} without technical background:\n\n`;
     personalizationApplied.push('role:parent');
   } else if (config.role === 'teacher') {
-    intro = `Use this analogy in class to explain ${bible.subtopicName}:\n\n`;
+    intro = `Use this analogy in class to explain ${playbook.subtopicName}:\n\n`;
     personalizationApplied.push('role:teacher');
   }
 
-  const content = `${intro}**Analogy for ${bible.subtopicName}:**\n\n${bestAnalogy.analogy}`;
+  const content = `${intro}**Analogy for ${playbook.subtopicName}:**\n\n${bestAnalogy.analogy}`;
 
   return {
-    id: `section-${bible.subtopicId}-analogy-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-analogy-${sectionIdx}`,
     type: 'analogy',
-    title: `Analogy: ${bible.subtopicName}`,
+    title: `Analogy: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'pedagogy.effectiveAnalogies',
+    playbookSource: 'pedagogy.effectiveAnalogies',
     personalizationApplied,
     estimatedMinutes: SECTION_TIME_MINUTES.analogy,
     layer: 'personalized',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildSocraticSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  const questions = bible.pedagogy.socraticQuestions;
+  const questions = playbook.pedagogy.socraticQuestions;
   if (questions.length === 0) return null;
 
-  // Socratic depth from bible's agent connections
-  const socraticDepth = bible.agentConnections.sage.avgSocraticDepth;
+  // Socratic depth from playbook's agent connections
+  const socraticDepth = playbook.agentConnections.sage.avgSocraticDepth;
   const personalizationApplied = [
     'pedagogy.socraticQuestions',
     `agentConnections.sage.avgSocraticDepth:${socraticDepth}`,
@@ -577,88 +577,88 @@ function buildSocraticSection(
 
   const selected = questions.slice(0, maxQ);
 
-  const content = `**Socratic Questions for ${bible.subtopicName}:**\n\n` +
+  const content = `**Socratic Questions for ${playbook.subtopicName}:**\n\n` +
     `*These questions build deep understanding. Attempt each before checking the next.*\n\n` +
     selected.map((q, i) => `**Q${i + 1}:** ${q}`).join('\n\n') +
-    (bible.pedagogy.checkpointQuestions.length > 0
-      ? `\n\n**Checkpoint:**\n${bible.pedagogy.checkpointQuestions[0]}`
+    (playbook.pedagogy.checkpointQuestions.length > 0
+      ? `\n\n**Checkpoint:**\n${playbook.pedagogy.checkpointQuestions[0]}`
       : '');
 
   return {
-    id: `section-${bible.subtopicId}-socratic-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-socratic-${sectionIdx}`,
     type: 'socratic',
-    title: `Socratic Questions: ${bible.subtopicName}`,
+    title: `Socratic Questions: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'pedagogy.socraticQuestions + pedagogy.checkpointQuestions',
+    playbookSource: 'pedagogy.socraticQuestions + pedagogy.checkpointQuestions',
     personalizationApplied,
     estimatedMinutes: SECTION_TIME_MINUTES.socratic,
     layer: 'personalized',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildTeacherNoteSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   _config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  if (!bible.pedagogy.teacherNotes) return null;
+  if (!playbook.pedagogy.teacherNotes) return null;
 
   return {
-    id: `section-${bible.subtopicId}-teachernote-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-teachernote-${sectionIdx}`,
     type: 'teacher_note',
-    title: `Teacher Notes: ${bible.subtopicName}`,
-    content: `**📋 Pedagogy Notes for ${bible.subtopicName}:**\n\n${bible.pedagogy.teacherNotes}`,
-    bibleSource: 'pedagogy.teacherNotes',
+    title: `Teacher Notes: ${playbook.subtopicName}`,
+    content: `**📋 Pedagogy Notes for ${playbook.subtopicName}:**\n\n${playbook.pedagogy.teacherNotes}`,
+    playbookSource: 'pedagogy.teacherNotes',
     personalizationApplied: ['role:teacher', 'pedagogy.teacherNotes'],
     estimatedMinutes: SECTION_TIME_MINUTES.teacher_note,
     layer: 'personalized',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildParentNoteSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   _config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  if (!bible.pedagogy.parentExplanation) return null;
+  if (!playbook.pedagogy.parentExplanation) return null;
 
   return {
-    id: `section-${bible.subtopicId}-parentnote-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-parentnote-${sectionIdx}`,
     type: 'parent_note',
-    title: `Parent Explanation: ${bible.subtopicName}`,
-    content: `**For Parents — ${bible.subtopicName} in Simple Terms:**\n\n${bible.pedagogy.parentExplanation}`,
-    bibleSource: 'pedagogy.parentExplanation',
+    title: `Parent Explanation: ${playbook.subtopicName}`,
+    content: `**For Parents — ${playbook.subtopicName} in Simple Terms:**\n\n${playbook.pedagogy.parentExplanation}`,
+    playbookSource: 'pedagogy.parentExplanation',
     personalizationApplied: ['role:parent', 'pedagogy.parentExplanation'],
     estimatedMinutes: SECTION_TIME_MINUTES.parent_note,
     layer: 'personalized',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildExampleSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
   // Use atoms.mandatory.worked_example if it exists
-  const workedExample = bible.contentAtoms.mandatory.worked_example;
+  const workedExample = playbook.contentAtoms.mandatory.worked_example;
   if (!workedExample) {
     // Generate from pedagogy if possible
-    if (bible.pedagogy.checkpointQuestions.length === 0) return null;
-    const q = bible.pedagogy.checkpointQuestions[0];
+    if (playbook.pedagogy.checkpointQuestions.length === 0) return null;
+    const q = playbook.pedagogy.checkpointQuestions[0];
 
     return {
-      id: `section-${bible.subtopicId}-example-${sectionIdx}`,
+      id: `section-${playbook.subtopicId}-example-${sectionIdx}`,
       type: 'example',
-      title: `Worked Example: ${bible.subtopicName}`,
+      title: `Worked Example: ${playbook.subtopicName}`,
       content: `**Practice Problem:**\n\n${q}\n\n*Work through this step-by-step before checking the PYQ section.*`,
-      bibleSource: 'pedagogy.checkpointQuestions',
+      playbookSource: 'pedagogy.checkpointQuestions',
       personalizationApplied: ['pedagogy.checkpointQuestions'],
       estimatedMinutes: SECTION_TIME_MINUTES.example,
       layer: 'mandatory',
-      subtopicId: bible.subtopicId,
+      subtopicId: playbook.subtopicId,
     };
   }
 
@@ -672,56 +672,56 @@ function buildExampleSection(
   }
 
   return {
-    id: `section-${bible.subtopicId}-example-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-example-${sectionIdx}`,
     type: 'example',
-    title: `Worked Example: ${bible.subtopicName}`,
+    title: `Worked Example: ${playbook.subtopicName}`,
     content: `${prefix}**Worked Example:**\n\n${workedExample}`,
-    bibleSource: 'contentAtoms.mandatory.worked_example',
+    playbookSource: 'contentAtoms.mandatory.worked_example',
     personalizationApplied,
     estimatedMinutes: SECTION_TIME_MINUTES.example,
     layer: 'mandatory' as const,
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildSummarySection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   _config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection {
   const content = [
-    `**${bible.subtopicName} — Quick Summary**`,
+    `**${playbook.subtopicName} — Quick Summary**`,
     '',
-    bible.academic.definition
-      ? `**Core Concept:** ${bible.academic.definition.slice(0, 200)}...`
+    playbook.academic.definition
+      ? `**Core Concept:** ${playbook.academic.definition.slice(0, 200)}...`
       : '',
-    bible.examIntelligence.highYieldFormulas.length > 0
-      ? `**Key Formula:** \`${bible.examIntelligence.highYieldFormulas[0]}\``
+    playbook.examIntelligence.highYieldFormulas.length > 0
+      ? `**Key Formula:** \`${playbook.examIntelligence.highYieldFormulas[0]}\``
       : '',
-    bible.examIntelligence.examSpecificTips
-      ? `**Remember:** ${bible.examIntelligence.examSpecificTips.slice(0, 150)}`
+    playbook.examIntelligence.examSpecificTips
+      ? `**Remember:** ${playbook.examIntelligence.examSpecificTips.slice(0, 150)}`
       : '',
   ].filter(Boolean).join('\n');
 
   return {
-    id: `section-${bible.subtopicId}-summary-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-summary-${sectionIdx}`,
     type: 'summary',
-    title: `Summary: ${bible.subtopicName}`,
+    title: `Summary: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'academic.definition + examIntelligence.highYieldFormulas',
+    playbookSource: 'academic.definition + examIntelligence.highYieldFormulas',
     personalizationApplied: [],
     estimatedMinutes: SECTION_TIME_MINUTES.summary,
     layer: 'mandatory',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 function buildExerciseSection(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   config: PersonalizationConfig,
   sectionIdx: number,
 ): CourseSection | null {
-  const checkpoints = bible.pedagogy.checkpointQuestions;
+  const checkpoints = playbook.pedagogy.checkpointQuestions;
   if (checkpoints.length === 0) return null;
 
   const personalizationApplied = ['pedagogy.checkpointQuestions'];
@@ -733,29 +733,29 @@ function buildExerciseSection(
   const maxEx = config.sessionLengthMinutes !== undefined && config.sessionLengthMinutes <= 10 ? 1 : 3;
   const selected = checkpoints.slice(0, maxEx);
 
-  const content = `**Practice Exercises — ${bible.subtopicName}:**\n\n` +
+  const content = `**Practice Exercises — ${playbook.subtopicName}:**\n\n` +
     selected.map((q, i) => `**Exercise ${i + 1}:** ${q}`).join('\n\n') +
-    (bible.analytics.commonStuckPoints.length > 0
-      ? `\n\n*Hint: Students often get stuck on — ${bible.analytics.commonStuckPoints.slice(0, 2).join(', ')}*`
+    (playbook.analytics.commonStuckPoints.length > 0
+      ? `\n\n*Hint: Students often get stuck on — ${playbook.analytics.commonStuckPoints.slice(0, 2).join(', ')}*`
       : '');
 
   return {
-    id: `section-${bible.subtopicId}-exercise-${sectionIdx}`,
+    id: `section-${playbook.subtopicId}-exercise-${sectionIdx}`,
     type: 'exercise',
-    title: `Exercises: ${bible.subtopicName}`,
+    title: `Exercises: ${playbook.subtopicName}`,
     content,
-    bibleSource: 'pedagogy.checkpointQuestions + analytics.commonStuckPoints',
+    playbookSource: 'pedagogy.checkpointQuestions + analytics.commonStuckPoints',
     personalizationApplied,
     estimatedMinutes: SECTION_TIME_MINUTES.exercise,
     layer: 'personalized',
-    subtopicId: bible.subtopicId,
+    subtopicId: playbook.subtopicId,
   };
 }
 
 // ─── Assemble Sections for One Subtopic ──────────────────────────────────────
 
 function assembleSectionsForSubtopic(
-  bible: SubTopicBible,
+  playbook: CoursePlaybook,
   template: CourseTemplate,
   config: PersonalizationConfig,
   subtopicIndex: number,
@@ -766,52 +766,52 @@ function assembleSectionsForSubtopic(
 
   // MANDATORY LAYER FIRST
   if (allowedTypes.includes('concept')) {
-    const s = buildConceptSection(bible, config, si++);
+    const s = buildConceptSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('formula') && config.includeFormulas !== false) {
-    const s = buildFormulaSection(bible, config, si++);
+    const s = buildFormulaSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('example') && config.learningStyle !== 'visual') {
-    const s = buildExampleSection(bible, config, si++);
+    const s = buildExampleSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('pyq') && config.includePYQs !== false) {
-    const s = buildPYQSection(bible, config, si++);
+    const s = buildPYQSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('misconception') && config.includeCommonMistakes !== false) {
-    const s = buildMisconceptionSection(bible, config, si++);
+    const s = buildMisconceptionSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('exam_tip') && config.includeExamTips !== false) {
-    const s = buildExamTipSection(bible, config, si++);
+    const s = buildExamTipSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('summary')) {
-    sections.push(buildSummarySection(bible, config, si++));
+    sections.push(buildSummarySection(playbook, config, si++));
   }
 
   // PERSONALIZED LAYER AFTER
   if (allowedTypes.includes('analogy') && config.includeAnalogies !== false) {
-    const s = buildAnalogySection(bible, config, si++);
+    const s = buildAnalogySection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('socratic') && config.includeSocraticQuestions !== false) {
-    const s = buildSocraticSection(bible, config, si++);
+    const s = buildSocraticSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('exercise')) {
-    const s = buildExerciseSection(bible, config, si++);
+    const s = buildExerciseSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('teacher_note') && config.role === 'teacher') {
-    const s = buildTeacherNoteSection(bible, config, si++);
+    const s = buildTeacherNoteSection(playbook, config, si++);
     if (s) sections.push(s);
   }
   if (allowedTypes.includes('parent_note') && config.role === 'parent') {
-    const s = buildParentNoteSection(bible, config, si++);
+    const s = buildParentNoteSection(playbook, config, si++);
     if (s) sections.push(s);
   }
 
@@ -922,8 +922,8 @@ export async function autoPersonalize(
   const persona = loadPersona();
   const profile = buildLearnerProfile(persona.studentId, examId);
 
-  const firstBible = subtopicIds.length > 0
-    ? getBibleOrCreate(examId, topicId, subtopicIds[0])
+  const firstPlaybook = subtopicIds.length > 0
+    ? getPlaybookOrCreate(examId, topicId, subtopicIds[0])
     : null;
 
   const styleMap: Record<string, LearningStyle> = {
@@ -947,26 +947,26 @@ export async function autoPersonalize(
   };
   const cognitiveTier: CognitiveTier = tierMap[persona.tier] ?? 'developing';
 
-  const sessionPref = firstBible?.studentPreferences.sessionLengthPreference;
+  const sessionPref = firstPlaybook?.studentPreferences.sessionLengthPreference;
   const sessionLengthMinutes: number =
     sessionPref === 'short_5min'   ? 5  :
     sessionPref === 'medium_15min' ? 15 :
     sessionPref === 'long_30min'   ? 30 : 15;
 
-  const diffPref = firstBible?.studentPreferences.preferredDifficulty;
+  const diffPref = firstPlaybook?.studentPreferences.preferredDifficulty;
   const preferredDifficulty: PersonalizationConfig['preferredDifficulty'] =
     diffPref === 'gradual' ? 'easy' :
     diffPref === 'jump_in' ? 'hard' : 'mixed';
 
-  const styleCounts = firstBible?.studentPreferences.preferredLearningStyles ?? {};
+  const styleCounts = firstPlaybook?.studentPreferences.preferredLearningStyles ?? {};
   const topStyle = Object.entries(styleCounts).sort(([, a], [, b]) => b - a)[0]?.[0];
-  const bibleStyle: LearningStyle = topStyle ? (styleMap[topStyle] ?? 'unknown') : 'unknown';
+  const playbookStyle: LearningStyle = topStyle ? (styleMap[topStyle] ?? 'unknown') : 'unknown';
 
   return {
     examId,
     topicId,
     subtopicIds,
-    learningStyle: bibleStyle !== 'unknown' ? bibleStyle : learningStyle,
+    learningStyle: playbookStyle !== 'unknown' ? playbookStyle : learningStyle,
     cognitiveTier,
     cognitiveLoad: profile.cognitiveLoad,
     role: profile.role,
@@ -1027,12 +1027,12 @@ export async function generateCourseMaterial(
       ]
     : activeSubtopicIds;
 
-  const bibles: SubTopicBible[] = [];
+  const playbooks: CoursePlaybook[] = [];
   for (const sid of orderedSubtopicIds) {
-    bibles.push(getBibleOrCreate(mergedConfig.examId, mergedConfig.topicId, sid));
+    playbooks.push(getPlaybookOrCreate(mergedConfig.examId, mergedConfig.topicId, sid));
   }
 
-  const healthScores = bibles.map(b => getBibleCompleteness(b));
+  const healthScores = playbooks.map(b => getPlaybookCompleteness(b));
   const avgHealth = healthScores.length > 0
     ? Math.round(healthScores.reduce((a, b) => a + b, 0) / healthScores.length)
     : 0;
@@ -1040,13 +1040,13 @@ export async function generateCourseMaterial(
   const allSections: CourseSection[] = [];
   const mandatoryFulfilled: string[] = [];
 
-  bibles.forEach((bible, idx) => {
-    const subtopicSections = assembleSectionsForSubtopic(bible, template, mergedConfig, idx);
+  playbooks.forEach((playbook, idx) => {
+    const subtopicSections = assembleSectionsForSubtopic(playbook, template, mergedConfig, idx);
     allSections.push(...subtopicSections);
 
     subtopicSections.forEach(s => {
       if (s.layer === 'mandatory') {
-        const atomKey = `${s.type}:${bible.subtopicId}`;
+        const atomKey = `${s.type}:${playbook.subtopicId}`;
         if (!mandatoryFulfilled.includes(atomKey)) {
           mandatoryFulfilled.push(atomKey);
         }
@@ -1098,8 +1098,8 @@ export async function generateCourseMaterial(
   if (allSections.some(s => s.type === 'pyq')) agentsInvolved.push('oracle');
   if (mergedConfig.role === 'teacher') agentsInvolved.push('mentor');
 
-  const firstBible = bibles[0];
-  const topicName = firstBible?.subtopicName ?? mergedConfig.topicId;
+  const firstPlaybook = playbooks[0];
+  const topicName = firstPlaybook?.subtopicName ?? mergedConfig.topicId;
   const templateLabels: Record<CourseTemplate, string> = {
     exam_cracker:    'Exam Cracker',
     concept_builder: 'Concept Builder',
@@ -1122,15 +1122,15 @@ export async function generateCourseMaterial(
     estimatedTotalMinutes: totalMinutes,
     personalizationSummary,
     sections: allSections,
-    biblesRead: bibles.map(b => b.id),
+    playbooksRead: playbooks.map(b => b.id),
     personalizationVariables,
     agentsInvolved,
     generationTrace: {
       templateUsed: template,
-      templateKeyResolved: firstBible?.promptIntelligence.bestTemplateKey,
+      templateKeyResolved: firstPlaybook?.promptIntelligence.bestTemplateKey,
       mandatoryAtomsFulfilled: mandatoryFulfilled,
       personalizedSectionsAdded: personalizedCount,
-      bibleHealthAtGeneration: avgHealth,
+      playbookHealthAtGeneration: avgHealth,
     },
     generatedAt: now,
     version: 1,
@@ -1148,7 +1148,7 @@ export function recordCourseMaterialGeneration(
       const subtopicSections = material.sections.filter(s => s.subtopicId === subtopicId);
       const mandatorySections = subtopicSections.filter(s => s.layer === 'mandatory');
 
-      const atomTypeMap: Partial<Record<CourseSectionType, keyof SubTopicBible['contentAtoms']['mandatory']>> = {
+      const atomTypeMap: Partial<Record<CourseSectionType, keyof CoursePlaybook['contentAtoms']['mandatory']>> = {
         concept:       'concept_core',
         formula:       'formula_card',
         example:       'worked_example',
@@ -1176,16 +1176,16 @@ export function recordCourseMaterialGeneration(
   }
 }
 
-// ─── Bible Health ─────────────────────────────────────────────────────────────
+// ─── Playbook Health ─────────────────────────────────────────────────────────────
 
-export function getMaterialBibleHealth(
+export function getMaterialPlaybookHealth(
   config: Pick<PersonalizationConfig, 'examId' | 'topicId' | 'subtopicIds'>,
 ): number {
   if (config.subtopicIds.length === 0) return 0;
-  const bibles = config.subtopicIds.map(sid =>
-    getBibleOrCreate(config.examId, config.topicId, sid),
+  const playbooks = config.subtopicIds.map(sid =>
+    getPlaybookOrCreate(config.examId, config.topicId, sid),
   );
-  const scores = bibles.map(b => getBibleHealthScore(b));
+  const scores = playbooks.map(b => getPlaybookHealthScore(b));
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 }
 

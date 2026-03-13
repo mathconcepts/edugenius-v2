@@ -1,9 +1,9 @@
 /**
- * SubTopicBibleViewer.tsx — CEO Dashboard: SubTopic Bible
+ * CoursePlaybookViewer.tsx — CEO Dashboard: Course Playbook
  *
  * Three tabs:
- *   1. Bible Browser  — exam → topic → subtopic grid → full reader
- *   2. Bible Health   — completeness heatmap + gaps table
+ *   1. Playbook Browser  — exam → topic → subtopic grid → full reader
+ *   2. Playbook Health   — completeness heatmap + gaps table
  *   3. Progressive Updates — live update log
  */
 
@@ -14,25 +14,25 @@ import {
   Brain, Target, Users, MessageSquare, Bot, Star, AlertCircle, Database,
 } from 'lucide-react';
 import {
-  getAllBibles,
-  getBibleCompleteness,
-  getBibleHealthScore,
-  reconcileBiblesFromViewer,
-  type SubTopicBible,
-} from '@/pages/dashboards/bibleViewerHelpers';
-import { reconcileBibles } from '@/services/bibleProgressiveUpdater';
+  getAllPlaybooks,
+  getPlaybookCompleteness,
+  getPlaybookHealthScore,
+  reconcilePlaybooksFromViewer,
+  type CoursePlaybook,
+} from '@/pages/dashboards/playbookViewerHelpers';
+import { reconcilePlaybooks } from '@/services/playbookProgressiveUpdater';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ViewTab = 'browser' | 'health' | 'updates';
 
-interface BibleReaderSection {
+interface PlaybookReaderSection {
   key: string;
   label: string;
   icon: React.ElementType;
 }
 
-const READER_SECTIONS: BibleReaderSection[] = [
+const READER_SECTIONS: PlaybookReaderSection[] = [
   { key: 'academic', label: 'Academic Foundation', icon: BookOpen },
   { key: 'pedagogy', label: 'Teaching Intelligence', icon: Brain },
   { key: 'exam', label: 'Exam Intelligence', icon: Target },
@@ -96,10 +96,10 @@ function CompletenessRing({ pct, size = 48 }: { pct: number; size?: number }) {
 
 // ─── SubTopic Card ────────────────────────────────────────────────────────────
 
-function SubTopicCard({ bible, onClick }: { bible: SubTopicBible; onClick: () => void }) {
-  const completeness = getBibleCompleteness(bible);
-  const alertLevel = bible.agentConnections.oracle.alertLevel;
-  const lastUpdated = bible.lastUpdatedAt ? new Date(bible.lastUpdatedAt).toLocaleDateString() : '—';
+function SubTopicCard({ playbook, onClick }: { playbook: CoursePlaybook; onClick: () => void }) {
+  const completeness = getPlaybookCompleteness(playbook);
+  const alertLevel = playbook.agentConnections.oracle.alertLevel;
+  const lastUpdated = playbook.lastUpdatedAt ? new Date(playbook.lastUpdatedAt).toLocaleDateString() : '—';
 
   return (
     <button
@@ -108,15 +108,15 @@ function SubTopicCard({ bible, onClick }: { bible: SubTopicBible; onClick: () =>
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">{bible.subtopicName}</p>
-          <p className="text-xs text-surface-400 mt-0.5 truncate">{bible.subtopicId}</p>
+          <p className="text-sm font-medium text-white truncate">{playbook.subtopicName}</p>
+          <p className="text-xs text-surface-400 mt-0.5 truncate">{playbook.subtopicId}</p>
         </div>
         <CompletenessRing pct={completeness} size={40} />
       </div>
       <div className="flex items-center gap-2 text-xs text-surface-400">
         <span className={alertColor(alertLevel)}>● {alertLevel}</span>
         <span>·</span>
-        <span>v{bible.version}</span>
+        <span>v{playbook.version}</span>
         <span>·</span>
         <span>{lastUpdated}</span>
       </div>
@@ -124,12 +124,12 @@ function SubTopicCard({ bible, onClick }: { bible: SubTopicBible; onClick: () =>
   );
 }
 
-// ─── Full Bible Reader ────────────────────────────────────────────────────────
+// ─── Full Playbook Reader ────────────────────────────────────────────────────────
 
-function BibleReader({ bible, onBack }: { bible: SubTopicBible; onBack: () => void }) {
+function PlaybookReader({ playbook, onBack }: { playbook: CoursePlaybook; onBack: () => void }) {
   const [activeSection, setActiveSection] = useState('academic');
-  const completeness = getBibleCompleteness(bible);
-  const healthScore = getBibleHealthScore(bible);
+  const completeness = getPlaybookCompleteness(playbook);
+  const healthScore = getPlaybookHealthScore(playbook);
 
   return (
     <div className="flex flex-col h-full">
@@ -140,15 +140,15 @@ function BibleReader({ bible, onBack }: { bible: SubTopicBible; onBack: () => vo
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-white">{bible.subtopicName}</h2>
+            <h2 className="text-lg font-bold text-white">{playbook.subtopicName}</h2>
             <span className={`text-xs px-2 py-0.5 rounded-full bg-surface-700 ${completenessColor(completeness)}`}>
               {completeness}% complete
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded-full bg-surface-700 ${alertColor(bible.agentConnections.oracle.alertLevel)}`}>
-              {bible.agentConnections.oracle.alertLevel}
+            <span className={`text-xs px-2 py-0.5 rounded-full bg-surface-700 ${alertColor(playbook.agentConnections.oracle.alertLevel)}`}>
+              {playbook.agentConnections.oracle.alertLevel}
             </span>
           </div>
-          <p className="text-xs text-surface-400">{bible.examId} › {bible.topicId} › {bible.subtopicId} · v{bible.version}</p>
+          <p className="text-xs text-surface-400">{playbook.examId} › {playbook.topicId} › {playbook.subtopicId} · v{playbook.version}</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-surface-400">Health Score</p>
@@ -176,16 +176,16 @@ function BibleReader({ bible, onBack }: { bible: SubTopicBible; onBack: () => vo
 
       {/* Section content */}
       <div className="flex-1 overflow-y-auto">
-        {activeSection === 'academic' && <AcademicSection bible={bible} />}
-        {activeSection === 'pedagogy' && <PedagogySection bible={bible} />}
-        {activeSection === 'exam' && <ExamSection bible={bible} />}
-        {activeSection === 'analytics' && <AnalyticsSection bible={bible} />}
-        {activeSection === 'preferences' && <PreferencesSection bible={bible} />}
-        {activeSection === 'search' && <SearchSection bible={bible} />}
-        {activeSection === 'agents' && <AgentsSection bible={bible} />}
-        {activeSection === 'prompts' && <PromptsSection bible={bible} />}
-        {activeSection === 'graph' && <GraphSection bible={bible} />}
-        {activeSection === 'history' && <HistorySection bible={bible} />}
+        {activeSection === 'academic' && <AcademicSection playbook={playbook} />}
+        {activeSection === 'pedagogy' && <PedagogySection playbook={playbook} />}
+        {activeSection === 'exam' && <ExamSection playbook={playbook} />}
+        {activeSection === 'analytics' && <AnalyticsSection playbook={playbook} />}
+        {activeSection === 'preferences' && <PreferencesSection playbook={playbook} />}
+        {activeSection === 'search' && <SearchSection playbook={playbook} />}
+        {activeSection === 'agents' && <AgentsSection playbook={playbook} />}
+        {activeSection === 'prompts' && <PromptsSection playbook={playbook} />}
+        {activeSection === 'graph' && <GraphSection playbook={playbook} />}
+        {activeSection === 'history' && <HistorySection playbook={playbook} />}
       </div>
     </div>
   );
@@ -206,8 +206,8 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-function AcademicSection({ bible }: { bible: SubTopicBible }) {
-  const a = bible.academic;
+function AcademicSection({ playbook }: { playbook: CoursePlaybook }) {
+  const a = playbook.academic;
   return (
     <div>
       <SectionCard title="Definition">
@@ -241,8 +241,8 @@ function AcademicSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function PedagogySection({ bible }: { bible: SubTopicBible }) {
-  const p = bible.pedagogy;
+function PedagogySection({ playbook }: { playbook: CoursePlaybook }) {
+  const p = playbook.pedagogy;
   return (
     <div>
       <SectionCard title="Teaching Sequence">
@@ -283,8 +283,8 @@ function PedagogySection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function ExamSection({ bible }: { bible: SubTopicBible }) {
-  const e = bible.examIntelligence;
+function ExamSection({ playbook }: { playbook: CoursePlaybook }) {
+  const e = playbook.examIntelligence;
   return (
     <div>
       <div className="grid grid-cols-3 gap-3 mb-3">
@@ -346,8 +346,8 @@ function ExamSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function AnalyticsSection({ bible }: { bible: SubTopicBible }) {
-  const a = bible.analytics;
+function AnalyticsSection({ playbook }: { playbook: CoursePlaybook }) {
+  const a = playbook.analytics;
   return (
     <div>
       <div className="grid grid-cols-2 gap-3 mb-3">
@@ -378,8 +378,8 @@ function AnalyticsSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function PreferencesSection({ bible }: { bible: SubTopicBible }) {
-  const p = bible.studentPreferences;
+function PreferencesSection({ playbook }: { playbook: CoursePlaybook }) {
+  const p = playbook.studentPreferences;
   const styles = Object.entries(p.preferredLearningStyles).sort((a, b) => b[1] - a[1]);
   const formats = Object.entries(p.preferredFormats).sort((a, b) => b[1] - a[1]);
   return (
@@ -422,8 +422,8 @@ function PreferencesSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function SearchSection({ bible }: { bible: SubTopicBible }) {
-  const s = bible.searchIntelligence;
+function SearchSection({ playbook }: { playbook: CoursePlaybook }) {
+  const s = playbook.searchIntelligence;
   return (
     <div>
       <SectionCard title="Top Search Queries">
@@ -453,8 +453,8 @@ function SearchSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function AgentsSection({ bible }: { bible: SubTopicBible }) {
-  const ac = bible.agentConnections;
+function AgentsSection({ playbook }: { playbook: CoursePlaybook }) {
+  const ac = playbook.agentConnections;
   const agents = [
     { name: 'Atlas', emoji: '📚', data: [
       { label: 'Content Coverage', value: `${ac.atlas.contentCoverage}%` },
@@ -504,8 +504,8 @@ function AgentsSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function PromptsSection({ bible }: { bible: SubTopicBible }) {
-  const pi = bible.promptIntelligence;
+function PromptsSection({ playbook }: { playbook: CoursePlaybook }) {
+  const pi = playbook.promptIntelligence;
   return (
     <div>
       <SectionCard title="Best Template Key">
@@ -545,8 +545,8 @@ function PromptsSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function GraphSection({ bible }: { bible: SubTopicBible }) {
-  const g = bible.knowledgeGraph;
+function GraphSection({ playbook }: { playbook: CoursePlaybook }) {
+  const g = playbook.knowledgeGraph;
   return (
     <div>
       <SectionCard title="Cluster">
@@ -581,8 +581,8 @@ function GraphSection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-function HistorySection({ bible }: { bible: SubTopicBible }) {
-  const history = [...bible.updateHistory].reverse().slice(0, 20);
+function HistorySection({ playbook }: { playbook: CoursePlaybook }) {
+  const history = [...playbook.updateHistory].reverse().slice(0, 20);
   return (
     <SectionCard title="Update History (last 20)">
       {history.length > 0
@@ -603,31 +603,31 @@ function HistorySection({ bible }: { bible: SubTopicBible }) {
   );
 }
 
-// ─── Tab 1: Bible Browser ─────────────────────────────────────────────────────
+// ─── Tab 1: Playbook Browser ─────────────────────────────────────────────────────
 
-function BibleBrowserTab() {
-  const [bibles, setBibles] = useState<SubTopicBible[]>([]);
+function PlaybookBrowserTab() {
+  const [playbooks, setPlaybooks] = useState<CoursePlaybook[]>([]);
   const [selectedExam, setSelectedExam] = useState<string>('ALL');
   const [selectedTopic, setSelectedTopic] = useState<string>('ALL');
-  const [activeBible, setActiveBible] = useState<SubTopicBible | null>(null);
+  const [activePlaybook, setActivePlaybook] = useState<CoursePlaybook | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    setBibles(getAllBibles());
+    setPlaybooks(getAllPlaybooks());
   }, []);
 
-  const exams = ['ALL', ...Array.from(new Set(bibles.map(b => b.examId)))];
-  const topics = ['ALL', ...Array.from(new Set(bibles.filter(b => selectedExam === 'ALL' || b.examId === selectedExam).map(b => b.topicId)))];
+  const exams = ['ALL', ...Array.from(new Set(playbooks.map(b => b.examId)))];
+  const topics = ['ALL', ...Array.from(new Set(playbooks.filter(b => selectedExam === 'ALL' || b.examId === selectedExam).map(b => b.topicId)))];
 
-  const filtered = bibles.filter(b => {
+  const filtered = playbooks.filter(b => {
     if (selectedExam !== 'ALL' && b.examId !== selectedExam) return false;
     if (selectedTopic !== 'ALL' && b.topicId !== selectedTopic) return false;
     if (searchQuery && !b.subtopicName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
-  if (activeBible) {
-    return <BibleReader bible={activeBible} onBack={() => setActiveBible(null)} />;
+  if (activePlaybook) {
+    return <PlaybookReader playbook={activePlaybook} onBack={() => setActivePlaybook(null)} />;
   }
 
   return (
@@ -665,40 +665,40 @@ function BibleBrowserTab() {
       {filtered.length > 0
         ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-            {filtered.map(bible => (
-              <SubTopicCard key={bible.id} bible={bible} onClick={() => setActiveBible(bible)} />
+            {filtered.map(playbook => (
+              <SubTopicCard key={playbook.id} playbook={playbook} onClick={() => setActivePlaybook(playbook)} />
             ))}
           </div>
         )
         : (
           <div className="text-center py-12 text-surface-500">
             <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
-            <p>No subtopics found. {bibles.length === 0 ? 'Bibles are being seeded...' : 'Try adjusting filters.'}</p>
+            <p>No subtopics found. {playbooks.length === 0 ? 'Playbooks are being seeded...' : 'Try adjusting filters.'}</p>
           </div>
         )}
     </div>
   );
 }
 
-// ─── Tab 2: Bible Health ──────────────────────────────────────────────────────
+// ─── Tab 2: Playbook Health ──────────────────────────────────────────────────────
 
-function BibleHealthTab() {
-  const [bibles, setBibles] = useState<SubTopicBible[]>([]);
+function PlaybookHealthTab() {
+  const [playbooks, setPlaybooks] = useState<CoursePlaybook[]>([]);
   const [reconciling, setReconciling] = useState(false);
   const [reconcileResult, setReconcileResult] = useState<{ audited: number; gaps: number; queued: number } | null>(null);
 
-  useEffect(() => { setBibles(getAllBibles()); }, []);
+  useEffect(() => { setPlaybooks(getAllPlaybooks()); }, []);
 
-  const withGaps = bibles.map(b => ({ bible: b, completeness: getBibleCompleteness(b) }))
+  const withGaps = playbooks.map(b => ({ playbook: b, completeness: getPlaybookCompleteness(b) }))
     .filter(({ completeness }) => completeness < 80)
     .sort((a, b) => a.completeness - b.completeness);
 
   const handleReconcile = async () => {
     setReconciling(true);
     try {
-      const result = await reconcileBibles();
+      const result = await reconcilePlaybooks();
       setReconcileResult(result);
-      setBibles(getAllBibles()); // refresh
+      setPlaybooks(getAllPlaybooks()); // refresh
     } finally {
       setReconciling(false);
     }
@@ -706,10 +706,10 @@ function BibleHealthTab() {
 
   // Heatmap data: exam × topic
   const examTopics: Record<string, Record<string, number>> = {};
-  for (const b of bibles) {
+  for (const b of playbooks) {
     if (!examTopics[b.examId]) examTopics[b.examId] = {};
     const existing = examTopics[b.examId][b.topicId];
-    const c = getBibleCompleteness(b);
+    const c = getPlaybookCompleteness(b);
     examTopics[b.examId][b.topicId] = existing === undefined ? c : Math.round((existing + c) / 2);
   }
 
@@ -718,12 +718,12 @@ function BibleHealthTab() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="bg-surface-800 border border-surface-700 rounded-lg p-3">
-          <p className="text-xs text-surface-400 mb-1">Total Bibles</p>
-          <p className="text-2xl font-bold text-white">{bibles.length}</p>
+          <p className="text-xs text-surface-400 mb-1">Total Playbooks</p>
+          <p className="text-2xl font-bold text-white">{playbooks.length}</p>
         </div>
         <div className="bg-surface-800 border border-surface-700 rounded-lg p-3">
           <p className="text-xs text-surface-400 mb-1">Healthy (≥80%)</p>
-          <p className="text-2xl font-bold text-green-400">{bibles.filter(b => getBibleCompleteness(b) >= 80).length}</p>
+          <p className="text-2xl font-bold text-green-400">{playbooks.filter(b => getPlaybookCompleteness(b) >= 80).length}</p>
         </div>
         <div className="bg-surface-800 border border-surface-700 rounded-lg p-3">
           <p className="text-xs text-surface-400 mb-1">Need Attention</p>
@@ -789,10 +789,10 @@ function BibleHealthTab() {
                 </tr>
               </thead>
               <tbody>
-                {withGaps.slice(0, 15).map(({ bible, completeness }) => (
-                  <tr key={bible.id} className="border-b border-surface-800">
-                    <td className="py-2 pr-3 text-surface-200">{bible.subtopicName}</td>
-                    <td className="py-2 pr-3 text-surface-400">{bible.examId}</td>
+                {withGaps.slice(0, 15).map(({ playbook, completeness }) => (
+                  <tr key={playbook.id} className="border-b border-surface-800">
+                    <td className="py-2 pr-3 text-surface-200">{playbook.subtopicName}</td>
+                    <td className="py-2 pr-3 text-surface-400">{playbook.examId}</td>
                     <td className="py-2 pr-3">
                       <div className="flex items-center gap-2">
                         <div className="w-20 h-1.5 bg-surface-700 rounded-full overflow-hidden">
@@ -802,8 +802,8 @@ function BibleHealthTab() {
                       </div>
                     </td>
                     <td className="py-2">
-                      <span className={`text-xs ${alertColor(bible.agentConnections.oracle.alertLevel)}`}>
-                        ● {bible.agentConnections.oracle.alertLevel}
+                      <span className={`text-xs ${alertColor(playbook.agentConnections.oracle.alertLevel)}`}>
+                        ● {playbook.agentConnections.oracle.alertLevel}
                       </span>
                     </td>
                   </tr>
@@ -811,7 +811,7 @@ function BibleHealthTab() {
               </tbody>
             </table>
           )
-          : <p className="text-green-400 text-sm flex items-center gap-2"><CheckCircle size={14} />All bibles are healthy!</p>}
+          : <p className="text-green-400 text-sm flex items-center gap-2"><CheckCircle size={14} />All playbooks are healthy!</p>}
       </div>
     </div>
   );
@@ -820,23 +820,23 @@ function BibleHealthTab() {
 // ─── Tab 3: Progressive Updates ───────────────────────────────────────────────
 
 function ProgressiveUpdatesTab() {
-  const [bibles, setBibles] = useState<SubTopicBible[]>([]);
+  const [playbooks, setPlaybooks] = useState<CoursePlaybook[]>([]);
   const [enriching, setEnriching] = useState<string | null>(null);
 
-  useEffect(() => { setBibles(getAllBibles()); }, []);
+  useEffect(() => { setPlaybooks(getAllPlaybooks()); }, []);
 
-  // Collect recent updates from all bibles
-  const allUpdates = bibles
-    .flatMap(b => b.updateHistory.map(u => ({ ...u, bible: b })))
+  // Collect recent updates from all playbooks
+  const allUpdates = playbooks
+    .flatMap(b => b.updateHistory.map(u => ({ ...u, playbook: b })))
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 50);
 
-  const handleEnrich = async (bible: SubTopicBible) => {
-    setEnriching(bible.id);
+  const handleEnrich = async (playbook: CoursePlaybook) => {
+    setEnriching(playbook.id);
     try {
-      const { enrichBible } = await import('@/services/bibleProgressiveUpdater');
-      await enrichBible(bible);
-      setBibles(getAllBibles());
+      const { enrichPlaybook } = await import('@/services/playbookProgressiveUpdater');
+      await enrichPlaybook(playbook);
+      setPlaybooks(getAllPlaybooks());
     } finally {
       setEnriching(null);
     }
@@ -858,7 +858,7 @@ function ProgressiveUpdatesTab() {
                       <span className="text-primary-400">{u.updatedBy}</span>
                       <span className="text-surface-400"> updated </span>
                       <span className="text-surface-200">{u.field}</span>
-                      <span className="text-surface-500"> on {u.bible.subtopicName}</span>
+                      <span className="text-surface-500"> on {u.playbook.subtopicName}</span>
                     </div>
                   </div>
                 ))}
@@ -871,24 +871,24 @@ function ProgressiveUpdatesTab() {
         <div className="bg-surface-800 border border-surface-700 rounded-lg p-4">
           <h3 className="text-sm font-semibold text-white mb-3">Enrichment Queue</h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {bibles.filter(b => getBibleCompleteness(b) < 60).slice(0, 10).map(bible => (
-              <div key={bible.id} className="flex items-center justify-between p-2 bg-surface-750 rounded">
+            {playbooks.filter(b => getPlaybookCompleteness(b) < 60).slice(0, 10).map(playbook => (
+              <div key={playbook.id} className="flex items-center justify-between p-2 bg-surface-750 rounded">
                 <div>
-                  <p className="text-sm text-white">{bible.subtopicName}</p>
-                  <p className="text-xs text-surface-400">{bible.examId} · {getBibleCompleteness(bible)}% complete</p>
+                  <p className="text-sm text-white">{playbook.subtopicName}</p>
+                  <p className="text-xs text-surface-400">{playbook.examId} · {getPlaybookCompleteness(playbook)}% complete</p>
                 </div>
                 <button
-                  onClick={() => handleEnrich(bible)}
-                  disabled={enriching === bible.id}
+                  onClick={() => handleEnrich(playbook)}
+                  disabled={enriching === playbook.id}
                   className="flex items-center gap-1 px-2 py-1 bg-primary-600/30 hover:bg-primary-600/50 text-primary-300 rounded text-xs disabled:opacity-50 transition-colors"
                 >
-                  <Zap size={12} className={enriching === bible.id ? 'animate-pulse' : ''} />
-                  {enriching === bible.id ? 'Enriching...' : 'Enrich'}
+                  <Zap size={12} className={enriching === playbook.id ? 'animate-pulse' : ''} />
+                  {enriching === playbook.id ? 'Enriching...' : 'Enrich'}
                 </button>
               </div>
             ))}
-            {bibles.filter(b => getBibleCompleteness(b) < 60).length === 0 && (
-              <p className="text-green-400 text-sm flex items-center gap-2"><CheckCircle size={14} />All bibles are sufficiently complete!</p>
+            {playbooks.filter(b => getPlaybookCompleteness(b) < 60).length === 0 && (
+              <p className="text-green-400 text-sm flex items-center gap-2"><CheckCircle size={14} />All playbooks are sufficiently complete!</p>
             )}
           </div>
         </div>
@@ -899,12 +899,12 @@ function ProgressiveUpdatesTab() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function SubTopicBibleViewer() {
+export default function CoursePlaybookViewer() {
   const [activeTab, setActiveTab] = useState<ViewTab>('browser');
 
   const tabs: { key: ViewTab; label: string; icon: React.ElementType }[] = [
-    { key: 'browser', label: 'Bible Browser', icon: BookOpen },
-    { key: 'health', label: 'Bible Health', icon: Star },
+    { key: 'browser', label: 'Playbook Browser', icon: BookOpen },
+    { key: 'health', label: 'Playbook Health', icon: Star },
     { key: 'updates', label: 'Progressive Updates', icon: RefreshCw },
   ];
 
@@ -915,7 +915,7 @@ export default function SubTopicBibleViewer() {
         <div>
           <div className="flex items-center gap-2">
             <BookOpen size={24} className="text-primary-400" />
-            <h1 className="text-2xl font-bold text-white">SubTopic Bible</h1>
+            <h1 className="text-2xl font-bold text-white">Course Playbook</h1>
           </div>
           <p className="text-sm text-surface-400 mt-1">Universal knowledge graph — single source of truth for every course subtopic</p>
         </div>
@@ -945,8 +945,8 @@ export default function SubTopicBibleViewer() {
 
       {/* Tab content */}
       <div>
-        {activeTab === 'browser' && <BibleBrowserTab />}
-        {activeTab === 'health' && <BibleHealthTab />}
+        {activeTab === 'browser' && <PlaybookBrowserTab />}
+        {activeTab === 'health' && <PlaybookHealthTab />}
         {activeTab === 'updates' && <ProgressiveUpdatesTab />}
       </div>
     </div>

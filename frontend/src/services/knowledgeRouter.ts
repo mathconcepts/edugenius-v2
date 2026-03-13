@@ -492,11 +492,11 @@ export async function resolveKnowledge(query: RouterQuery): Promise<KnowledgeRes
     queueForRagIndexing(query, result).catch(() => {});
   }
 
-  // ── Update SubTopic Bible with search intelligence ────────────────────────
+  // ── Update Course Playbook with search intelligence ────────────────────────
   try {
     const examId = query.examId ?? 'GATE_EM';
     const topicId = query.topicId ?? query.text.split(' ')[0].toLowerCase();
-    const { updateFromKnowledgeRouter } = await import('./subTopicBibleService');
+    const { updateFromKnowledgeRouter } = await import('./coursePlaybookService');
     updateFromKnowledgeRouter(examId, topicId, topicId, result, query.text);
   } catch { /* non-fatal */ }
 

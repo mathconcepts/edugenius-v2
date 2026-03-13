@@ -150,7 +150,7 @@ function getExamContext(exam: string, daysToExam: number): string {
     JEE_MAIN: `Exam: JEE Main. MCQ format. Speed matters. 3-hour paper. Negative marking.`,
     JEE_ADVANCED: `Exam: JEE Advanced — India's toughest exam. Conceptual depth + application. Integer type questions. No partial credit.`,
     NEET: `Exam: NEET. Biology is 50% of paper. Memorisation + application. 3-hour MCQ.`,
-    CBSE_12: `Exam: CBSE Class 12 Boards. Structured answers. Show all working. NCERT is bible.`,
+    CBSE_12: `Exam: CBSE Class 12 Boards. Structured answers. Show all working. NCERT is playbook.`,
     CAT: `Exam: CAT. Speed reading + logical reasoning. Time management is skill #1.`,
     UPSC: `Exam: UPSC. Answer writing quality matters as much as content. Multidimensional thinking.`,
     GATE: `Exam: GATE. Engineering fundamentals + application. Numerical answer type questions.`,
@@ -915,49 +915,49 @@ export function buildReadinessSageContext(): string {
   } catch { return ''; }
 }
 
-// ─── SubTopic Bible Aware Directive ──────────────────────────────────────────
-import type { SubTopicBible } from './subTopicBibleService';
+// ─── Course Playbook Aware Directive ──────────────────────────────────────────
+import type { CoursePlaybook } from './coursePlaybookService';
 import type { PersonaContext } from './contentPersonaEngine';
 
 /**
- * buildBibleAwareDirective
+ * buildPlaybookAwareDirective
  *
- * Sage calls this at session start to inject SubTopic Bible intelligence
+ * Sage calls this at session start to inject Course Playbook intelligence
  * into its system prompt. Provides: the right analogy for the student's
  * learning style, Socratic questions tailored to the subtopic, common
  * misconceptions to avoid proactively, and high-yield exam areas.
  */
-export function buildBibleAwareDirective(
-  bible: SubTopicBible,
+export function buildPlaybookAwareDirective(
+  playbook: CoursePlaybook,
   personaCtx: PersonaContext,
 ): string {
   const learningStyle = (personaCtx.learningStyle as string) ?? 'visual';
 
   // Pick analogy matching this student's learning style
-  const bestAnalogy = bible.pedagogy.effectiveAnalogies.find(a =>
+  const bestAnalogy = playbook.pedagogy.effectiveAnalogies.find(a =>
     a.worksFor.includes(learningStyle),
-  ) ?? bible.pedagogy.effectiveAnalogies[0];
+  ) ?? playbook.pedagogy.effectiveAnalogies[0];
 
   // Top 3 misconceptions
-  const topMisconceptions = bible.pedagogy.commonMisconceptions
+  const topMisconceptions = playbook.pedagogy.commonMisconceptions
     .slice(0, 3)
     .map(m => `"${m.misconception}" → ${m.correction}`)
     .join('\n      ');
 
   // Socratic questions
-  const socratic = bible.pedagogy.socraticQuestions.slice(0, 3).join('\n      ');
+  const socratic = playbook.pedagogy.socraticQuestions.slice(0, 3).join('\n      ');
 
   // Stuck points
-  const stuckPoints = bible.analytics.commonStuckPoints.slice(0, 3).join(', ') || 'none recorded';
+  const stuckPoints = playbook.analytics.commonStuckPoints.slice(0, 3).join(', ') || 'none recorded';
 
   // Trap topics
-  const traps = bible.examIntelligence.trapTopics.slice(0, 2).join(', ') || 'none recorded';
+  const traps = playbook.examIntelligence.trapTopics.slice(0, 2).join(', ') || 'none recorded';
 
   const lines: string[] = [
-    `SUBTOPIC BIBLE CONTEXT for "${bible.subtopicName}" (${bible.examId}):`,
-    `  Academic level   : Bloom's ${bible.academic.bloomsLevel} | ${bible.academic.difficulty} difficulty`,
-    `  Prerequisites    : ${bible.academic.prerequisites.join(', ') || 'none'}`,
-    `  Teaching sequence: ${bible.pedagogy.teachingSequence.join(' → ')}`,
+    `COURSE PLAYBOOK CONTEXT for "${playbook.subtopicName}" (${playbook.examId}):`,
+    `  Academic level   : Bloom's ${playbook.academic.bloomsLevel} | ${playbook.academic.difficulty} difficulty`,
+    `  Prerequisites    : ${playbook.academic.prerequisites.join(', ') || 'none'}`,
+    `  Teaching sequence: ${playbook.pedagogy.teachingSequence.join(' → ')}`,
     ``,
     `  Most common misconceptions to address proactively:`,
     `      ${topMisconceptions || 'none recorded'}`,
@@ -968,15 +968,15 @@ export function buildBibleAwareDirective(
     `  Socratic questions for this subtopic:`,
     `      ${socratic || 'none recorded — ask foundational definition questions'}`,
     ``,
-    `  Exam intelligence : ${bible.examIntelligence.weightage}% of marks | trap topics: ${traps}`,
-    `  Student analytics : avg ${bible.analytics.averageSessionsToMastery} sessions to mastery | common stuck: ${stuckPoints}`,
-    `  Best performing prompt template: ${bible.promptIntelligence.bestTemplateKey || 'default'}`,
+    `  Exam intelligence : ${playbook.examIntelligence.weightage}% of marks | trap topics: ${traps}`,
+    `  Student analytics : avg ${playbook.analytics.averageSessionsToMastery} sessions to mastery | common stuck: ${stuckPoints}`,
+    `  Best performing prompt template: ${playbook.promptIntelligence.bestTemplateKey || 'default'}`,
     ``,
     `INSTRUCTION: Use the above to:`,
     `  1. Pick the correct analogy for this student (${learningStyle} learner)`,
     `  2. Probe understanding with the Socratic questions above`,
     `  3. Preemptively correct the listed misconceptions`,
-    `  4. Focus teaching effort on the ${bible.examIntelligence.weightage}% exam-weightage areas`,
+    `  4. Focus teaching effort on the ${playbook.examIntelligence.weightage}% exam-weightage areas`,
     `  5. At session end: celebrate mastery if student answers Socratic Q correctly`,
   ];
 
@@ -993,7 +993,7 @@ import type { CourseMaterial } from './courseMaterialGenerator';
  * Tells Sage that a CourseMaterial has been prepared for this student.
  * Instructs Sage to:
  * 1. Teach mandatory sections first (concept, formula, example)
- * 2. Use the bible's socraticQuestions embedded in socratic sections
+ * 2. Use the playbook's socraticQuestions embedded in socratic sections
  * 3. Extend with personalized depth based on student response
  * 4. Keep to the section order without jumping ahead
  *
@@ -1007,7 +1007,7 @@ export function buildCourseMaterialPrompt(
   const personalizedAfter = material.sections.filter(s => s.layer === 'personalized');
 
   const sectionList = [
-    ...mandatoryFirst.map((s, i) => `  ${i + 1}. [MANDATORY] ${s.title} (${s.estimatedMinutes} min) — source: ${s.bibleSource}`),
+    ...mandatoryFirst.map((s, i) => `  ${i + 1}. [MANDATORY] ${s.title} (${s.estimatedMinutes} min) — source: ${s.playbookSource}`),
     ...personalizedAfter.map((s, i) => `  ${mandatoryFirst.length + i + 1}. [PERSONALIZED] ${s.title} (${s.estimatedMinutes} min)`),
   ].join('\n');
 
@@ -1047,7 +1047,7 @@ export function buildCourseMaterialPrompt(
     misconceptionContent,
     formulaHighlight,
     '',
-    `Bible sources used: ${material.biblesRead.join(', ')}`,
+    `Playbook sources used: ${material.playbooksRead.join(', ')}`,
     `Agents involved: ${material.agentsInvolved.join(', ')}`,
   ].filter(Boolean).join('\n');
 }

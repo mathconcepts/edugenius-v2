@@ -109,7 +109,7 @@ const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 const ExamSim = lazy(() => import('@/pages/ExamSim'));
 const RevisionSchedule = lazy(() => import('@/pages/RevisionSchedule'));
 const DailyBriefPage = lazy(() => import('@/pages/DailyBrief'));
-const SubTopicBibleViewer = lazy(() => import('@/pages/dashboards/SubTopicBibleViewer'));
+const CoursePlaybookViewer = lazy(() => import('@/pages/dashboards/CoursePlaybookViewer'));
 
 // Lazy load Social Intent Dashboard (CEO only)
 
@@ -254,7 +254,7 @@ export default function App() {
           <Route path="exam-sim" element={<Suspense fallback={<PageLoader />}><ExamSim /></Suspense>} />
           <Route path="revision" element={<Suspense fallback={<PageLoader />}><RevisionSchedule /></Suspense>} />
           <Route path="daily-brief" element={<Suspense fallback={<PageLoader />}><DailyBriefPage /></Suspense>} />
-          <Route path="subtopic-bible" element={<Suspense fallback={<PageLoader />}><SubTopicBibleViewer /></Suspense>} />
+          <Route path="course-playbook" element={<Suspense fallback={<PageLoader />}><CoursePlaybookViewer /></Suspense>} />
 
           {/* Social Intent Dashboard — CEO only */}
 

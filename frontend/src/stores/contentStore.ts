@@ -13,7 +13,7 @@ import type {
   AutomationRun,
 } from '@/services/contentAutomationService';
 import type { GeneratedContent } from '@/services/contentGenerationService';
-import type { SubTopicBible } from '@/services/subTopicBibleService';
+import type { CoursePlaybook } from '@/services/coursePlaybookService';
 
 // ─── Default config (duplicated here to avoid circular deps at init time) ─────
 
@@ -44,9 +44,9 @@ interface ContentStoreState {
   totalVerified: number;
   config: AutomationConfig;
 
-  // Bible state
-  activeBible: SubTopicBible | null;
-  bibleHealthSummary: { total: number; healthy: number; needsAttention: number };
+  // Playbook state
+  activePlaybook: CoursePlaybook | null;
+  playbookHealthSummary: { total: number; healthy: number; needsAttention: number };
 
   // Actions
   setAutomationEnabled: (enabled: boolean) => void;
@@ -57,8 +57,8 @@ interface ContentStoreState {
   setAutomationStatus: (status: AutomationStatus) => void;
   addRunToHistory: (run: AutomationRun) => void;
   incrementTotals: (generated: number, verified: number) => void;
-  setActiveBible: (bible: SubTopicBible | null) => void;
-  refreshBibleHealth: () => void;
+  setActivePlaybook: (playbook: CoursePlaybook | null) => void;
+  refreshPlaybookHealth: () => void;
   reset: () => void;
 }
 
@@ -76,8 +76,8 @@ export const useContentStore = create<ContentStoreState>()(
       totalGenerated: 0,
       totalVerified: 0,
       config: DEFAULT_CONFIG,
-      activeBible: null,
-      bibleHealthSummary: { total: 0, healthy: 0, needsAttention: 0 },
+      activePlaybook: null,
+      playbookHealthSummary: { total: 0, healthy: 0, needsAttention: 0 },
 
       // ── Actions ──────────────────────────────────────────────────────────
 
@@ -124,12 +124,12 @@ export const useContentStore = create<ContentStoreState>()(
           totalVerified: s.totalVerified + verified,
         })),
 
-      setActiveBible: (bible) => set({ activeBible: bible }),
+      setActivePlaybook: (playbook) => set({ activePlaybook: playbook }),
 
-      refreshBibleHealth: () => {
+      refreshPlaybookHealth: () => {
         try {
-          const { getBibleHealthSummary } = require('@/services/bibleProgressiveUpdater') as typeof import('@/services/bibleProgressiveUpdater');
-          set({ bibleHealthSummary: getBibleHealthSummary() });
+          const { getPlaybookHealthSummary } = require('@/services/playbookProgressiveUpdater') as typeof import('@/services/playbookProgressiveUpdater');
+          set({ playbookHealthSummary: getPlaybookHealthSummary() });
         } catch { /* non-fatal */ }
       },
 
@@ -143,8 +143,8 @@ export const useContentStore = create<ContentStoreState>()(
           totalGenerated: 0,
           totalVerified: 0,
           config: DEFAULT_CONFIG,
-          activeBible: null,
-          bibleHealthSummary: { total: 0, healthy: 0, needsAttention: 0 },
+          activePlaybook: null,
+          playbookHealthSummary: { total: 0, healthy: 0, needsAttention: 0 },
         }),
     }),
     {

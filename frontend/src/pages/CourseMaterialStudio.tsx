@@ -1,5 +1,5 @@
 /**
- * CourseMaterialStudio.tsx — Bible-Driven Course Material Studio
+ * CourseMaterialStudio.tsx — Playbook-Driven Course Material Studio
  *
  * Two modes:
  *   CEO Mode   — Full control panel with all personalization variables
@@ -21,7 +21,7 @@ import {
   generateCourseMaterial,
   autoPersonalize,
   parseCustomRequest,
-  getMaterialBibleHealth,
+  getMaterialPlaybookHealth,
   getAvailableSubtopics,
   TEMPLATE_CONFIGS,
   type CourseTemplate,
@@ -139,7 +139,7 @@ function SectionCard({
   const [expanded, setExpanded] = useState(index < 3);
   const [editing, setEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(section.content);
-  const [showBibleSource, setShowBibleSource] = useState(false);
+  const [showPlaybookSource, setShowPlaybookSource] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -219,24 +219,24 @@ function SectionCard({
 
                 {ceoMode && (
                   <button
-                    onClick={() => setShowBibleSource(s => !s)}
+                    onClick={() => setShowPlaybookSource(s => !s)}
                     className="flex items-center gap-1.5 text-xs text-surface-400 hover:text-surface-200 transition-colors ml-auto"
                   >
                     <Info size={12} />
-                    Bible Source
+                    Playbook Source
                   </button>
                 )}
               </div>
 
-              {/* CEO: Bible source + personalization trace */}
-              {ceoMode && showBibleSource && (
+              {/* CEO: Playbook source + personalization trace */}
+              {ceoMode && showPlaybookSource && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="mt-3 p-3 bg-surface-900 rounded-lg text-xs space-y-1"
                 >
                   <div className="text-surface-400">
-                    <span className="text-surface-300 font-medium">Bible Source:</span> {section.bibleSource}
+                    <span className="text-surface-300 font-medium">Playbook Source:</span> {section.playbookSource}
                   </div>
                   {section.personalizationApplied.length > 0 && (
                     <div className="text-surface-400">
@@ -300,8 +300,8 @@ export default function CourseMaterialStudio({
   const availableTopics = MANDATORY_COVERAGE_MAP[examId] ?? [];
   const availableSubtopics = getAvailableSubtopics(examId, topicId);
 
-  const bibleHealth = selectedSubtopics.length > 0
-    ? getMaterialBibleHealth({ examId, topicId, subtopicIds: selectedSubtopics })
+  const playbookHealth = selectedSubtopics.length > 0
+    ? getMaterialPlaybookHealth({ examId, topicId, subtopicIds: selectedSubtopics })
     : 0;
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -569,7 +569,7 @@ export default function CourseMaterialStudio({
             <Library size={18} className="text-primary-400" />
             <h2 className="font-bold text-surface-100">Course Material Studio</h2>
           </div>
-          <p className="text-xs text-surface-400 mt-1">Bible-driven personalized content generation</p>
+          <p className="text-xs text-surface-400 mt-1">Playbook-driven personalized content generation</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-5">
@@ -646,15 +646,15 @@ export default function CourseMaterialStudio({
                     <span className="text-xs text-surface-500">Select exam + topic first</span>
                   )}
                 </div>
-                {bibleHealth > 0 && (
+                {playbookHealth > 0 && (
                   <div className="mt-2 flex items-center gap-2">
                     <div className="flex-1 h-1 bg-surface-700 rounded-full overflow-hidden">
                       <div
-                        className={clsx('h-full rounded-full transition-all', bibleHealth >= 70 ? 'bg-green-500' : bibleHealth >= 40 ? 'bg-yellow-500' : 'bg-red-500')}
-                        style={{ width: `${bibleHealth}%` }}
+                        className={clsx('h-full rounded-full transition-all', playbookHealth >= 70 ? 'bg-green-500' : playbookHealth >= 40 ? 'bg-yellow-500' : 'bg-red-500')}
+                        style={{ width: `${playbookHealth}%` }}
                       />
                     </div>
-                    <span className="text-xs text-surface-400">Bible Health: {bibleHealth}%</span>
+                    <span className="text-xs text-surface-400">Playbook Health: {playbookHealth}%</span>
                   </div>
                 )}
               </div>
@@ -862,7 +862,7 @@ export default function CourseMaterialStudio({
 
           {previewOpen && selectedSubtopics.length > 0 && (
             <div className="p-3 bg-surface-900 rounded-lg text-xs space-y-1">
-              <div className="font-medium text-surface-300">Bible fields that will be read:</div>
+              <div className="font-medium text-surface-300">Playbook fields that will be read:</div>
               <div className="text-surface-400 space-y-0.5">
                 <div>• academic.definition (concept)</div>
                 {includeFormulas && <div>• examIntelligence.highYieldFormulas (formula)</div>}
@@ -930,7 +930,7 @@ export default function CourseMaterialStudio({
             >
               <RefreshCw size={32} className="text-primary-400" />
             </motion.div>
-            <div className="text-sm text-surface-400">Assembling course material from bible...</div>
+            <div className="text-sm text-surface-400">Assembling course material from playbook...</div>
           </div>
         )}
 
@@ -1002,11 +1002,11 @@ export default function CourseMaterialStudio({
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-surface-400">
                   <div><span className="text-surface-300">Template:</span> {material.generationTrace.templateUsed}</div>
-                  <div><span className="text-surface-300">Bible health:</span> {material.generationTrace.bibleHealthAtGeneration}%</div>
+                  <div><span className="text-surface-300">Playbook health:</span> {material.generationTrace.playbookHealthAtGeneration}%</div>
                   <div><span className="text-surface-300">Mandatory fulfilled:</span> {material.generationTrace.mandatoryAtomsFulfilled.length}</div>
                   <div><span className="text-surface-300">Personalized added:</span> {material.generationTrace.personalizedSectionsAdded}</div>
                   <div><span className="text-surface-300">Agents:</span> {material.agentsInvolved.join(', ')}</div>
-                  <div><span className="text-surface-300">Bibles read:</span> {material.biblesRead.length}</div>
+                  <div><span className="text-surface-300">Playbooks read:</span> {material.playbooksRead.length}</div>
                 </div>
                 {material.generationTrace.templateKeyResolved && (
                   <div className="text-surface-400">
