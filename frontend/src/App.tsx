@@ -98,6 +98,9 @@ const CourseOrchestrator = lazy(() => import('@/pages/CourseOrchestrator'));
 // Lazy load Growth Command (CEO only)
 const GrowthCommand = lazy(() => import('@/pages/dashboards/GrowthCommand').then(m => ({ default: m.GrowthCommand })));
 
+// Lazy load Content Personalization Control (CEO only)
+const ContentPersonalizationControl = lazy(() => import('@/pages/dashboards/ContentPersonalizationControl').then(m => ({ default: m.ContentPersonalizationControl })));
+
 // ── Delight Features ──────────────────────────────────────────────────────────
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 const ExamSim = lazy(() => import('@/pages/ExamSim'));
@@ -236,6 +239,9 @@ export default function App() {
 
           {/* Growth Command — Master Growth Orchestrator Dashboard — CEO only */}
           <Route path="growth-command" element={<Suspense fallback={<PageLoader />}><GrowthCommand /></Suspense>} />
+
+          {/* Content Personalization Control — CEO only */}
+          <Route path="content-personalization" element={<Suspense fallback={<PageLoader />}><ContentPersonalizationControl /></Suspense>} />
           {/* ── Delight Feature Routes ──────────────────────────────────── */}
           <Route path="leaderboard" element={<Suspense fallback={<PageLoader />}><Leaderboard /></Suspense>} />
           <Route path="exam-sim" element={<Suspense fallback={<PageLoader />}><ExamSim /></Suspense>} />

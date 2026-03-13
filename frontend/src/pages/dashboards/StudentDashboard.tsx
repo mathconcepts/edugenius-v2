@@ -18,6 +18,7 @@ import { DailyBriefCard } from '@/components/DailyBriefCard';
 import { SpacedRepetitionWidget } from '@/components/SpacedRepetitionWidget';
 import { ReadinessScoreWidget } from '@/components/ReadinessScoreWidget';
 import { XPBar } from '@/components/XPBar';
+import { ContentSlot } from '@/components/ContentSlot';
 
 // ── Dynamic today plan from persona + notebook ────────────────────────────────
 
@@ -273,23 +274,25 @@ export function StudentDashboard() {
         onStart={handleStart}
       />
 
-      {/* ZONE 2b: Mood Check-In (adaptive pacing) */}
-      <MoodCheckIn />
-
-      {/* ZONE 2c: Daily Brief (WhatsApp-style) */}
-      <DailyBriefCard />
+      {/* ZONE 2b: Hyper-Personalized Hero Slot */}
+      <ContentSlot
+        slotId="dashboard_hero"
+        compact={false}
+        className="mt-1"
+      />
 
       {/* ZONE 3: Escape Hatches */}
       <EscapeHatches />
 
-      {/* ZONE 4: XP Progress bar */}
-      <XPBar />
+      {/* ZONE 4: Personalized Sidebar Slot (stacked widgets, driven by persona) */}
+      <ContentSlot
+        slotId="dashboard_sidebar"
+        compact={true}
+      />
 
-      {/* ZONE 5: Readiness Score */}
-      <ReadinessScoreWidget compact />
-
-      {/* ZONE 6: Spaced Repetition */}
-      <SpacedRepetitionWidget />
+      {/* ZONE 5: Fallback static widgets (if ContentSlot returns empty) */}
+      <MoodCheckIn />
+      <DailyBriefCard />
 
     </div>
   );

@@ -41,6 +41,7 @@ const ceoNavItems: NavItem[] = [
   { to: '/content-hub',           icon: Layers,      label: 'Content Hub',   highlight: true },
   { to: '/page-builder',          icon: Globe,       label: 'Page Builder' },
   { to: '/growth-command',        icon: TrendingUp,  label: 'Growth Command', highlight: true },
+  { to: '/content-personalization', icon: Sparkles,  label: 'Personalization', highlight: false },
   { to: '/students',              icon: Users,       label: 'People' },
   { to: '/settings',              icon: Settings,    label: 'Settings' },
 ];

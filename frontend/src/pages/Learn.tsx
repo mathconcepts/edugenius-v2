@@ -18,6 +18,8 @@ import { loadPersona } from '@/services/studentPersonaEngine';
 import { ContentFeed } from '@/components/ContentFeed';
 import type { ContentAtom } from '@/services/contentFramework';
 import { Sparkles } from 'lucide-react';
+// Hyper-personalized content feed
+import { PersonalizedFeed } from '@/components/PersonalizedFeed';
 
 interface Topic {
   id: string;
@@ -283,6 +285,13 @@ export default function Learn() {
           </div>
         </div>
       </div>
+
+      {/* AI Recommended — PersonalizedFeed */}
+      <PersonalizedFeed
+        topic={selectedSubject ?? undefined}
+        compact={false}
+        className="mb-2"
+      />
 
       {/* Subject Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
