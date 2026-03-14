@@ -19,6 +19,24 @@
 
 export type LearnerRole = 'student' | 'teacher' | 'parent' | 'self_learner' | 'coach';
 
+// Extended LearnerProfile additions (non-breaking)
+export interface LearnerProfileExtended extends LearnerProfile {
+  // Gamification snapshot
+  xp?: number;
+  level?: number;
+  // Mood signal
+  currentMood?: string;
+  // Readiness score
+  readinessScore?: number;
+  // Student persona tier
+  personaTier?: string;
+  // Emotional state from studentPersonaEngine
+  emotionalState?: string;
+}
+
+// New fields on OrchestratorDecision (non-breaking — optional)
+// Stored via declaration merging below.
+
 export type ExamPhase =
   | 'discovery'      // >180 days: exploring, deciding
   | 'foundation'     // 90–180 days: building basics
@@ -129,6 +147,60 @@ export interface OrchestratorDecision {
 
   // Agent signals to emit
   signals: Record<string, unknown>;
+
+  // ── Extended fields (bidirectional wiring v2) ──────────────────────────────
+
+  /** SubTopic Bible context injected for the chosen topic */
+  bibleContext?: {
+    subTopics: string[];
+    commonMistakes: string[];
+    prerequisites: string[];
+    examWeight: number;
+  };
+
+  /** Layered content metadata (mandatory + personalized layer summary) */
+  layeredContentMeta?: {
+    mandatoryCompleteness: number;
+    personalizationDepth: string;
+    tier: string;
+  };
+
+  /** ContentPersonaEngine context for Sage/Atlas prompt injection */
+  personaContext?: {
+    learningStyle: string;
+    objective: string;
+    cognitiveTier: string;
+    cognitiveLoad: string;
+    daysToExam: number;
+  };
+
+  /** Gamification snapshot at time of decision */
+  gamificationSnapshot?: {
+    xp: number;
+    level: number;
+    streak: number;
+    rank: string;
+  };
+
+  /** Current readiness score at time of decision */
+  readinessScore?: number;
+
+  /** Current mood at time of decision */
+  currentMood?: string;
+
+  /** Suggested template from TemplateRegistry */
+  suggestedTemplate?: {
+    key: string;
+    id: string;
+  } | null;
+
+  /** Feature flags state snapshot (which services were active) */
+  featureFlagsSnapshot?: {
+    gamificationEnabled: boolean;
+    spacedRepetitionEnabled: boolean;
+    readinessScoreEnabled: boolean;
+    moodCheckInEnabled: boolean;
+  };
 }
 
 interface OutcomeRecord {
@@ -164,11 +236,63 @@ const LS = {
   MENTOR_NUDGE:          'orchestrator:mentor_nudge',
   ORACLE_EVENT:          'orchestrator:oracle_event',
   SCOUT_PRIORITY:        'orchestrator:scout_priority',
+  HERALD_CAMPAIGN:       'orchestrator:herald_campaign',
+  SUBTOPIC_BIBLE_UPDATE: 'orchestrator:bible_update',
+  GAMIFICATION_SESSION:  'orchestrator:gamification_session',
+  SR_LESSON_COMPLETE:    'orchestrator:sr_lesson_complete',
 
   // Inbound signals (FROM agents)
   SAGE_OUTCOME:          'sage:session_outcome',
   ATLAS_READY:           'atlas:content_ready',
+
+  // Feature flag keys (from appStore persisted state)
+  APP_STORE_KEY:         'edugenius-storage',
 } as const;
+
+// ─── Feature flags reader (reads from appStore persisted localStorage) ────────
+
+interface AppFeatureFlags {
+  gamificationEnabled: boolean;
+  spacedRepetitionEnabled: boolean;
+  readinessScoreEnabled: boolean;
+  moodCheckInEnabled: boolean;
+}
+
+function readFeatureFlags(): AppFeatureFlags {
+  const defaults: AppFeatureFlags = {
+    gamificationEnabled: true,
+    spacedRepetitionEnabled: true,
+    readinessScoreEnabled: true,
+    moodCheckInEnabled: true,
+  };
+  try {
+    const raw = localStorage.getItem(LS.APP_STORE_KEY);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw) as { state?: Partial<AppFeatureFlags> };
+    const state = parsed.state ?? {};
+    return {
+      gamificationEnabled:    state.gamificationEnabled    ?? defaults.gamificationEnabled,
+      spacedRepetitionEnabled: state.spacedRepetitionEnabled ?? defaults.spacedRepetitionEnabled,
+      readinessScoreEnabled:  state.readinessScoreEnabled  ?? defaults.readinessScoreEnabled,
+      moodCheckInEnabled:     state.moodCheckInEnabled     ?? defaults.moodCheckInEnabled,
+    };
+  } catch { return defaults; }
+}
+
+// ─── Extended profile cache (populated by buildLearnerProfile, read by orchestrateSession) ──
+
+interface _ExtendedProfileCache {
+  gamificationXP: number;
+  gamificationLevel: number;
+  readinessScore: number | undefined;
+  currentMood: string | undefined;
+  personaEmotionalState: string;
+  personaTier: string;
+  flags: AppFeatureFlags;
+}
+
+// Module-level cache — last build result
+let _lastExtendedCache: _ExtendedProfileCache | null = null;
 
 // ─── Phase thresholds (editable via Orchestration Rules tab) ─────────────────
 
@@ -288,36 +412,139 @@ export function buildLearnerProfile(userId: string, examId: string): LearnerProf
     if (raw) sessionCount = Number(raw) || 0;
   } catch { /* ignore */ }
 
-  // 5. Spaced rep due topics
+  // 4b. StudentPersonaEngine — read live persona for emotional state + tier
+  // Uses the same localStorage key as loadPersona() — safe direct read
+  let personaEmotionalState: string = 'neutral';
+  let personaTier: string = 'average';
+  let personaLearningStyle: string | undefined;
+  let personaDaysToExam: number | undefined;
+  try {
+    const personaRaw = localStorage.getItem('edugenius_student_persona');
+    if (personaRaw) {
+      const personaParsed = JSON.parse(personaRaw) as {
+        emotionalState?: string;
+        tier?: string;
+        learningStyle?: string;
+        daysToExam?: number;
+      };
+      personaEmotionalState = personaParsed.emotionalState ?? 'neutral';
+      personaTier = personaParsed.tier ?? 'average';
+      personaLearningStyle = personaParsed.learningStyle;
+      if (typeof personaParsed.daysToExam === 'number' && personaParsed.daysToExam > 0) {
+        personaDaysToExam = personaParsed.daysToExam;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 5. Spaced rep due topics — localStorage read (sync, safe)
+  const flags = readFeatureFlags();
   let nextReviewTopics: string[] = [];
-  try {
-    const raw = localStorage.getItem(LS.SPACED_REP_QUEUE);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Array<{ topicId?: string } | string>;
-      nextReviewTopics = parsed.map(p => (typeof p === 'string' ? p : p.topicId ?? '')).filter(Boolean);
-    }
-  } catch { /* ignore */ }
+  if (flags.spacedRepetitionEnabled) {
+    try {
+      const raw = localStorage.getItem(LS.SPACED_REP_QUEUE);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Array<{ topicId?: string } | string>;
+        nextReviewTopics = parsed.map(p => (typeof p === 'string' ? p : p.topicId ?? '')).filter(Boolean);
+      }
+    } catch { /* ignore */ }
 
-  // 6. Cognitive load — estimate from mentor engagement signal
+    // Also read from spacedRepetitionEngine's own key (eg_sr_cards_v2)
+    try {
+      const srRaw = localStorage.getItem('eg_sr_cards_v2');
+      if (srRaw) {
+        const srCards = JSON.parse(srRaw) as Array<{ topic?: string; nextReview?: number }>;
+        const now = Date.now();
+        const dueTopics = srCards
+          .filter(c => (c.nextReview ?? 0) <= now)
+          .map(c => (c.topic ?? '').replace(/\s+/g, '_').toLowerCase())
+          .filter(Boolean);
+        nextReviewTopics = [...new Set([...nextReviewTopics, ...dueTopics])];
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 6. Cognitive load — primary: MoodCheckIn (eg_mood_today key); fallback: mentor engagement signal
   let cognitiveLoad: 'low' | 'medium' | 'high' = 'medium';
-  try {
-    const raw = localStorage.getItem(LS.MENTOR_ENGAGEMENT);
-    if (raw) {
-      const signal = JSON.parse(raw) as { fatigue?: string; load?: string };
-      if (signal.fatigue === 'high' || signal.load === 'high') cognitiveLoad = 'high';
-      else if (signal.fatigue === 'low' || signal.load === 'low') cognitiveLoad = 'low';
-    }
-  } catch { /* ignore */ }
+  let currentMood: string | undefined;
 
-  // Days to exam
-  const daysToExam = (persona.daysToExam as number) ?? 90;
+  if (flags.moodCheckInEnabled) {
+    try {
+      const moodRaw = localStorage.getItem('eg_mood_today');
+      if (moodRaw) {
+        const moodEntry = JSON.parse(moodRaw) as { mood?: string; timestamp?: number };
+        // Expire after 8 hours
+        if (moodEntry.mood && Date.now() - (moodEntry.timestamp ?? 0) < 28800000) {
+          currentMood = moodEntry.mood;
+          if (moodEntry.mood === 'tired' || moodEntry.mood === 'frustrated') cognitiveLoad = 'high';
+          else if (moodEntry.mood === 'energised' || moodEntry.mood === 'focused') cognitiveLoad = 'low';
+          else cognitiveLoad = 'medium';
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Supplement with mentor engagement signal (does not override mood)
+  if (!currentMood) {
+    try {
+      const raw = localStorage.getItem(LS.MENTOR_ENGAGEMENT);
+      if (raw) {
+        const signal = JSON.parse(raw) as { fatigue?: string; load?: string };
+        if (signal.fatigue === 'high' || signal.load === 'high') cognitiveLoad = 'high';
+        else if (signal.fatigue === 'low' || signal.load === 'low') cognitiveLoad = 'low';
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 6b. Gamification — read XP/level from gamification profile key
+  let gamificationXP = 0;
+  let gamificationLevel = 1;
+  if (flags.gamificationEnabled) {
+    try {
+      const gRaw = localStorage.getItem('eg_gamification_profile');
+      if (gRaw) {
+        const gProfile = JSON.parse(gRaw) as { xp?: number; level?: number };
+        gamificationXP = gProfile.xp ?? 0;
+        gamificationLevel = gProfile.level ?? 1;
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 6c. Readiness score (read cached value)
+  let readinessScore: number | undefined;
+  if (flags.readinessScoreEnabled) {
+    try {
+      const yesterday = localStorage.getItem('eg_readiness_yesterday');
+      if (yesterday) readinessScore = parseInt(yesterday, 10) || undefined;
+    } catch { /* ignore */ }
+  }
+
+  // Store extended data in module-level cache for orchestrateSession to consume
+  _lastExtendedCache = {
+    gamificationXP,
+    gamificationLevel,
+    readinessScore,
+    currentMood,
+    personaEmotionalState,
+    personaTier,
+    flags,
+  };
+
+  // Days to exam — prefer live persona over stored persona
+  const daysToExam = personaDaysToExam ?? ((persona.daysToExam as number) ?? 90);
   const examPhase = inferExamPhase(daysToExam);
 
-  // Learning style
-  const rawStyle = (persona.learningStyle as string) ?? 'mixed';
+  // Learning style — prefer studentPersonaEngine, fall back to stored persona
+  const rawStyleFromPersona = personaLearningStyle ?? (persona.learningStyle as string) ?? 'mixed';
+  // Map studentPersonaEngine hyphenated/different styles to orchestrator enum
+  const mappedStyle =
+    rawStyleFromPersona === 'practice-first' ? 'practice_first' :
+    rawStyleFromPersona === 'story-driven'   ? 'conceptual'     :
+    rawStyleFromPersona === 'analytical'     ? 'conceptual'     :
+    rawStyleFromPersona === 'auditory'       ? 'mixed'          :
+    rawStyleFromPersona;
   const learningStyle: LearnerProfile['learningStyle'] =
-    ['visual', 'conceptual', 'practice_first', 'mixed'].includes(rawStyle)
-      ? (rawStyle as LearnerProfile['learningStyle'])
+    ['visual', 'conceptual', 'practice_first', 'mixed'].includes(mappedStyle)
+      ? (mappedStyle as LearnerProfile['learningStyle'])
       : 'mixed';
 
   // Role
@@ -872,23 +1099,27 @@ function buildAdaptationHints(
 
 /**
  * Emit signals to all connected agents via localStorage.
+ * Respects feature flags so disabled features are never signalled.
  */
 export function emitOrchestratorSignals(decision: OrchestratorDecision): void {
   const { objective, contentDecision, learnerProfile } = decision;
+  const flags = decision.featureFlagsSnapshot ?? readFeatureFlags();
 
-  // → Sage: inject prompt directive
+  // → Sage: inject prompt directive (includes bible + persona context)
   if (contentDecision.agentId === 'sage') {
     localStorage.setItem(LS.SAGE_DIRECTIVE, JSON.stringify({
       objective: objective.type,
       topicFocus: objective.topicName,
       difficulty: objective.difficulty,
       promptAdd: contentDecision.promptDirectives.join('\n'),
+      bibleContext: decision.bibleContext ?? null,
+      personaContext: decision.personaContext ?? null,
       sessionId: decision.sessionId,
       timestamp: decision.timestamp,
     }));
   }
 
-  // → Atlas: content generation request
+  // → Atlas: content generation request (includes bible + layered content meta)
   if (contentDecision.agentId === 'atlas') {
     localStorage.setItem(LS.ATLAS_TASK, JSON.stringify({
       examId: learnerProfile.examId,
@@ -897,23 +1128,27 @@ export function emitOrchestratorSignals(decision: OrchestratorDecision): void {
       format: contentDecision.format,
       mode: contentDecision.mode,
       difficulty: objective.difficulty,
+      bibleContext: decision.bibleContext ?? null,
+      layeredContentMeta: decision.layeredContentMeta ?? null,
+      suggestedTemplate: decision.suggestedTemplate ?? null,
       sessionId: decision.sessionId,
       timestamp: decision.timestamp,
     }));
   }
 
-  // → Mentor: engagement signal
+  // → Mentor: engagement signal (includes mood + emotional state)
   localStorage.setItem(LS.MENTOR_NUDGE, JSON.stringify({
     userId: learnerProfile.userId,
     streakDays: learnerProfile.streakDays,
     phase: learnerProfile.examPhase,
     cognitiveLoad: learnerProfile.cognitiveLoad,
+    currentMood: decision.currentMood ?? null,
     objective: objective.type,
     sessionId: decision.sessionId,
     timestamp: decision.timestamp,
   }));
 
-  // → Oracle: analytics event
+  // → Oracle: analytics event (includes readiness + gamification)
   localStorage.setItem(LS.ORACLE_EVENT, JSON.stringify({
     event: 'orchestrator_decision',
     userId: learnerProfile.userId,
@@ -924,6 +1159,8 @@ export function emitOrchestratorSignals(decision: OrchestratorDecision): void {
     channel: contentDecision.channel,
     agentId: contentDecision.agentId,
     tierTarget: contentDecision.tierTarget,
+    readinessScore: decision.readinessScore ?? null,
+    gamificationSnapshot: decision.gamificationSnapshot ?? null,
     sessionId: decision.sessionId,
     timestamp: decision.timestamp,
   }));
@@ -937,6 +1174,61 @@ export function emitOrchestratorSignals(decision: OrchestratorDecision): void {
     sessionId: decision.sessionId,
     timestamp: decision.timestamp,
   }));
+
+  // → Herald: campaign hint (only emitted in sprint/exam_week phases)
+  const { examPhase, daysToExam } = learnerProfile;
+  if (examPhase === 'sprint' || examPhase === 'exam_week') {
+    const urgencyScore = Math.min(1, Math.max(0, 1 - daysToExam / 21));
+    const suggestedCampaignType =
+      daysToExam <= 3  ? 'last_chance_urgency' :
+      daysToExam <= 7  ? 'exam_week_checklist'  :
+      'sprint_revision';
+    localStorage.setItem(LS.HERALD_CAMPAIGN, JSON.stringify({
+      topicId: objective.topicId,
+      phase: examPhase,
+      urgencyScore,
+      suggestedCampaignType,
+      examId: learnerProfile.examId,
+      daysToExam,
+      sessionId: decision.sessionId,
+      timestamp: decision.timestamp,
+    }));
+  }
+
+  // → SubTopic Bible: update orchestration data for this topic
+  try {
+    const { updateBibleOrchestrationData } = require('./subTopicBibleService') as typeof import('./subTopicBibleService');
+    updateBibleOrchestrationData(learnerProfile.examId, objective.topicId, {
+      lastOrchestrationSessionId: decision.sessionId,
+      lastOrchestrationTs: decision.timestamp,
+      lastObjectiveType: objective.type,
+      lastPhase: examPhase,
+    });
+  } catch { /* ignore — non-fatal */ }
+
+  // → Gamification signal bus (only if feature enabled)
+  if (flags.gamificationEnabled) {
+    localStorage.setItem(LS.GAMIFICATION_SESSION, JSON.stringify({
+      event: 'orchestrator_session_started',
+      userId: learnerProfile.userId,
+      examId: learnerProfile.examId,
+      objectiveType: objective.type,
+      sessionId: decision.sessionId,
+      timestamp: decision.timestamp,
+    }));
+  }
+
+  // → SpacedRepetition: emit bible update key (lesson started — not completed yet)
+  if (flags.spacedRepetitionEnabled) {
+    localStorage.setItem(LS.SR_LESSON_COMPLETE, JSON.stringify({
+      event: 'lesson_started',
+      topicId: objective.topicId,
+      examId: learnerProfile.examId,
+      userId: learnerProfile.userId,
+      sessionId: decision.sessionId,
+      timestamp: decision.timestamp,
+    }));
+  }
 }
 
 // ─── orchestrateSession ───────────────────────────────────────────────────────
@@ -944,6 +1236,7 @@ export function emitOrchestratorSignals(decision: OrchestratorDecision): void {
 /**
  * PRIMARY ENTRY POINT.
  * Runs the full orchestration pipeline for a user session.
+ * Bidirectionally wired to ALL agents, services, and feature flags.
  */
 export async function orchestrateSession(
   userId: string,
@@ -952,20 +1245,171 @@ export async function orchestrateSession(
 ): Promise<OrchestratorDecision> {
   const sessionId = `orch-${userId}-${Date.now()}`;
 
-  // Build learner profile
+  // ── 1. Build learner profile (sync — reads from localStorage) ────────────
   const learnerProfile = buildLearnerProfile(userId, examId);
   if (channel) learnerProfile.preferredChannel = channel;
 
-  // Select learning objective
+  // Grab the extended cache populated by buildLearnerProfile
+  const extCache = _lastExtendedCache;
+  const flags = extCache?.flags ?? readFeatureFlags();
+
+  // ── 2. SubTopic Bible — inject bible context for chosen topic ────────────
+  let bibleContext: OrchestratorDecision['bibleContext'];
+  try {
+    const bibleModule = await import('./subTopicBibleService');
+    const entry = bibleModule.getBibleEntry(examId, '_placeholder_'); // will be replaced after objective selection
+    void entry; // resolved after objective is selected below
+  } catch { /* ignore */ }
+
+  // ── 3. Select learning objective ──────────────────────────────────────────
   const objective = selectLearningObjective(learnerProfile);
 
-  // Decide content
+  // ── 3b. Now load bible context for the selected topic ─────────────────────
+  try {
+    const bibleModule = await import('./subTopicBibleService');
+    const entry = bibleModule.getBibleEntry(examId, objective.topicId);
+    if (entry) {
+      bibleContext = {
+        subTopics: entry.subTopics,
+        commonMistakes: entry.commonMistakes,
+        prerequisites: entry.prerequisites,
+        examWeight: entry.examWeight,
+      };
+      // Inject bible common mistakes into prompt directives
+      if (entry.commonMistakes.length > 0) {
+        // Will be merged into contentDecision.promptDirectives after decideContent
+      }
+    }
+  } catch { /* ignore */ }
+
+  // ── 4. Decide content ─────────────────────────────────────────────────────
   const contentDecision = decideContent(learnerProfile, objective);
 
-  // Build adaptation hints
+  // Inject bible mistakes into prompt directives
+  if (bibleContext?.commonMistakes.length) {
+    contentDecision.promptDirectives.push(
+      `avoid_mistakes: ${bibleContext.commonMistakes.slice(0, 3).join('; ')}`
+    );
+  }
+
+  // ── 5. ContentPersonaEngine — build persona context ───────────────────────
+  let personaContext: OrchestratorDecision['personaContext'];
+  try {
+    const cpeModule = await import('./contentPersonaEngine');
+    // Map orchestrator learning style to contentPersonaEngine format
+    const cpeStyle =
+      learnerProfile.learningStyle === 'practice_first' ? 'practice_first' :
+      learnerProfile.learningStyle === 'conceptual'     ? 'analytical'     :
+      (learnerProfile.learningStyle as import('./contentPersonaEngine').LearningStyle);
+
+    const cpeObjective: import('./contentPersonaEngine').LearningObjective =
+      learnerProfile.daysToExam <= 7  ? 'quick_revision'  :
+      learnerProfile.daysToExam <= 30 ? 'exam_readiness'  :
+      objective.type === 'fix_misconception' ? 'doubt_clearing' :
+      'conceptual_understanding';
+
+    const cpeTier: import('./contentPersonaEngine').CognitiveTier =
+      extCache?.personaTier === 'advanced'  ? 'advanced'   :
+      extCache?.personaTier === 'good'      ? 'proficient' :
+      extCache?.personaTier === 'struggling'? 'foundational' :
+      'developing';
+
+    const cogLoad: import('./contentPersonaEngine').PersonaContext['cognitiveLoad'] =
+      learnerProfile.cognitiveLoad === 'high' ? 'high' :
+      learnerProfile.cognitiveLoad === 'low'  ? 'low'  :
+      'medium';
+
+    personaContext = {
+      learningStyle:  cpeStyle,
+      objective:      cpeObjective,
+      cognitiveTier:  cpeTier,
+      cognitiveLoad:  cogLoad,
+      daysToExam:     learnerProfile.daysToExam,
+    };
+
+    // Inject persona directives into content promptDirectives
+    const styleDirective = cpeModule.buildLearningStyleDirective(cpeStyle, contentDecision.channel === 'in_app_chat' ? 'web' : contentDecision.channel as string);
+    if (styleDirective) {
+      contentDecision.promptDirectives.push(`persona_style: ${cpeStyle}`);
+    }
+  } catch { /* ignore — non-fatal */ }
+
+  // ── 6. ContentLayerService — get layered content metadata ─────────────────
+  let layeredContentMeta: OrchestratorDecision['layeredContentMeta'];
+  try {
+    const clsModule = await import('./contentLayerService');
+    const cpeModule2 = await import('./contentPersonaEngine');
+
+    // Build a minimal PersonaContext for getLayeredContent
+    const minPersonaCtx: import('./contentPersonaEngine').PersonaContext = {
+      learningStyle: (personaContext?.learningStyle as import('./contentPersonaEngine').LearningStyle) ?? 'unknown',
+      objective: (personaContext?.objective as import('./contentPersonaEngine').LearningObjective) ?? 'conceptual_understanding',
+      cognitiveTier: (personaContext?.cognitiveTier as import('./contentPersonaEngine').CognitiveTier) ?? 'developing',
+      cognitiveLoad: (personaContext?.cognitiveLoad as import('./contentPersonaEngine').PersonaContext['cognitiveLoad']) ?? 'medium',
+      streakDays: learnerProfile.streakDays,
+      daysToExam: learnerProfile.daysToExam,
+      studyTimePattern: 'afternoon',
+      examId,
+      examName: examId,
+      topic: objective.topicId,
+      topicWeight: bibleContext?.examWeight ?? 0.5,
+      topicMasteryPct: Math.round((learnerProfile.topicMastery.find(t => t.topicId === objective.topicId)?.masteryScore ?? 0) * 100),
+      format: 'lesson_notes',
+      difficulty: objective.difficulty,
+      channel: 'web',
+    };
+
+    void cpeModule2; // used above for PersonaContext type
+    const surfaceId = 'web' as import('./contentTierService').DeliverySurface;
+
+    // Non-blocking: call with a timeout-style try
+    const layered = await clsModule.getLayeredContent(examId, objective.topicId, minPersonaCtx, surfaceId);
+    layeredContentMeta = {
+      mandatoryCompleteness: layered.mandatoryCompleteness,
+      personalizationDepth:  layered.personalizationDepth,
+      tier:                  layered.generationTrace.tier,
+    };
+  } catch { /* ignore — non-fatal, layered content is supplementary */ }
+
+  // ── 7. TemplateRegistry — suggest best template ────────────────────────────
+  let suggestedTemplate: OrchestratorDecision['suggestedTemplate'] = null;
+  try {
+    const { resolveTemplate } = await import('./templateRegistry');
+    const styleForTemplate = personaContext?.learningStyle ?? learnerProfile.learningStyle;
+    const objForTemplate =
+      objective.type === 'fix_misconception' ? 'doubt_clearing' :
+      objective.type === 'assess_readiness'  ? 'exam_readiness' :
+      objective.type === 'revision'          ? 'quick_revision' :
+      objective.type === 'build_speed'       ? 'exam_readiness' :
+      'conceptual_understanding';
+
+    const match = resolveTemplate(examId, objective.topicName, styleForTemplate, objForTemplate);
+    if (match) {
+      suggestedTemplate = { key: match.key, id: match.override.id };
+    }
+  } catch { /* ignore */ }
+
+  // ── 8. Gamification snapshot ───────────────────────────────────────────────
+  let gamificationSnapshot: OrchestratorDecision['gamificationSnapshot'];
+  if (flags.gamificationEnabled) {
+    try {
+      const gRaw = localStorage.getItem('eg_gamification_profile');
+      if (gRaw) {
+        const gProfile = JSON.parse(gRaw) as { xp?: number; level?: number; streak?: number; rank?: string };
+        gamificationSnapshot = {
+          xp:     gProfile.xp     ?? 0,
+          level:  gProfile.level  ?? 1,
+          streak: gProfile.streak ?? 0,
+          rank:   gProfile.rank   ?? 'Novice',
+        };
+      }
+    } catch { /* ignore */ }
+  }
+
+  // ── 9. Build adaptation hints ─────────────────────────────────────────────
   const adaptationHints = buildAdaptationHints(learnerProfile, objective);
 
-  // Assemble decision
+  // ── 10. Assemble decision (all fields) ────────────────────────────────────
   let decision: OrchestratorDecision = {
     sessionId,
     userId,
@@ -975,18 +1419,71 @@ export async function orchestrateSession(
     contentDecision,
     adaptationHints,
     signals: {},
+
+    // ── New bidirectional fields ────────────────────────────────────────────
+    bibleContext,
+    layeredContentMeta,
+    personaContext,
+    gamificationSnapshot,
+    readinessScore:  extCache?.readinessScore,
+    currentMood:     extCache?.currentMood,
+    suggestedTemplate,
+    featureFlagsSnapshot: {
+      gamificationEnabled:     flags.gamificationEnabled,
+      spacedRepetitionEnabled: flags.spacedRepetitionEnabled,
+      readinessScoreEnabled:   flags.readinessScoreEnabled,
+      moodCheckInEnabled:      flags.moodCheckInEnabled,
+    },
   };
 
-  // Apply role overrides
+  // ── 11. Apply role overrides ───────────────────────────────────────────────
   decision = applyRoleOverrides(decision, learnerProfile.role);
 
-  // Emit signals
+  // ── 12. Emit signals to all connected services ────────────────────────────
   emitOrchestratorSignals(decision);
 
-  // Sync state
+  // ── 13. Emit signalBus event (gamification XP trigger) ───────────────────
+  if (flags.gamificationEnabled) {
+    try {
+      const { enqueueSignal } = await import('./persistenceDB');
+      await enqueueSignal({
+        type: 'XP_MILESTONE',
+        sourceAgent: 'orchestrator' as Parameters<typeof enqueueSignal>[0]['sourceAgent'],
+        targetAgent: 'mentor',
+        payload: {
+          event: 'orchestrator_session_started',
+          userId,
+          examId,
+          objectiveType: objective.type,
+          sessionId,
+        },
+        studentId: userId,
+      });
+    } catch { /* ignore — signalBus is best-effort */ }
+  }
+
+  // ── 14. Update module-level cache for signal status tracking ─────────────
+  _lastExamIdCache = examId;
+
+  // Emit lightweight status signals for the connections tab
+  try {
+    localStorage.setItem('orchestrator:content_layer_request', JSON.stringify({ timestamp: decision.timestamp, examId, topicId: objective.topicId }));
+    localStorage.setItem('orchestrator:persona_context', JSON.stringify({ timestamp: decision.timestamp, ...(personaContext ?? {}) }));
+    if (suggestedTemplate) {
+      localStorage.setItem('orchestrator:template_match', JSON.stringify({ timestamp: decision.timestamp, ...suggestedTemplate }));
+    }
+    if (flags.readinessScoreEnabled) {
+      localStorage.setItem('orchestrator:readiness_invalidate', JSON.stringify({ timestamp: decision.timestamp }));
+    }
+    if (flags.moodCheckInEnabled) {
+      localStorage.setItem('orchestrator:mood_read', JSON.stringify({ timestamp: decision.timestamp, mood: extCache?.currentMood ?? null }));
+    }
+  } catch { /* ignore */ }
+
+  // ── 16. Sync state ────────────────────────────────────────────────────────
   syncOrchestratorState(decision);
 
-  // Save to history
+  // ── 17. Save to history ───────────────────────────────────────────────────
   _appendToHistory(userId, decision);
 
   return decision;
@@ -996,6 +1493,7 @@ export async function orchestrateSession(
 
 /**
  * Feedback loop — record outcome of last orchestrator decision.
+ * Also notifies SpacedRepetition and ReadinessScore services.
  */
 export function recordOutcome(
   sessionId: string,
@@ -1025,6 +1523,46 @@ export function recordOutcome(
     ...outcome,
     timestamp: Date.now(),
   }));
+
+  const flags = readFeatureFlags();
+
+  // Emit lesson-complete signal to SpacedRepetition service
+  if (flags.spacedRepetitionEnabled && outcome.completed) {
+    try {
+      localStorage.setItem(LS.SR_LESSON_COMPLETE, JSON.stringify({
+        event: 'lesson_completed',
+        sessionId,
+        completed: outcome.completed,
+        correctAnswers: outcome.correctAnswers ?? 0,
+        totalAnswers: outcome.totalAnswers ?? 0,
+        timestamp: Date.now(),
+      }));
+    } catch { /* ignore */ }
+  }
+
+  // Trigger readiness score recalculation (invalidate cache)
+  if (flags.readinessScoreEnabled && outcome.completed) {
+    try {
+      // Remove yesterday's cached score so it gets recomputed on next read
+      localStorage.removeItem('eg_readiness_yesterday');
+    } catch { /* ignore */ }
+  }
+
+  // Award gamification XP for completed session (fire-and-forget via localStorage)
+  if (flags.gamificationEnabled && outcome.completed) {
+    try {
+      const correctRatio = outcome.totalAnswers
+        ? (outcome.correctAnswers ?? 0) / outcome.totalAnswers
+        : 0.5;
+      const xpEvent = correctRatio >= 0.8 ? 'topic_complete' : 'daily_goal';
+      localStorage.setItem('orchestrator:gamification_xp', JSON.stringify({
+        event: xpEvent,
+        sessionId,
+        correctRatio,
+        timestamp: Date.now(),
+      }));
+    } catch { /* ignore */ }
+  }
 }
 
 // ─── getDecisionHistory ───────────────────────────────────────────────────────
@@ -1586,71 +2124,88 @@ export function loadOutlineFromStorage(): CourseSummaryOutline | null {
 
 export interface AgentSignalStatus {
   agentId: string;
+  label?: string;           // display name (optional, defaults to agentId)
   outboundKey: string;
   inboundKey?: string;
   lastOutboundTs?: number;
   lastInboundTs?: number;
-  outboundStatus: 'live' | 'silent' | 'error';
-  inboundStatus: 'live' | 'silent' | 'unknown';
+  outboundStatus: 'live' | 'silent' | 'error' | 'disabled';
+  inboundStatus: 'live' | 'silent' | 'unknown' | 'disabled';
+  isFeatureFlag?: boolean;  // true if this row represents a feature flag gate
+  featureEnabled?: boolean; // whether the feature flag is on
 }
 
 export function getAgentSignalStatuses(): AgentSignalStatus[] {
   const now = Date.now();
   const MAX_AGE = 3600000; // 1 hour
+  const flags = readFeatureFlags();
 
   const readTs = (key: string): number | undefined => {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return undefined;
-      const parsed = JSON.parse(raw) as { timestamp?: number; ts?: number };
-      return parsed.timestamp ?? parsed.ts ?? now - 500;
+      const parsed = JSON.parse(raw) as { timestamp?: number; ts?: number; updatedAt?: number };
+      return parsed.timestamp ?? parsed.ts ?? parsed.updatedAt ?? now - 500;
     } catch { return undefined; }
   };
 
-  const statusOf = (ts: number | undefined): 'live' | 'silent' | 'error' => {
+  const statusOf = (ts: number | undefined, featureEnabled = true): 'live' | 'silent' | 'error' | 'disabled' => {
+    if (!featureEnabled) return 'disabled';
     if (!ts) return 'silent';
     return (now - ts) < MAX_AGE ? 'live' : 'silent';
   };
 
+  const inStatusOf = (ts: number | undefined, featureEnabled = true): 'live' | 'silent' | 'unknown' | 'disabled' => {
+    if (!featureEnabled) return 'disabled';
+    if (ts === undefined) return 'unknown';
+    return (now - ts) < MAX_AGE ? 'live' : 'silent';
+  };
+
   return [
+    // ── Core Agents ──────────────────────────────────────────────────────────
     {
       agentId: 'sage',
+      label: '🎓 Sage (Tutor)',
       outboundKey: LS.SAGE_DIRECTIVE,
       inboundKey: LS.SAGE_OUTCOME,
       lastOutboundTs: readTs(LS.SAGE_DIRECTIVE),
       lastInboundTs: readTs(LS.SAGE_OUTCOME),
       outboundStatus: statusOf(readTs(LS.SAGE_DIRECTIVE)),
-      inboundStatus: readTs(LS.SAGE_OUTCOME) ? 'live' : 'silent',
+      inboundStatus: inStatusOf(readTs(LS.SAGE_OUTCOME)),
     },
     {
       agentId: 'atlas',
+      label: '📚 Atlas (Content)',
       outboundKey: LS.ATLAS_TASK,
       inboundKey: LS.ATLAS_READY,
       lastOutboundTs: readTs(LS.ATLAS_TASK),
       lastInboundTs: readTs(LS.ATLAS_READY),
       outboundStatus: statusOf(readTs(LS.ATLAS_TASK)),
-      inboundStatus: readTs(LS.ATLAS_READY) ? 'live' : 'silent',
+      inboundStatus: inStatusOf(readTs(LS.ATLAS_READY)),
     },
     {
       agentId: 'mentor',
+      label: '👨🏫 Mentor (Engagement)',
       outboundKey: LS.MENTOR_NUDGE,
       inboundKey: LS.MENTOR_ENGAGEMENT,
       lastOutboundTs: readTs(LS.MENTOR_NUDGE),
       lastInboundTs: readTs(LS.MENTOR_ENGAGEMENT),
       outboundStatus: statusOf(readTs(LS.MENTOR_NUDGE)),
-      inboundStatus: readTs(LS.MENTOR_ENGAGEMENT) ? 'live' : 'silent',
+      inboundStatus: inStatusOf(readTs(LS.MENTOR_ENGAGEMENT)),
     },
     {
       agentId: 'oracle',
+      label: '📊 Oracle (Analytics)',
       outboundKey: LS.ORACLE_EVENT,
       inboundKey: LS.ORACLE_MASTERY_UPDATE,
       lastOutboundTs: readTs(LS.ORACLE_EVENT),
       lastInboundTs: readTs(LS.ORACLE_MASTERY_UPDATE),
       outboundStatus: statusOf(readTs(LS.ORACLE_EVENT)),
-      inboundStatus: readTs(LS.ORACLE_MASTERY_UPDATE) ? 'live' : 'silent',
+      inboundStatus: inStatusOf(readTs(LS.ORACLE_MASTERY_UPDATE)),
     },
     {
       agentId: 'scout',
+      label: '🔍 Scout (Intelligence)',
       outboundKey: LS.SCOUT_PRIORITY,
       inboundKey: undefined,
       lastOutboundTs: readTs(LS.SCOUT_PRIORITY),
@@ -1658,14 +2213,109 @@ export function getAgentSignalStatuses(): AgentSignalStatus[] {
       outboundStatus: statusOf(readTs(LS.SCOUT_PRIORITY)),
       inboundStatus: 'unknown',
     },
+    // ── Feature Connections ───────────────────────────────────────────────────
     {
       agentId: 'herald',
-      outboundKey: 'orchestrator:herald_campaign',
+      label: '📢 Herald (Campaigns)',
+      outboundKey: LS.HERALD_CAMPAIGN,
       inboundKey: undefined,
-      lastOutboundTs: readTs('orchestrator:herald_campaign'),
+      lastOutboundTs: readTs(LS.HERALD_CAMPAIGN),
       lastInboundTs: undefined,
-      outboundStatus: statusOf(readTs('orchestrator:herald_campaign')),
+      outboundStatus: statusOf(readTs(LS.HERALD_CAMPAIGN)),
+      inboundStatus: 'unknown',
+    },
+    {
+      agentId: 'subtopic_bible',
+      label: '📖 SubTopic Bible',
+      outboundKey: LS.SUBTOPIC_BIBLE_UPDATE,
+      inboundKey: `${BIBLE_LS_PREFIX_FOR_STATUS}${_lastExamIdCache}`,
+      lastOutboundTs: readTs(LS.SUBTOPIC_BIBLE_UPDATE),
+      lastInboundTs: _lastExamIdCache ? readTs(`${BIBLE_LS_PREFIX_FOR_STATUS}${_lastExamIdCache}`) : undefined,
+      outboundStatus: statusOf(readTs(LS.SUBTOPIC_BIBLE_UPDATE)),
+      inboundStatus: inStatusOf(_lastExamIdCache ? readTs(`${BIBLE_LS_PREFIX_FOR_STATUS}${_lastExamIdCache}`) : undefined),
+    },
+    {
+      agentId: 'content_layer',
+      label: '🧱 ContentLayer',
+      outboundKey: 'orchestrator:content_layer_request',
+      inboundKey: undefined,
+      lastOutboundTs: readTs('orchestrator:content_layer_request'),
+      lastInboundTs: undefined,
+      outboundStatus: statusOf(readTs('orchestrator:content_layer_request')),
+      inboundStatus: 'unknown',
+    },
+    {
+      agentId: 'persona_engine',
+      label: '🎭 ContentPersonaEngine',
+      outboundKey: 'orchestrator:persona_context',
+      inboundKey: 'edugenius_student_persona',
+      lastOutboundTs: readTs('orchestrator:persona_context'),
+      lastInboundTs: readTs('edugenius_student_persona'),
+      outboundStatus: statusOf(readTs('orchestrator:persona_context')),
+      inboundStatus: inStatusOf(readTs('edugenius_student_persona')),
+    },
+    {
+      agentId: 'gamification',
+      label: '🎮 Gamification',
+      outboundKey: LS.GAMIFICATION_SESSION,
+      inboundKey: 'eg_gamification_profile',
+      lastOutboundTs: readTs(LS.GAMIFICATION_SESSION),
+      lastInboundTs: readTs('eg_gamification_profile'),
+      outboundStatus: statusOf(readTs(LS.GAMIFICATION_SESSION), flags.gamificationEnabled),
+      inboundStatus: inStatusOf(readTs('eg_gamification_profile'), flags.gamificationEnabled),
+      isFeatureFlag: true,
+      featureEnabled: flags.gamificationEnabled,
+    },
+    {
+      agentId: 'spaced_rep',
+      label: '🔁 SpacedRepetition',
+      outboundKey: LS.SR_LESSON_COMPLETE,
+      inboundKey: 'eg_sr_cards_v2',
+      lastOutboundTs: readTs(LS.SR_LESSON_COMPLETE),
+      lastInboundTs: readTs('eg_sr_cards_v2'),
+      outboundStatus: statusOf(readTs(LS.SR_LESSON_COMPLETE), flags.spacedRepetitionEnabled),
+      inboundStatus: inStatusOf(readTs('eg_sr_cards_v2'), flags.spacedRepetitionEnabled),
+      isFeatureFlag: true,
+      featureEnabled: flags.spacedRepetitionEnabled,
+    },
+    {
+      agentId: 'readiness',
+      label: '📈 ReadinessScore',
+      outboundKey: 'orchestrator:readiness_invalidate',
+      inboundKey: 'eg_readiness_yesterday',
+      lastOutboundTs: readTs('orchestrator:readiness_invalidate'),
+      lastInboundTs: readTs('eg_readiness_yesterday'),
+      outboundStatus: statusOf(readTs('orchestrator:readiness_invalidate'), flags.readinessScoreEnabled),
+      inboundStatus: inStatusOf(readTs('eg_readiness_yesterday'), flags.readinessScoreEnabled),
+      isFeatureFlag: true,
+      featureEnabled: flags.readinessScoreEnabled,
+    },
+    {
+      agentId: 'mood',
+      label: '😊 MoodCheckIn',
+      outboundKey: 'orchestrator:mood_read',
+      inboundKey: 'eg_mood_today',
+      lastOutboundTs: readTs('orchestrator:mood_read'),
+      lastInboundTs: readTs('eg_mood_today'),
+      outboundStatus: statusOf(readTs('orchestrator:mood_read'), flags.moodCheckInEnabled),
+      inboundStatus: inStatusOf(readTs('eg_mood_today'), flags.moodCheckInEnabled),
+      isFeatureFlag: true,
+      featureEnabled: flags.moodCheckInEnabled,
+    },
+    {
+      agentId: 'template_registry',
+      label: '🗂️ TemplateRegistry',
+      outboundKey: 'orchestrator:template_match',
+      inboundKey: undefined,
+      lastOutboundTs: readTs('orchestrator:template_match'),
+      lastInboundTs: undefined,
+      outboundStatus: statusOf(readTs('orchestrator:template_match')),
       inboundStatus: 'unknown',
     },
   ];
 }
+
+// ─── Module-level constants used by getAgentSignalStatuses ───────────────────
+
+const BIBLE_LS_PREFIX_FOR_STATUS = 'edugenius_subtopic_bible_';
+let _lastExamIdCache = 'GATE_EM'; // updated by orchestrateSession

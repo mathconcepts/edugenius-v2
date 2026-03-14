@@ -167,14 +167,15 @@ function Badge({ label, color }: { label: string; color: string }) {
   );
 }
 
-function SignalStatusDot({ status }: { status: 'live' | 'silent' | 'error' | 'unknown' }) {
-  const colors = {
-    live:    'bg-emerald-400',
-    silent:  'bg-surface-500',
-    error:   'bg-red-400',
-    unknown: 'bg-yellow-400',
+function SignalStatusDot({ status }: { status: 'live' | 'silent' | 'error' | 'unknown' | 'disabled' }) {
+  const colors: Record<string, string> = {
+    live:     'bg-emerald-400',
+    silent:   'bg-surface-500',
+    error:    'bg-red-400',
+    unknown:  'bg-yellow-400',
+    disabled: 'bg-surface-700 opacity-40',
   };
-  return <span className={clsx('inline-block w-2 h-2 rounded-full', colors[status])} />;
+  return <span className={clsx('inline-block w-2 h-2 rounded-full', colors[status] ?? 'bg-surface-500')} />;
 }
 
 function DecisionCard({ decision }: { decision: OrchestratorDecision }) {
@@ -659,11 +660,13 @@ function AgentConnectionsTab() {
   const [statuses, setStatuses] = useState<AgentSignalStatus[]>([]);
   const [syncHealth, setSyncHealth] = useState<ReturnType<typeof auditContentSync> | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [now, setNow] = useState(Date.now());
 
   const refresh = useCallback(() => {
     setStatuses(getAgentSignalStatuses());
     setSyncHealth(auditContentSync());
     setLastRefresh(new Date());
+    setNow(Date.now());
   }, []);
 
   useEffect(() => {
@@ -678,10 +681,91 @@ function AgentConnectionsTab() {
     setTimeout(refresh, 500);
   };
 
+  // Split into core agents and feature connections
+  const coreAgents = statuses.filter(s => !s.isFeatureFlag && !['subtopic_bible','content_layer','persona_engine','template_registry'].includes(s.agentId));
+  const featureServices = statuses.filter(s => s.isFeatureFlag);
+  const engineConnections = statuses.filter(s => !s.isFeatureFlag && ['subtopic_bible','content_layer','persona_engine','template_registry'].includes(s.agentId));
+
+  const liveCount = statuses.filter(s => s.outboundStatus === 'live').length;
+  const silentCount = statuses.filter(s => s.outboundStatus === 'silent').length;
+  const disabledCount = statuses.filter(s => s.outboundStatus === 'disabled').length;
+
+  const renderRow = (s: AgentSignalStatus) => (
+    <tr key={s.agentId} className={clsx(
+      'hover:bg-surface-800/50 transition-colors',
+      s.featureEnabled === false && 'opacity-50',
+    )}>
+      <td className="py-2.5 pr-3">
+        <div className="flex items-center gap-1.5">
+          <span className="font-medium text-surface-100 text-xs">{s.label ?? s.agentId}</span>
+          {s.isFeatureFlag && (
+            <span className={clsx(
+              'px-1.5 py-0.5 rounded text-[10px] border font-medium',
+              s.featureEnabled
+                ? 'bg-emerald-900/30 text-emerald-300 border-emerald-700'
+                : 'bg-surface-700 text-surface-500 border-surface-600',
+            )}>
+              {s.featureEnabled ? 'ON' : 'OFF'}
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="py-2.5 pr-3">
+        <div className="flex items-center gap-1.5">
+          <SignalStatusDot status={s.outboundStatus} />
+          <span className={clsx(
+            'text-[11px]',
+            s.outboundStatus === 'live'    ? 'text-emerald-400' :
+            s.outboundStatus === 'disabled'? 'text-surface-600' :
+            'text-surface-500',
+          )}>
+            {s.outboundStatus}
+          </span>
+        </div>
+      </td>
+      <td className="py-2.5 pr-3">
+        <div className="flex items-center gap-1.5">
+          <SignalStatusDot status={s.inboundStatus} />
+          <span className={clsx(
+            'text-[11px]',
+            s.inboundStatus === 'live'    ? 'text-emerald-400' :
+            s.inboundStatus === 'disabled'? 'text-surface-600' :
+            'text-surface-500',
+          )}>
+            {s.inboundStatus}
+          </span>
+        </div>
+      </td>
+      <td className="py-2.5 pr-3 text-[11px] text-surface-500">
+        {s.lastOutboundTs
+          ? `${Math.round((now - s.lastOutboundTs) / 1000)}s ago`
+          : s.outboundStatus === 'disabled' ? 'disabled' : '—'}
+      </td>
+      <td className="py-2.5 text-[11px] text-surface-500">
+        {s.lastInboundTs
+          ? `${Math.round((now - s.lastInboundTs) / 1000)}s ago`
+          : '—'}
+      </td>
+      <td className="py-2.5">
+        <button
+          onClick={() => testSignal(s.agentId)}
+          disabled={s.featureEnabled === false}
+          className="px-2 py-0.5 bg-surface-700 hover:bg-surface-600 disabled:opacity-30 disabled:cursor-not-allowed rounded text-[11px] text-surface-300 transition-colors"
+        >
+          Test
+        </button>
+      </td>
+    </tr>
+  );
+
   return (
     <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-surface-200">Orchestrator ↔ Agent Signal Bus</h3>
+        <div>
+          <h3 className="text-sm font-semibold text-surface-200">Orchestrator ↔ All Connections</h3>
+          <p className="text-xs text-surface-500 mt-0.5">Bidirectional signal status — agents, services, feature flags</p>
+        </div>
         <button
           onClick={refresh}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs text-surface-300 transition-colors"
@@ -691,75 +775,87 @@ function AgentConnectionsTab() {
         </button>
       </div>
 
-      {lastRefresh && (
-        <p className="text-xs text-surface-500">Last refreshed: {lastRefresh.toLocaleTimeString()}</p>
-      )}
+      {/* Summary pills */}
+      <div className="flex items-center gap-3 text-xs">
+        {lastRefresh && (
+          <span className="text-surface-500">Refreshed {lastRefresh.toLocaleTimeString()}</span>
+        )}
+        <span className="flex items-center gap-1 text-emerald-400">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+          {liveCount} live
+        </span>
+        <span className="flex items-center gap-1 text-surface-500">
+          <span className="inline-block w-2 h-2 rounded-full bg-surface-500" />
+          {silentCount} silent
+        </span>
+        <span className="flex items-center gap-1 text-surface-600">
+          <span className="inline-block w-2 h-2 rounded-full bg-surface-700" />
+          {disabledCount} disabled
+        </span>
+      </div>
 
-      {/* Agent signal table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-surface-700 text-left">
-              <th className="pb-2 text-xs text-surface-400 font-medium">Agent</th>
-              <th className="pb-2 text-xs text-surface-400 font-medium">Outbound Signal</th>
-              <th className="pb-2 text-xs text-surface-400 font-medium">Out Status</th>
-              <th className="pb-2 text-xs text-surface-400 font-medium">Inbound Signal</th>
-              <th className="pb-2 text-xs text-surface-400 font-medium">In Status</th>
-              <th className="pb-2 text-xs text-surface-400 font-medium">Last Out</th>
-              <th className="pb-2 text-xs text-surface-400 font-medium">Test</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-surface-700/50">
-            {statuses.map(s => (
-              <tr key={s.agentId} className="hover:bg-surface-800/50 transition-colors">
-                <td className="py-3 pr-4">
-                  <span className="font-medium text-surface-100 capitalize">{s.agentId}</span>
-                </td>
-                <td className="py-3 pr-4">
-                  <code className="text-xs bg-surface-700 px-2 py-0.5 rounded text-primary-300">
-                    {s.outboundKey}
-                  </code>
-                </td>
-                <td className="py-3 pr-4">
-                  <div className="flex items-center gap-1.5">
-                    <SignalStatusDot status={s.outboundStatus} />
-                    <span className={clsx('text-xs', s.outboundStatus === 'live' ? 'text-emerald-400' : 'text-surface-500')}>
-                      {s.outboundStatus}
-                    </span>
-                  </div>
-                </td>
-                <td className="py-3 pr-4">
-                  {s.inboundKey ? (
-                    <code className="text-xs bg-surface-700 px-2 py-0.5 rounded text-purple-300">
-                      {s.inboundKey}
-                    </code>
-                  ) : (
-                    <span className="text-xs text-surface-600">—</span>
-                  )}
-                </td>
-                <td className="py-3 pr-4">
-                  <div className="flex items-center gap-1.5">
-                    <SignalStatusDot status={s.inboundStatus as 'live' | 'silent' | 'error' | 'unknown'} />
-                    <span className="text-xs text-surface-500">{s.inboundStatus}</span>
-                  </div>
-                </td>
-                <td className="py-3 pr-4 text-xs text-surface-500">
-                  {s.lastOutboundTs
-                    ? `${Math.round((Date.now() - s.lastOutboundTs) / 1000)}s ago`
-                    : '—'}
-                </td>
-                <td className="py-3">
-                  <button
-                    onClick={() => testSignal(s.agentId)}
-                    className="px-2 py-1 bg-surface-700 hover:bg-surface-600 rounded text-xs text-surface-300 transition-colors"
-                  >
-                    Test →
-                  </button>
-                </td>
+      {/* ── Core Agents ── */}
+      <div className="bg-surface-800 border border-surface-700 rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-surface-700 bg-surface-750">
+          <h4 className="text-xs font-semibold text-surface-300 uppercase tracking-wide">Core Agents</h4>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-surface-700/60 text-left">
+                {['Connection', 'Out →', '← In', 'Last Out', 'Last In', ''].map(h => (
+                  <th key={h} className="px-4 py-2 text-[11px] text-surface-500 font-medium">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-surface-700/40">
+              {coreAgents.map(renderRow)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Engine Connections ── */}
+      <div className="bg-surface-800 border border-surface-700 rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-surface-700 bg-surface-750">
+          <h4 className="text-xs font-semibold text-surface-300 uppercase tracking-wide">Service Engines</h4>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-surface-700/60 text-left">
+                {['Connection', 'Out →', '← In', 'Last Out', 'Last In', ''].map(h => (
+                  <th key={h} className="px-4 py-2 text-[11px] text-surface-500 font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-700/40">
+              {engineConnections.map(renderRow)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Feature Flag Gates ── */}
+      <div className="bg-surface-800 border border-surface-700 rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-surface-700 bg-surface-750 flex items-center justify-between">
+          <h4 className="text-xs font-semibold text-surface-300 uppercase tracking-wide">Feature-Gated Services</h4>
+          <span className="text-[10px] text-surface-500">Toggle in Settings → Advanced</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-surface-700/60 text-left">
+                {['Service', 'Out →', '← In', 'Last Out', 'Last In', ''].map(h => (
+                  <th key={h} className="px-4 py-2 text-[11px] text-surface-500 font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-700/40">
+              {featureServices.map(renderRow)}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Content Sync Health */}
@@ -792,31 +888,46 @@ function AgentConnectionsTab() {
         </div>
       )}
 
-      {/* Signal legend */}
+      {/* Signal catalogue */}
       <div className="bg-surface-800 border border-surface-700 rounded-xl p-4">
-        <h4 className="text-xs font-semibold text-surface-400 mb-3">SIGNAL DIRECTIONS</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <h4 className="text-xs font-semibold text-surface-400 mb-3">SIGNAL CATALOGUE (ALL 14 CONNECTIONS)</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           {[
-            { from: 'Orchestrator', to: 'Sage', key: 'orchestrator:sage_directive', desc: 'Prompt injection with objective + topic focus' },
-            { from: 'Sage', to: 'Orchestrator', key: 'sage:session_outcome', desc: 'Session result (correct/incorrect, time spent)' },
-            { from: 'Orchestrator', to: 'Atlas', key: 'orchestrator:atlas_task', desc: 'Content generation request (format + difficulty)' },
-            { from: 'Atlas', to: 'Orchestrator', key: 'atlas:content_ready', desc: 'Signals when content batch is available' },
-            { from: 'Orchestrator', to: 'Mentor', key: 'orchestrator:mentor_nudge', desc: 'Engagement nudge with cognitive load signal' },
-            { from: 'Mentor', to: 'Orchestrator', key: 'mentor:engagement_signal', desc: 'Student fatigue / engagement state' },
-            { from: 'Orchestrator', to: 'Oracle', key: 'orchestrator:oracle_event', desc: 'Decision analytics event for tracking' },
-            { from: 'Oracle', to: 'Orchestrator', key: 'oracle:mastery_update', desc: 'Updated mastery scores from BKT model' },
-            { from: 'Orchestrator', to: 'Scout', key: 'orchestrator:scout_priority', desc: 'Topic priority for content intelligence' },
+            { from: 'Orch', to: 'Sage',      key: 'orchestrator:sage_directive',    desc: 'Prompt injection + bible context + persona' },
+            { from: 'Sage', to: 'Orch',      key: 'sage:session_outcome',           desc: 'Session result (correct/time/feedback)' },
+            { from: 'Orch', to: 'Atlas',     key: 'orchestrator:atlas_task',        desc: 'Content gen request + template match' },
+            { from: 'Atlas',to: 'Orch',      key: 'atlas:content_ready',            desc: 'Content batch available signal' },
+            { from: 'Orch', to: 'Mentor',    key: 'orchestrator:mentor_nudge',      desc: 'Engagement nudge + mood signal' },
+            { from: 'Ment', to: 'Orch',      key: 'mentor:engagement_signal',       desc: 'Fatigue / engagement state' },
+            { from: 'Orch', to: 'Oracle',    key: 'orchestrator:oracle_event',      desc: 'Decision analytics + readiness snapshot' },
+            { from: 'Oracle',to:'Orch',      key: 'oracle:mastery_update',          desc: 'Updated mastery from BKT' },
+            { from: 'Orch', to: 'Scout',     key: 'orchestrator:scout_priority',    desc: 'Topic priority for intelligence' },
+            { from: 'Orch', to: 'Herald',    key: 'orchestrator:herald_campaign',   desc: 'Campaign hint (sprint/exam_week only)' },
+            { from: 'Orch', to: 'Bible',     key: 'orchestrator:bible_update',      desc: 'Session metadata → SubTopic Bible' },
+            { from: 'Bible',to: 'Orch',      key: 'edugenius_subtopic_bible_*',     desc: 'Common mistakes + prerequisites injected' },
+            { from: 'Orch', to: 'Gamif',     key: 'orchestrator:gamification_sess', desc: 'Session started → XP award trigger' },
+            { from: 'Gamif',to: 'Orch',      key: 'eg_gamification_profile',        desc: 'XP/level read into learner profile' },
+            { from: 'SR',   to: 'Orch',      key: 'eg_sr_cards_v2',                 desc: 'Overdue cards → nextReviewTopics' },
+            { from: 'Orch', to: 'SR',        key: 'orchestrator:sr_lesson_complete',desc: 'Lesson complete → SR update trigger' },
+            { from: 'Ready',to: 'Orch',      key: 'eg_readiness_yesterday',         desc: 'Readiness score read into decision' },
+            { from: 'Orch', to: 'Ready',     key: 'orchestrator:readiness_invalid', desc: 'Cache invalidated on session complete' },
+            { from: 'Mood', to: 'Orch',      key: 'eg_mood_today',                  desc: 'Mood → cognitive load + objective select' },
+            { from: 'Orch', to: 'Mood',      key: 'orchestrator:mood_read',         desc: 'Read timestamp signal' },
+            { from: 'CPE',  to: 'Orch',      key: 'edugenius_student_persona',      desc: 'PersonaEngine → learningStyle + tier' },
+            { from: 'Orch', to: 'CPE',       key: 'orchestrator:persona_context',   desc: 'PersonaContext → Sage/Atlas injection' },
+            { from: 'Tmpl', to: 'Orch',      key: 'templateRegistry.resolveTemplate',desc: 'Best template → suggestedTemplate field' },
+            { from: 'CLS',  to: 'Orch',      key: 'contentLayerService.getLayered', desc: 'Layered content meta → decision enrichment' },
           ].map(sig => (
-            <div key={sig.key} className="flex items-start gap-2 p-2 bg-surface-700 rounded-lg">
-              <ChevronRight className="w-3.5 h-3.5 text-surface-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-surface-200">
+            <div key={sig.key} className="flex items-start gap-1.5 p-2 bg-surface-700 rounded-lg">
+              <ChevronRight className="w-3 h-3 text-surface-500 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-surface-200 text-[11px]">
                   <span className="text-primary-400">{sig.from}</span>
                   {' → '}
                   <span className="text-emerald-400">{sig.to}</span>
                 </p>
-                <code className="text-surface-500 font-mono">{sig.key}</code>
-                <p className="text-surface-500 mt-0.5">{sig.desc}</p>
+                <code className="text-surface-500 font-mono text-[10px] break-all">{sig.key}</code>
+                <p className="text-surface-500 text-[10px] mt-0.5">{sig.desc}</p>
               </div>
             </div>
           ))}
