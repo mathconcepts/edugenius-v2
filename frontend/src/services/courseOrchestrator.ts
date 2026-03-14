@@ -201,6 +201,9 @@ export interface OrchestratorDecision {
     readinessScoreEnabled: boolean;
     moodCheckInEnabled: boolean;
   };
+
+  /** ID of the UserPlaybook that was active during this session (if any) */
+  userPlaybookId?: string;
 }
 
 interface OutcomeRecord {
@@ -1253,6 +1256,32 @@ export async function orchestrateSession(
   const extCache = _lastExtendedCache;
   const flags = extCache?.flags ?? readFeatureFlags();
 
+  // ── 1b. UserPlaybook — load per-user playbook and restrict topicMastery ──
+  let _activeUserPlaybookId: string | undefined;
+  try {
+    const upsModule = await import('./userPlaybookService');
+    const userPlaybook = upsModule.loadUserPlaybook(userId, examId);
+    if (userPlaybook) {
+      _activeUserPlaybookId = userPlaybook.id;
+
+      if (userPlaybook.scope.scopeType === 'partial') {
+        // Restrict topicMastery to only the active topics in this user's scope
+        const allTopicIds = learnerProfile.topicMastery.map(t => t.topicId);
+        const activeIds = new Set(upsModule.getActiveTopicIds(userPlaybook, allTopicIds));
+        learnerProfile.topicMastery = learnerProfile.topicMastery.filter(
+          t => activeIds.has(t.topicId),
+        );
+        // Recompute weakest/strongest from filtered mastery
+        const filteredSorted = [...learnerProfile.topicMastery].sort(
+          (a, b) => a.masteryScore - b.masteryScore,
+        );
+        const quintile = Math.max(1, Math.ceil(filteredSorted.length * 0.2));
+        learnerProfile.weakestTopics = filteredSorted.slice(0, quintile).map(t => t.topicId);
+        learnerProfile.strongestTopics = filteredSorted.slice(-quintile).map(t => t.topicId);
+      }
+    }
+  } catch { /* ignore — non-fatal, playbook layer is supplementary */ }
+
   // ── 2. SubTopic Bible — inject bible context for chosen topic ────────────
   let bibleContext: OrchestratorDecision['bibleContext'];
   try {
@@ -1435,6 +1464,29 @@ export async function orchestrateSession(
       moodCheckInEnabled:      flags.moodCheckInEnabled,
     },
   };
+
+  // Attach userPlaybookId to decision
+  if (_activeUserPlaybookId) {
+    decision.userPlaybookId = _activeUserPlaybookId;
+  }
+
+  // ── 10b. UserPlaybook — record session + persist ───────────────────────────
+  if (_activeUserPlaybookId) {
+    try {
+      const upsModule = await import('./userPlaybookService');
+      const userPlaybook = upsModule.loadUserPlaybook(userId, examId);
+      if (userPlaybook) {
+        // Record session with a small mastery delta (0.05 per session as a baseline)
+        const updated = upsModule.recordPlaybookSession(userPlaybook, objective.topicId, 0.05);
+        upsModule.saveUserPlaybook(updated);
+        // Archive if this is a milestone (every 10 sessions on topic)
+        const progress = updated.topicProgress[objective.topicId];
+        if (progress && progress.sessionsCompleted % 10 === 0) {
+          upsModule.archivePlaybookSnapshot(updated, 'session_end').catch(() => { /* best-effort */ });
+        }
+      }
+    } catch { /* ignore — non-fatal */ }
+  }
 
   // ── 11. Apply role overrides ───────────────────────────────────────────────
   decision = applyRoleOverrides(decision, learnerProfile.role);

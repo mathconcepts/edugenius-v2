@@ -12,6 +12,7 @@ import {
   BookOpen, ChevronRight, AlertTriangle, CheckCircle, Clock, TrendingUp,
   TrendingDown, Minus, RefreshCw, Search, Filter, Eye, Zap, BarChart3,
   Brain, Target, Users, MessageSquare, Bot, Star, AlertCircle, Database,
+  User, Save, Archive, ToggleLeft, ToggleRight, Info,
 } from 'lucide-react';
 import {
   getAllPlaybooks,
@@ -24,7 +25,7 @@ import { reconcilePlaybooks } from '@/services/playbookProgressiveUpdater';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ViewTab = 'browser' | 'health' | 'updates';
+type ViewTab = 'browser' | 'health' | 'updates' | 'my_playbook';
 
 interface PlaybookReaderSection {
   key: string;
@@ -897,15 +898,331 @@ function ProgressiveUpdatesTab() {
   );
 }
 
+// ─── Tab 4: My Playbook ───────────────────────────────────────────────────────
+
+function MyPlaybookTab() {
+  const [userId, setUserId] = useState<string>('');
+  const [inputUserId, setInputUserId] = useState<string>('');
+  const [examId, setExamId] = useState<string>('GATE_EM');
+  const [userPlaybook, setUserPlaybook] = useState<import('@/services/userPlaybookService').UserPlaybook | null>(null);
+  const [allTopicIds, setAllTopicIds] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Load playbooks service dynamically to avoid circular deps at module level
+  const loadPlaybook = useCallback(async (uid: string, eid: string) => {
+    if (!uid || !eid) return;
+    try {
+      const ups = await import('@/services/userPlaybookService');
+      const pb = ups.loadUserPlaybook(uid, eid);
+      setUserPlaybook(pb);
+      if (!pb) {
+        // Create a default full-scope playbook
+        const defaultPb = ups.createUserPlaybook(uid, eid, {
+          scopeType: 'full',
+          selectedTopicIds: [],
+        });
+        ups.saveUserPlaybook(defaultPb);
+        setUserPlaybook(ups.loadUserPlaybook(uid, eid));
+      }
+      // Collect all topic IDs from global playbooks
+      const globalPlaybooks = getAllPlaybooks(eid);
+      const topics = [...new Set(globalPlaybooks.map(p => p.topicId))];
+      setAllTopicIds(topics);
+    } catch {
+      setMessage({ text: 'Failed to load playbook service', type: 'error' });
+    }
+  }, []);
+
+  const handleLoad = () => {
+    const uid = inputUserId.trim() || 'demo_user';
+    setUserId(uid);
+    loadPlaybook(uid, examId);
+  };
+
+  const handleToggleTopic = useCallback(async (topicId: string) => {
+    if (!userPlaybook) return;
+    try {
+      const ups = await import('@/services/userPlaybookService');
+      const activeIds = ups.getActiveTopicIds(userPlaybook, allTopicIds);
+      const isActive = activeIds.includes(topicId);
+      const updated = isActive
+        ? ups.removeTopicsFromScope(userPlaybook, [topicId])
+        : ups.addTopicsToScope(userPlaybook, [topicId]);
+      ups.saveUserPlaybook(updated);
+      setUserPlaybook(ups.loadUserPlaybook(userId, examId));
+    } catch { /* ignore */ }
+  }, [userPlaybook, allTopicIds, userId, examId]);
+
+  const handleScopeToggle = useCallback(async () => {
+    if (!userPlaybook) return;
+    try {
+      const ups = await import('@/services/userPlaybookService');
+      const updated = userPlaybook.scope.scopeType === 'full'
+        ? ups.setPartialSyllabus(userPlaybook, allTopicIds.slice(0, Math.ceil(allTopicIds.length / 2)))
+        : ups.setFullSyllabus(userPlaybook, examId);
+      ups.saveUserPlaybook(updated);
+      setUserPlaybook(ups.loadUserPlaybook(userId, examId));
+    } catch { /* ignore */ }
+  }, [userPlaybook, allTopicIds, userId, examId]);
+
+  const handleSaveAndPersist = async () => {
+    if (!userPlaybook) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const ups = await import('@/services/userPlaybookService');
+      await ups.persistUserPlaybook(userPlaybook);
+      setMessage({ text: '✓ Playbook saved & persisted to Supabase', type: 'success' });
+    } catch {
+      setMessage({ text: '✓ Saved to localStorage (Supabase unavailable)', type: 'success' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleArchiveNow = async () => {
+    if (!userPlaybook) return;
+    setArchiving(true);
+    setMessage(null);
+    try {
+      const ups = await import('@/services/userPlaybookService');
+      await ups.archivePlaybookSnapshot(userPlaybook, 'manual_save');
+      const refreshed = ups.loadUserPlaybook(userId, examId);
+      setUserPlaybook(refreshed);
+      setMessage({ text: '✓ Snapshot archived', type: 'success' });
+    } catch {
+      setMessage({ text: '✗ Archive failed', type: 'error' });
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header / load controls */}
+      <div className="bg-surface-800 border border-surface-700 rounded-lg p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <User size={16} className="text-primary-400" />
+          <h3 className="text-sm font-semibold text-white">My Playbook — Per-User Scope</h3>
+          <span className="text-xs text-surface-400">(CEO can enter any userId to inspect)</span>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <input
+            type="text"
+            value={inputUserId}
+            onChange={e => setInputUserId(e.target.value)}
+            placeholder="User ID (leave blank for demo_user)"
+            className="flex-1 min-w-48 px-3 py-1.5 bg-surface-700 border border-surface-600 rounded text-sm text-white placeholder:text-surface-500 focus:outline-none focus:border-primary-500"
+          />
+          <select
+            value={examId}
+            onChange={e => { setExamId(e.target.value); setUserPlaybook(null); }}
+            className="px-3 py-1.5 bg-surface-700 border border-surface-600 rounded text-sm text-white focus:outline-none focus:border-primary-500"
+          >
+            <option value="GATE_EM">GATE EM</option>
+            <option value="JEE">JEE</option>
+            <option value="NEET">NEET</option>
+            <option value="CAT">CAT</option>
+            <option value="CBSE_12">CBSE 12</option>
+          </select>
+          <button
+            onClick={handleLoad}
+            className="px-4 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded text-sm font-medium transition-colors"
+          >
+            Load Playbook
+          </button>
+        </div>
+      </div>
+
+      {message && (
+        <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-900/30 border border-green-700 text-green-300' : 'bg-red-900/30 border border-red-700 text-red-300'}`}>
+          {message.text}
+        </div>
+      )}
+
+      {userPlaybook && (
+        <>
+          {/* Playbook status bar */}
+          <div className="bg-surface-800 border border-surface-700 rounded-lg p-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-xs text-surface-400">User Playbook</p>
+                <p className="text-sm font-semibold text-white">{userPlaybook.id}</p>
+                <p className="text-xs text-surface-400 mt-0.5">
+                  v{userPlaybook.version} · {userPlaybook.status} · updated {new Date(userPlaybook.updatedAt).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="flex gap-3 text-center">
+                <div>
+                  <p className="text-lg font-bold text-white">{userPlaybook.meta.completedTopics}/{userPlaybook.meta.totalTopics}</p>
+                  <p className="text-xs text-surface-400">Topics done</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-green-400">{Math.round(userPlaybook.meta.overallMastery * 100)}%</p>
+                  <p className="text-xs text-surface-400">Mastery</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-yellow-400">{userPlaybook.meta.estimatedHoursRemaining}h</p>
+                  <p className="text-xs text-surface-400">ETA</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveAndPersist}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600/30 hover:bg-primary-600/50 text-primary-300 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  <Save size={12} className={saving ? 'animate-pulse' : ''} />
+                  {saving ? 'Saving...' : 'Save & Persist'}
+                </button>
+                <button
+                  onClick={handleArchiveNow}
+                  disabled={archiving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-300 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  <Archive size={12} className={archiving ? 'animate-pulse' : ''} />
+                  {archiving ? 'Archiving...' : 'Archive Now'}
+                </button>
+              </div>
+            </div>
+
+            {/* Last archive info */}
+            {userPlaybook.archiveHistory.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-surface-700 text-xs text-surface-400 flex items-center gap-1">
+                <Info size={11} />
+                Last snapshot: {new Date(userPlaybook.archiveHistory[userPlaybook.archiveHistory.length - 1].snapshotAt).toLocaleString()}
+                &nbsp;· trigger: {userPlaybook.archiveHistory[userPlaybook.archiveHistory.length - 1].trigger}
+                &nbsp;· {userPlaybook.archiveHistory.length} total snapshots
+              </div>
+            )}
+          </div>
+
+          {/* Scope type toggle */}
+          <div className="bg-surface-800 border border-surface-700 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Syllabus Scope</h3>
+                <p className="text-xs text-surface-400 mt-0.5">
+                  {userPlaybook.scope.scopeType === 'full'
+                    ? 'Full syllabus — all topics included (toggle off to exclude)'
+                    : `Partial — ${userPlaybook.scope.selectedTopicIds.length} of ${allTopicIds.length} topics selected`}
+                </p>
+              </div>
+              <button
+                onClick={handleScopeToggle}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                  userPlaybook.scope.scopeType === 'full'
+                    ? 'bg-green-600/20 border border-green-700 text-green-300'
+                    : 'bg-yellow-600/20 border border-yellow-700 text-yellow-300'
+                }`}
+              >
+                {userPlaybook.scope.scopeType === 'full'
+                  ? <><ToggleRight size={12} /><span>Full Syllabus</span></>
+                  : <><ToggleLeft size={12} /><span>Partial Syllabus</span></>}
+              </button>
+            </div>
+
+            {/* Topic grid */}
+            {allTopicIds.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {allTopicIds.map(topicId => {
+                  const isActive = (() => {
+                    const scope = userPlaybook.scope;
+                    if (scope.scopeType === 'full') {
+                      return !(scope.excludedTopicIds ?? []).includes(topicId);
+                    }
+                    return scope.selectedTopicIds.includes(topicId);
+                  })();
+                  const progress = userPlaybook.topicProgress[topicId];
+                  const mastery = progress?.masteryScore ?? 0;
+
+                  return (
+                    <button
+                      key={topicId}
+                      onClick={() => handleToggleTopic(topicId)}
+                      className={`p-3 rounded-lg text-left text-xs border transition-all ${
+                        isActive
+                          ? 'bg-primary-900/30 border-primary-700 text-white'
+                          : 'bg-surface-750 border-surface-700 text-surface-500 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-medium truncate">{topicId.replace(/_/g, ' ')}</span>
+                        {isActive
+                          ? <ToggleRight size={12} className="text-primary-400 shrink-0" />
+                          : <ToggleLeft size={12} className="text-surface-500 shrink-0" />}
+                      </div>
+                      {isActive && (
+                        <>
+                          <div className="w-full h-1 bg-surface-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${Math.round(mastery * 100)}%`,
+                                backgroundColor: mastery >= 0.85 ? '#22c55e' : mastery > 0 ? '#3b82f6' : '#475569',
+                              }}
+                            />
+                          </div>
+                          <div className="flex justify-between mt-1 text-surface-400">
+                            <span>{progress?.status?.replace(/_/g, ' ') ?? 'not started'}</span>
+                            <span>{Math.round(mastery * 100)}%</span>
+                          </div>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-surface-500 text-sm">Load a playbook to see topics</p>
+            )}
+          </div>
+
+          {/* Archive history */}
+          {userPlaybook.archiveHistory.length > 0 && (
+            <div className="bg-surface-800 border border-surface-700 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">Archive History ({userPlaybook.archiveHistory.length} snapshots)</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {[...userPlaybook.archiveHistory].reverse().map((snap, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-surface-800 last:border-0">
+                    <span className="text-surface-400">{new Date(snap.snapshotAt).toLocaleString()}</span>
+                    <span className="text-surface-300 capitalize">{snap.trigger.replace(/_/g, ' ')}</span>
+                    <span className="text-primary-400">v{snap.version}</span>
+                    <span className="text-green-400">{Math.round(snap.overallMastery * 100)}% mastery</span>
+                    <span className="text-surface-400">{snap.completedTopics} done</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!userPlaybook && !userId && (
+        <div className="bg-surface-800 border border-surface-700 rounded-lg p-8 text-center">
+          <User size={32} className="text-surface-500 mx-auto mb-3" />
+          <p className="text-surface-400 text-sm">Enter a User ID and click "Load Playbook" to view their personal playbook scope and progress.</p>
+          <p className="text-surface-500 text-xs mt-2">CEO view: you can inspect any student's playbook by entering their userId.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CoursePlaybookViewer() {
   const [activeTab, setActiveTab] = useState<ViewTab>('browser');
 
   const tabs: { key: ViewTab; label: string; icon: React.ElementType }[] = [
-    { key: 'browser', label: 'Playbook Browser', icon: BookOpen },
-    { key: 'health', label: 'Playbook Health', icon: Star },
-    { key: 'updates', label: 'Progressive Updates', icon: RefreshCw },
+    { key: 'browser',     label: 'Playbook Browser',    icon: BookOpen },
+    { key: 'health',      label: 'Playbook Health',     icon: Star },
+    { key: 'updates',     label: 'Progressive Updates', icon: RefreshCw },
+    { key: 'my_playbook', label: 'My Playbook',         icon: User },
   ];
 
   return (
@@ -945,9 +1262,10 @@ export default function CoursePlaybookViewer() {
 
       {/* Tab content */}
       <div>
-        {activeTab === 'browser' && <PlaybookBrowserTab />}
-        {activeTab === 'health' && <PlaybookHealthTab />}
-        {activeTab === 'updates' && <ProgressiveUpdatesTab />}
+        {activeTab === 'browser'     && <PlaybookBrowserTab />}
+        {activeTab === 'health'      && <PlaybookHealthTab />}
+        {activeTab === 'updates'     && <ProgressiveUpdatesTab />}
+        {activeTab === 'my_playbook' && <MyPlaybookTab />}
       </div>
     </div>
   );

@@ -1037,6 +1037,65 @@ export function getSubtopicsWithAlerts(): CoursePlaybook[] {
   );
 }
 
+/**
+ * getUserPlaybookForSubtopic — Scope-aware playbook access.
+ *
+ * Returns the global CoursePlaybook for (examId, topicId, subtopicId) only if
+ * the topic is within the user's active UserPlaybook scope.
+ * Returns null when:
+ *   - The user has no UserPlaybook for this exam, OR
+ *   - Their scope is 'partial' and this topic is NOT in selectedTopicIds, OR
+ *   - Their scope is 'full' and this topic is in excludedTopicIds.
+ *
+ * Usage: agents should call this instead of getPlaybook() to respect user scope.
+ */
+export function getUserPlaybookForSubtopic(
+  userId: string,
+  examId: string,
+  topicId: string,
+  subtopicId: string,
+): CoursePlaybook | null {
+  try {
+    // Lazy-import to avoid circular dependency: userPlaybookService imports from here.
+    // We use a synchronous runtime require pattern via dynamic evaluation to keep this
+    // file non-async. Since userPlaybookService only uses isSupabaseAvailable() from here,
+    // there is no circular loop — but we still load it lazily to be safe.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ups = require('./userPlaybookService') as typeof import('./userPlaybookService');
+    const userPlaybook = ups.loadUserPlaybook(userId, examId);
+
+    if (!userPlaybook) {
+      // No personal playbook — full access (system default)
+      return getPlaybook(examId, topicId, subtopicId);
+    }
+
+    const scope = userPlaybook.scope;
+
+    if (scope.scopeType === 'partial') {
+      // Partial scope: topic must be in selectedTopicIds
+      if (!scope.selectedTopicIds.includes(topicId)) return null;
+
+      // Optional subtopic-level restriction
+      if (
+        scope.selectedSubtopicIds &&
+        scope.selectedSubtopicIds.length > 0 &&
+        !scope.selectedSubtopicIds.includes(subtopicId)
+      ) {
+        return null;
+      }
+    } else {
+      // Full scope: topic must NOT be in excludedTopicIds
+      const excluded = scope.excludedTopicIds ?? [];
+      if (excluded.includes(topicId)) return null;
+    }
+
+    return getPlaybook(examId, topicId, subtopicId);
+  } catch {
+    // Fallback: return global playbook if anything goes wrong
+    return getPlaybook(examId, topicId, subtopicId);
+  }
+}
+
 // ─── Seed Data ────────────────────────────────────────────────────────────────
 
 const GATE_EM_LINEAR_ALGEBRA_SUBTOPICS: Array<{

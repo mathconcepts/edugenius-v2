@@ -45,6 +45,12 @@ export interface LayeredContent {
   mandatoryCompleteness: number;
   /** Depth of personalization achieved */
   personalizationDepth: 'full' | 'partial' | 'default';
+  /**
+   * Set to true when the user has a partial-scope UserPlaybook and the
+   * requested topicId is NOT in their active scope. Callers should display a
+   * warning and suppress non-mandatory content.
+   */
+  scopeWarning?: boolean;
   /** Trace for debugging / CEO panel */
   generationTrace: {
     mandatorySource: 'static' | 'cached' | 'generated';
@@ -74,7 +80,39 @@ export async function getLayeredContent(
   surface: DeliverySurface,
   userPlan?: string,
 ): Promise<LayeredContent> {
-  // ── Step 0: Load Course Playbook (non-blocking, safe) ─────────────────────
+  // ── Step 0a: User-playbook scope check ────────────────────────────────────
+  // If the caller provided a userId and the user has a partial-scope playbook,
+  // return mandatory-only content with scopeWarning = true when topic is out of scope.
+  const userId: string | undefined = (personaCtx as unknown as Record<string, unknown>).userId as string | undefined;
+  if (userId) {
+    try {
+      const ups = await import('./userPlaybookService');
+      const userPlaybook = ups.loadUserPlaybook(userId, examId);
+      if (userPlaybook) {
+        const activeIds = ups.getActiveTopicIds(userPlaybook, [topicId]);
+        if (!activeIds.includes(topicId)) {
+          // Topic is out of scope — return mandatory layer only with warning
+          const mandatoryOos = getMandatoryLayer(examId, topicId);
+          const specOos = auditMandatoryContent(examId, topicId);
+          return {
+            mandatory: mandatoryOos,
+            personalized: [],
+            mandatoryCompleteness: specOos.completeness,
+            personalizationDepth: 'default',
+            scopeWarning: true,
+            generationTrace: {
+              mandatorySource: 'static',
+              personalizedSource: 'none',
+              tier: 'T0_static',
+              rateLimitState: 'scope_out_of_range',
+            },
+          };
+        }
+      }
+    } catch { /* scope check is non-fatal — continue to normal flow */ }
+  }
+
+  // ── Step 0b: Load Course Playbook (non-blocking, safe) ─────────────────────
   let _playbookCtx: import('./coursePlaybookService').CoursePlaybook | null = null;
   try {
     const { getPlaybook, updateFromAtlasGeneration } = await import('./coursePlaybookService');
