@@ -14,6 +14,7 @@ import {
   BookMarked, Target, Trophy, Network, Radar, Sparkles, Sliders, Cpu, Zap, Globe, Layers, Radio,
   TrendingUp, CalendarDays, Newspaper, Library,
 } from 'lucide-react';
+import { getTelegramSetupStatus } from '@/services/channelBotHandler';
 import { useAppStore } from '@/stores/appStore';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -45,6 +46,7 @@ const ceoNavItems: NavItem[] = [
   { to: '/growth-command',        icon: TrendingUp,  label: 'Growth Command', highlight: true },
   { to: '/content-personalization', icon: Sparkles,  label: 'Personalization', highlight: false },
   { to: '/students',              icon: Users,       label: 'People' },
+  { to: '/telegram-setup',        icon: MessageSquare, label: 'Telegram Bot', highlight: true },
   { to: '/settings',              icon: Settings,    label: 'Settings' },
 ];
 
@@ -126,14 +128,37 @@ function StreakBadge({ streak, open }: { streak: number; open: boolean }) {
 
 // ── Nav item link ─────────────────────────────────────────────────────────────
 
+function TelegramStatusBadge({ open }: { open: boolean }) {
+  const status = getTelegramSetupStatus();
+  if (!open) {
+    return (
+      <span className={clsx(
+        'absolute top-1 right-1 w-2 h-2 rounded-full',
+        status.configured ? 'bg-green-400' : 'bg-red-400'
+      )} />
+    );
+  }
+  return (
+    <span className={clsx(
+      'ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold',
+      status.configured
+        ? 'bg-green-500/20 text-green-400'
+        : 'bg-red-500/20 text-red-400'
+    )}>
+      {status.configured ? 'LIVE' : 'NEW'}
+    </span>
+  );
+}
+
 function NavItemLink({ item, sidebarOpen }: { item: NavItem; sidebarOpen: boolean }) {
+  const isTelegram = item.to === '/telegram-setup';
   const link = (
     <NavLink
       to={item.to}
       end={item.to === '/'}
       className={({ isActive }) =>
         clsx(
-          'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all',
+          'relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all',
           isActive
             ? 'bg-gradient-to-r from-primary-600/25 to-primary-500/15 text-primary-400 border border-primary-500/20'
             : item.highlight
@@ -149,6 +174,7 @@ function NavItemLink({ item, sidebarOpen }: { item: NavItem; sidebarOpen: boolea
           {item.label}
         </span>
       )}
+      {isTelegram && <TelegramStatusBadge open={sidebarOpen} />}
     </NavLink>
   );
 

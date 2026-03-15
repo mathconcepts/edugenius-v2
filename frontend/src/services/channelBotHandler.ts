@@ -383,3 +383,34 @@ export async function handleBotMessage(msg: InboundBotMessage): Promise<BotRespo
   // 4. Route to Sage for knowledge queries
   return routeToSage(msg, session);
 }
+
+// ─── Telegram Setup Status ────────────────────────────────────────────────────
+
+/**
+ * Returns Telegram bot setup status for Sidebar badge and status indicators.
+ * Reads from telegramBotSetupService without importing the full service to
+ * avoid circular dependencies — reads localStorage directly via the key.
+ */
+export function getTelegramSetupStatus(): {
+  configured: boolean;
+  botUsername?: string;
+  webhookUrl?: string;
+} {
+  try {
+    const raw = localStorage.getItem('eg_telegram_setup');
+    if (!raw) return { configured: false };
+    const cfg = JSON.parse(raw) as {
+      isLive?: boolean;
+      botUsername?: string;
+      webhookUrl?: string;
+      setupStep?: string;
+    };
+    return {
+      configured: cfg.isLive === true || cfg.setupStep === 'live',
+      botUsername: cfg.botUsername,
+      webhookUrl: cfg.webhookUrl,
+    };
+  } catch {
+    return { configured: false };
+  }
+}

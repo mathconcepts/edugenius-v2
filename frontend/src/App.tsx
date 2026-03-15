@@ -111,6 +111,9 @@ const RevisionSchedule = lazy(() => import('@/pages/RevisionSchedule'));
 const DailyBriefPage = lazy(() => import('@/pages/DailyBrief'));
 const CoursePlaybookViewer = lazy(() => import('@/pages/dashboards/CoursePlaybookViewer'));
 
+// Lazy load Telegram Bot Setup Wizard (CEO only)
+const TelegramBotSetup = lazy(() => import('@/pages/dashboards/TelegramBotSetup').then(m => ({ default: m.TelegramBotSetup })));
+
 // Lazy load Social Intent Dashboard (CEO only)
 
 // Lazy load trace viewer
@@ -255,6 +258,8 @@ export default function App() {
           <Route path="revision" element={<Suspense fallback={<PageLoader />}><RevisionSchedule /></Suspense>} />
           <Route path="daily-brief" element={<Suspense fallback={<PageLoader />}><DailyBriefPage /></Suspense>} />
           <Route path="course-playbook" element={<Suspense fallback={<PageLoader />}><CoursePlaybookViewer /></Suspense>} />
+          {/* Telegram Bot Setup Wizard — CEO only */}
+          <Route path="telegram-setup" element={<Suspense fallback={<PageLoader />}><TelegramBotSetup /></Suspense>} />
 
           {/* Social Intent Dashboard — CEO only */}
 
