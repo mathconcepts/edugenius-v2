@@ -37,20 +37,7 @@ services:
       - key: FRONTEND_URL
         value: https://gate-math.onrender.com
 
-  # ── Cron: Daily Problem Telegram Post ───────────────────────
-  - type: cron
-    name: gate-math-daily-problem
-    runtime: node
-    plan: free
-    schedule: "0 6 * * *"  # 6 AM UTC daily (11:30 AM IST)
-    buildCommand: npm install
-    startCommand: >
-      curl -s -X POST
-      -H "Authorization: Bearer $CRON_SECRET"
-      https://gate-math-api.onrender.com/telegram/daily-problem
-    envVars:
-      - key: CRON_SECRET
-        fromService:
-          name: gate-math-api
-          type: web
-          envVarKey: CRON_SECRET
+# Daily Telegram cron handled externally (Render cron requires paid plan).
+# Use cron-job.org or GitHub Actions to POST:
+#   curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
+#     https://gate-math-api.onrender.com/telegram/daily-problem
