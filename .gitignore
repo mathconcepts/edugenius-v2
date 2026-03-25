@@ -49,3 +49,4 @@ temp/
 
 # Local Netlify folder
 .netlify
+.gstack/

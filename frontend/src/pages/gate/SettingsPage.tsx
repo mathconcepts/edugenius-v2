@@ -1,0 +1,99 @@
+/**
+ * SettingsPage — Theme toggle + session info.
+ */
+
+import { useState } from 'react';
+import { useSession } from '@/hooks/useSession';
+import { Moon, Sun, Copy, Check, Trash2 } from 'lucide-react';
+import { clsx } from 'clsx';
+
+export default function SettingsPage() {
+  const sessionId = useSession();
+  const [copied, setCopied] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    if (next === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('gate_theme', next);
+  };
+
+  const copySessionId = () => {
+    navigator.clipboard.writeText(sessionId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const clearProgress = () => {
+    if (confirm('Clear all progress? This cannot be undone.')) {
+      localStorage.removeItem('gate_session_id');
+      document.cookie = 'gate_sid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      window.location.reload();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold text-surface-100">Settings</h1>
+
+      {/* Theme */}
+      <div className="p-4 rounded-xl bg-surface-900 border border-surface-800">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-surface-200">Theme</p>
+            <p className="text-xs text-surface-500">{theme === 'dark' ? 'Dark mode' : 'Light mode'}</p>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-surface-800 border border-surface-700 hover:bg-surface-700 transition-colors"
+          >
+            {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-sky-400" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Session */}
+      <div className="p-4 rounded-xl bg-surface-900 border border-surface-800 space-y-3">
+        <p className="text-sm font-medium text-surface-200">Session</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 text-xs text-surface-500 bg-surface-800 px-3 py-2 rounded-lg truncate">
+            {sessionId}
+          </code>
+          <button
+            onClick={copySessionId}
+            className="p-2 rounded-lg bg-surface-800 hover:bg-surface-700 transition-colors"
+          >
+            {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} className="text-surface-400" />}
+          </button>
+        </div>
+        <p className="text-xs text-surface-600">
+          Your progress is tied to this session ID. Save it to restore progress on another device.
+        </p>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="p-4 rounded-xl bg-surface-900 border border-red-500/20">
+        <button
+          onClick={clearProgress}
+          className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"
+        >
+          <Trash2 size={16} />
+          <span>Clear all progress and start fresh</span>
+        </button>
+      </div>
+
+      {/* About */}
+      <div className="text-center text-xs text-surface-600 space-y-1 pt-4">
+        <p>GATE Engineering Mathematics Practice</p>
+        <p>Powered by RAG + LLM Dual-Solve + Wolfram Alpha</p>
+      </div>
+    </div>
+  );
+}

@@ -13,3 +13,7 @@ export { SympyVerifier } from './verifiers/sympy';
 
 // Engine
 export { VerificationEngine, verificationEngine, DEFAULT_POLICIES } from './engine';
+
+// Tiered Orchestrator (GATE math 3-tier cascade)
+export { TieredVerificationOrchestrator, DEFAULT_CONFIG as TIERED_DEFAULT_CONFIG } from './tiered-orchestrator';
+export type { TieredVerificationResult, TieredOrchestratorConfig, DualSolveLLM, TierUsed } from './tiered-orchestrator';

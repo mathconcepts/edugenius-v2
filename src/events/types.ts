@@ -404,6 +404,22 @@ export interface EventTypeMap {
   'workflow.completed': Record<string, unknown>;
   'workflow.failed': Record<string, unknown>;
   [key: `${string}.analytics.event`]: Record<string, unknown>;
+
+  // Wing events (GATE math app — signal-driven architecture)
+  'student.weak_topic': { studentId: string; topic: string; mastery: number };
+  'problem.requested': { topic: string; sessionId: string };
+  'problem.verified': { problemId: string; topic: string; studentId?: string; traceId?: string };
+  'problem.served': { problemId: string; topic: string; sessionId: string; verified: boolean };
+  'tier_1_hit': { traceId: string; score: number };
+  'tier_2_agree': { traceId: string; matchesStudent: boolean };
+  'tier_2_disagree': { traceId: string };
+  'wolfram.called': { traceId: string; durationMs: number };
+  'wolfram.rate_limited': { traceId: string; callsToday: number };
+  'wing.started': { wingId: string; name: string };
+  'wing.stopped': { wingId: string };
+  'wing.error': { wingId: string; eventType: string; error: string };
+  'problem.posted': { problemId: string; topic: string; channel: string };
+  'seo.page_created': { problemId: string; slug: string; topic: string };
 }
 
 export type EventType = keyof EventTypeMap;

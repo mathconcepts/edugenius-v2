@@ -16,6 +16,14 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/solutions': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/telegram': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
   build: {

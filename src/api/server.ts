@@ -8,6 +8,9 @@ import { URL } from 'url';
 import { EduGeniusOrchestrator, getOrchestrator } from '../orchestrator';
 import { contentRoutes } from './content-routes';
 import { eventRoutes } from './events-routes';
+import { dailyProblemRoutes } from '../jobs/daily-problem';
+import { telegramWebhookRoutes } from '../jobs/telegram-webhook';
+import { gateRoutes } from './gate-routes';
 
 // ============================================================================
 // Types
@@ -317,6 +320,19 @@ export class APIServer {
 
     // Event Webhook Routes (Sage session milestones → Mentor nudges + badges)
     for (const route of eventRoutes) {
+      this.registerRoute(route.method, route.path, route.handler);
+    }
+
+    // Telegram Bot Routes (daily problem cron + webhook)
+    for (const route of dailyProblemRoutes) {
+      this.registerRoute(route.method, route.path, route.handler);
+    }
+    for (const route of telegramWebhookRoutes) {
+      this.registerRoute(route.method, route.path, route.handler);
+    }
+
+    // GATE Math App Routes (verify, problems, SR, progress, SEO)
+    for (const route of gateRoutes) {
       this.registerRoute(route.method, route.path, route.handler);
     }
   }

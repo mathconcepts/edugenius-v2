@@ -1,0 +1,56 @@
+services:
+  # ── Backend API (serves API + SEO pages + Telegram bot) ──────
+  - type: web
+    name: gate-math-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && cd frontend && npm install && npm run build
+    startCommand: npx tsx src/gate-server.ts
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: WOLFRAM_APP_ID
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_GROUP_IDS
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
+      - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://gate-math.onrender.com
+
+  # ── Cron: Daily Problem Telegram Post ───────────────────────
+  - type: cron
+    name: gate-math-daily-problem
+    runtime: node
+    plan: free
+    schedule: "0 6 * * *"  # 6 AM UTC daily (11:30 AM IST)
+    buildCommand: npm install
+    startCommand: >
+      curl -s -X POST
+      -H "Authorization: Bearer $CRON_SECRET"
+      https://gate-math-api.onrender.com/telegram/daily-problem
+    envVars:
+      - key: CRON_SECRET
+        fromService:
+          name: gate-math-api
+          type: web
+          envVarKey: CRON_SECRET
