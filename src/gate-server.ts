@@ -84,23 +84,8 @@ for (const route of adminRoutes) {
 
 // Health check
 registerRoute('GET', '/health', async (_req, res) => {
-  const frontendDist = path.join(process.cwd(), 'frontend', 'dist');
-  const distExists = fs.existsSync(frontendDist);
-  const indexExists = distExists && fs.existsSync(path.join(frontendDist, 'index.html'));
-  let distContents: string[] = [];
-  if (distExists) {
-    try { distContents = fs.readdirSync(frontendDist); } catch {}
-  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    status: 'ok',
-    service: 'gate-math-api',
-    cwd: process.cwd(),
-    frontendDist,
-    distExists,
-    indexExists,
-    distContents,
-  }));
+  res.end(JSON.stringify({ status: 'ok', service: 'gate-math-api' }));
 });
 
 // ============================================================================
@@ -147,6 +132,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
           '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
           '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
           '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff',
+          '.map': 'application/json',
         };
         res.writeHead(200, { 'Content-Type': contentTypes[ext] || 'application/octet-stream' });
         fs.createReadStream(filePath).pipe(res);
@@ -159,6 +145,12 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
         fs.createReadStream(indexPath).pipe(res);
         return;
       }
+    }
+    // Frontend not built — return helpful message
+    if (pathname === '/') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`<html><body><h1>GATE Math API</h1><p>API is running. Frontend not found at: ${frontendDist}</p><p>CWD: ${process.cwd()}</p><p><a href="/health">/health</a></p></body></html>`);
+      return;
     }
   }
 
@@ -311,6 +303,16 @@ Solve carefully:`;
   setFlywheelOrchestrator(orchestrator);
 
   console.log(`[gate-server] Verification tiers: RAG${genAI ? ' + Gemini LLM' : ''}${wolfram ? ' + Wolfram' : ''}`);
+
+  // Check frontend dist
+  const frontendDistPath = path.join(process.cwd(), 'frontend', 'dist');
+  const distExists = fs.existsSync(frontendDistPath);
+  const indexExists = distExists && fs.existsSync(path.join(frontendDistPath, 'index.html'));
+  console.log(`[gate-server] CWD: ${process.cwd()}`);
+  console.log(`[gate-server] Frontend dist: ${frontendDistPath} (exists: ${distExists}, index.html: ${indexExists})`);
+  if (distExists) {
+    try { console.log(`[gate-server] Dist contents: ${fs.readdirSync(frontendDistPath).join(', ')}`); } catch {}
+  }
 
   const server = createServer(handleRequest);
 
