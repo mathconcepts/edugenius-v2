@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS rag_cache (
   created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Cosine similarity index for fast RAG lookups
-CREATE INDEX IF NOT EXISTS idx_rag_cache_embedding ON rag_cache
-  USING ivfflat (embedding vector_cosine_ops) WITH (lists = 50);
+-- NOTE: pgvector on Supabase caps IVFFlat/HNSW at 2000 dims.
+-- gemini-embedding-001 produces 3072 dims, so no vector index for now.
+-- Brute-force cosine scan is fine at <100K vectors (see TODOS #1).
 
 CREATE INDEX IF NOT EXISTS idx_rag_cache_status ON rag_cache(verification_status);
 
