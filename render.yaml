@@ -4,12 +4,12 @@ services:
     name: gate-math-api
     runtime: node
     plan: free
-    buildCommand: npm install && cd frontend && NODE_ENV= npm install && npm run build
+    buildCommand: npm install && cd frontend && npm install && npm run build
     startCommand: npx tsx src/gate-server.ts
     healthCheckPath: /health
     envVars:
-      - key: NODE_ENV
-        value: production
+      # NODE_ENV is set by Render automatically at runtime.
+      # Do NOT set it here — it breaks the build by skipping devDependencies.
       - key: PORT
         value: "3000"
       - key: DATABASE_URL
