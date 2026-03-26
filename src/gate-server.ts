@@ -84,8 +84,26 @@ for (const route of adminRoutes) {
 
 // Health check
 registerRoute('GET', '/health', async (_req, res) => {
+  const info: Record<string, unknown> = { status: 'ok', service: 'gate-math-api' };
+  info.database_url_set = !!process.env.DATABASE_URL;
+  info.supabase_url_set = !!process.env.SUPABASE_URL;
+  // Quick DB ping
+  if (process.env.DATABASE_URL) {
+    try {
+      const pg = await import('pg');
+      const client = new pg.default.Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
+      const r = await client.query('SELECT 1 as ok');
+      info.database = r.rows[0]?.ok === 1 ? 'connected' : 'unexpected';
+      await client.end();
+    } catch (e: any) {
+      info.database = `error: ${e.message}`;
+    }
+  } else {
+    info.database = 'not configured';
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ status: 'ok', service: 'gate-math-api' }));
+  res.end(JSON.stringify(info));
 });
 
 // ============================================================================
