@@ -146,12 +146,6 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
         return;
       }
     }
-    // Frontend not built — return helpful message
-    if (pathname === '/') {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(`<html><body><h1>GATE Math API</h1><p>API is running. Frontend not found at: ${frontendDist}</p><p>CWD: ${process.cwd()}</p><p><a href="/health">/health</a></p></body></html>`);
-      return;
-    }
   }
 
   // Match API routes
@@ -303,16 +297,6 @@ Solve carefully:`;
   setFlywheelOrchestrator(orchestrator);
 
   console.log(`[gate-server] Verification tiers: RAG${genAI ? ' + Gemini LLM' : ''}${wolfram ? ' + Wolfram' : ''}`);
-
-  // Check frontend dist
-  const frontendDistPath = path.join(process.cwd(), 'frontend', 'dist');
-  const distExists = fs.existsSync(frontendDistPath);
-  const indexExists = distExists && fs.existsSync(path.join(frontendDistPath, 'index.html'));
-  console.log(`[gate-server] CWD: ${process.cwd()}`);
-  console.log(`[gate-server] Frontend dist: ${frontendDistPath} (exists: ${distExists}, index.html: ${indexExists})`);
-  if (distExists) {
-    try { console.log(`[gate-server] Dist contents: ${fs.readdirSync(frontendDistPath).join(', ')}`); } catch {}
-  }
 
   const server = createServer((req, res) => {
     handleRequest(req, res).catch((err) => {
