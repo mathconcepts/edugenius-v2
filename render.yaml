@@ -4,7 +4,7 @@ services:
     name: gate-math-api
     runtime: node
     plan: free
-    buildCommand: npm install && cd frontend && npm install --include=dev && npx vite build
+    buildCommand: npm install && cd frontend && npm install --include=dev && npx vite build && echo "Frontend dist:" && ls -la dist/ && cd .. && echo "Verify from root:" && ls frontend/dist/index.html
     startCommand: npx tsx src/gate-server.ts
     healthCheckPath: /health
     envVars:
