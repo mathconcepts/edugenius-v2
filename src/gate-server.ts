@@ -84,8 +84,23 @@ for (const route of adminRoutes) {
 
 // Health check
 registerRoute('GET', '/health', async (_req, res) => {
+  const frontendDist = path.join(process.cwd(), 'frontend', 'dist');
+  const distExists = fs.existsSync(frontendDist);
+  const indexExists = distExists && fs.existsSync(path.join(frontendDist, 'index.html'));
+  let distContents: string[] = [];
+  if (distExists) {
+    try { distContents = fs.readdirSync(frontendDist); } catch {}
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ status: 'ok', service: 'gate-math-api' }));
+  res.end(JSON.stringify({
+    status: 'ok',
+    service: 'gate-math-api',
+    cwd: process.cwd(),
+    frontendDist,
+    distExists,
+    indexExists,
+    distContents,
+  }));
 });
 
 // ============================================================================
