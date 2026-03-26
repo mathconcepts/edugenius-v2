@@ -13,8 +13,12 @@ import { URL } from 'url';
 import { gateRoutes, setOrchestrator } from './api/gate-routes';
 import { dailyProblemRoutes } from './jobs/daily-problem';
 import { telegramWebhookRoutes } from './jobs/telegram-webhook';
+import { flywheelRoutes, setFlywheelOrchestrator } from './jobs/content-flywheel';
+import { topicPageRoutes } from './api/topic-pages';
+import { streakRoutes } from './api/streak-routes';
+import { adminRoutes } from './api/admin-routes';
 import { TieredVerificationOrchestrator } from './verification/tiered-orchestrator';
-import { InMemoryVectorStore } from './data/vector-store';
+import { InMemoryVectorStore, PgVectorStore } from './data/vector-store';
 import { WolframVerifier } from './verification/verifiers/wolfram';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
@@ -65,6 +69,18 @@ for (const route of dailyProblemRoutes) {
 for (const route of telegramWebhookRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
+for (const route of flywheelRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of topicPageRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of streakRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of adminRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
 
 // Health check
 registerRoute('GET', '/health', async (_req, res) => {
@@ -106,7 +122,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   const method = (req.method || 'GET').toUpperCase();
 
   // Try to serve static frontend files in production
-  if (method === 'GET' && !pathname.startsWith('/api') && !pathname.startsWith('/telegram') && !pathname.startsWith('/health') && !pathname.startsWith('/solutions')) {
+  if (method === 'GET' && !pathname.startsWith('/api') && !pathname.startsWith('/telegram') && !pathname.startsWith('/health') && !pathname.startsWith('/solutions') && !pathname.startsWith('/topics') && pathname !== '/sitemap.xml') {
     const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
     if (fs.existsSync(frontendDist)) {
       const filePath = path.join(frontendDist, pathname === '/' ? 'index.html' : pathname);
@@ -247,8 +263,19 @@ Solve carefully:`;
     console.warn('[gate-server] WOLFRAM_APP_ID not set — Tier 3 disabled');
   }
 
-  // ── Vector store (in-memory for now, RAG cache builds up at runtime) ───
-  const vectorStore = new InMemoryVectorStore();
+  // ── Vector store (pgvector-backed for persistence across cold starts) ──
+  let vectorStore;
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    const pg = await import('pg');
+    const pool = new pg.default.Pool({ connectionString: dbUrl, max: 5, idleTimeoutMillis: 30_000 });
+    const pgStore = new PgVectorStore(pool);
+    await pgStore.initialize();
+    vectorStore = pgStore;
+  } else {
+    console.warn('[gate-server] DATABASE_URL not set — using in-memory vector store (no persistence)');
+    vectorStore = new InMemoryVectorStore();
+  }
 
   // ── Orchestrator ────────────────────────────────────────────────────────
   const orchestrator = new TieredVerificationOrchestrator(
@@ -266,6 +293,7 @@ Solve carefully:`;
   );
 
   setOrchestrator(orchestrator);
+  setFlywheelOrchestrator(orchestrator);
 
   console.log(`[gate-server] Verification tiers: RAG${genAI ? ' + Gemini LLM' : ''}${wolfram ? ' + Wolfram' : ''}`);
 
@@ -273,21 +301,27 @@ Solve carefully:`;
 
   server.listen(port, '0.0.0.0', () => {
     console.log(`
-┌─────────────────────────────────────────┐
-│  GATE Math API                          │
-│  http://localhost:${port}                    │
-│                                         │
-│  Endpoints:                             │
-│    GET  /health              Health      │
-│    GET  /api/topics          Topics      │
-│    GET  /api/problems/:topic Problems    │
-│    POST /api/verify          Verify      │
-│    POST /api/verify-any      Verify Any  │
-│    GET  /api/sr/:id          SR State    │
-│    POST /api/sr/:id          SR Update   │
-│    GET  /api/progress/:id    Progress    │
-│    GET  /solutions/:slug     SEO Page    │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  GATE Math API                               │
+│  http://localhost:${port}                         │
+│                                              │
+│  Core:                                       │
+│    GET  /health                 Health        │
+│    GET  /api/topics             Topics        │
+│    GET  /api/problems/:topic    Problems      │
+│    POST /api/verify             Verify        │
+│    POST /api/verify-any         Verify Any    │
+│    GET  /api/sr/:id             SR State      │
+│    POST /api/sr/:id             SR Update     │
+│    GET  /api/progress/:id       Progress      │
+│  SEO:                                        │
+│    GET  /solutions/:slug        Solution Page │
+│    GET  /topics/:slug           Topic Page    │
+│    GET  /sitemap.xml            Sitemap       │
+│  Automation:                                 │
+│    POST /api/flywheel/generate  Content Gen   │
+│    POST /telegram/daily-problem Daily Post    │
+└──────────────────────────────────────────────┘
 `);
   });
 

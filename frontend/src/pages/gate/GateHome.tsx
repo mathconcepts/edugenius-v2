@@ -12,6 +12,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { StreakBadge } from '@/components/gate/StreakBadge';
+import { GATECountdown } from '@/components/gate/GATECountdown';
 
 interface Topic {
   id: string;
@@ -59,6 +61,10 @@ export function GateHome() {
         <p className="text-surface-400 text-sm mt-1">
           Previous year questions with verified solutions
         </p>
+        <div className="flex items-center justify-center gap-3 mt-3">
+          <StreakBadge sessionId={sessionId} />
+          <GATECountdown />
+        </div>
       </div>
 
       {/* Due Reviews Banner */}

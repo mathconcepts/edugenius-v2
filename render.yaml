@@ -36,8 +36,18 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://gate-math.onrender.com
+      - key: APP_URL
+        value: https://gate-math-api.onrender.com
+      - key: ADMIN_EMAILS
+        sync: false
 
-# Daily Telegram cron handled externally (Render cron requires paid plan).
-# Use cron-job.org or GitHub Actions to POST:
+# External cron jobs (Render cron requires paid plan).
+# Use cron-job.org or GitHub Actions:
+#
+# Daily Telegram problem:
 #   curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
 #     https://gate-math-api.onrender.com/telegram/daily-problem
+#
+# Content flywheel (daily, generates 5 problems):
+#   curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
+#     https://gate-math-api.onrender.com/api/flywheel/generate

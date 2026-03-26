@@ -513,6 +513,142 @@ export class StudentKnowledgeGraph {
 }
 
 // ============================================================================
+// PgVector Store (persists to Supabase rag_cache table, in-memory read cache)
+// ============================================================================
+
+export class PgVectorStore implements VectorStore {
+  private memoryCache: InMemoryVectorStore = new InMemoryVectorStore();
+  private pool: any;
+  private initialized = false;
+
+  constructor(pool: any) {
+    this.pool = pool;
+  }
+
+  /** Load existing vectors from DB into memory cache on boot */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+    try {
+      const result = await this.pool.query(
+        `SELECT id, embedding::text, content, verification_status, verification_confidence,
+                verifier, answer, topic, metadata
+         FROM rag_cache
+         WHERE embedding IS NOT NULL
+         ORDER BY created_at DESC
+         LIMIT 10000`,
+      );
+
+      const docs: VectorDocument[] = result.rows.map((row: any) => ({
+        id: row.id,
+        embedding: this.parseEmbedding(row.embedding),
+        metadata: {
+          type: 'question' as const,
+          entityId: row.id,
+          subject: 'mathematics',
+          topic: row.topic || undefined,
+          exam: 'GATE',
+          createdAt: Date.now(),
+          verificationStatus: row.verification_status,
+          verificationConfidence: row.verification_confidence,
+          verifier: row.verifier,
+          answer: row.answer,
+          ...(row.metadata || {}),
+        },
+        content: row.content,
+      }));
+
+      if (docs.length > 0) {
+        await this.memoryCache.upsert(docs);
+      }
+      this.initialized = true;
+      console.log(`[PgVectorStore] Loaded ${docs.length} vectors from DB into memory cache`);
+    } catch (err) {
+      console.error('[PgVectorStore] Failed to load from DB, starting empty:', (err as Error).message);
+      this.initialized = true;
+    }
+  }
+
+  async upsert(docs: VectorDocument[]): Promise<void> {
+    // Write to memory cache for fast reads
+    await this.memoryCache.upsert(docs);
+
+    // Persist to Postgres in parallel
+    for (const doc of docs) {
+      try {
+        const meta = doc.metadata || {};
+        await this.pool.query(
+          `INSERT INTO rag_cache (id, embedding, content, verification_status, verification_confidence, verifier, answer, topic, metadata)
+           VALUES ($1, $2::vector, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (id) DO UPDATE SET
+             embedding = EXCLUDED.embedding,
+             content = EXCLUDED.content,
+             verification_status = EXCLUDED.verification_status,
+             verification_confidence = EXCLUDED.verification_confidence`,
+          [
+            doc.id,
+            `[${doc.embedding.join(',')}]`,
+            doc.content || '',
+            meta['verificationStatus'] || 'unknown',
+            meta['verificationConfidence'] || 0,
+            meta['verifier'] || 'unknown',
+            meta['answer'] || null,
+            meta['topic'] || null,
+            JSON.stringify(meta),
+          ],
+        );
+      } catch (err) {
+        console.error(`[PgVectorStore] Failed to persist doc ${doc.id}:`, (err as Error).message);
+        // Non-fatal — memory cache still has it
+      }
+    }
+  }
+
+  async delete(ids: UUID[]): Promise<void> {
+    await this.memoryCache.delete(ids);
+    try {
+      await this.pool.query('DELETE FROM rag_cache WHERE id = ANY($1)', [ids]);
+    } catch (err) {
+      console.error('[PgVectorStore] Failed to delete from DB:', (err as Error).message);
+    }
+  }
+
+  async get(ids: UUID[]): Promise<VectorDocument[]> {
+    return this.memoryCache.get(ids);
+  }
+
+  async search(params: VectorSearchParams): Promise<VectorSearchResult[]> {
+    // Use in-memory search for speed (all data loaded on boot)
+    return this.memoryCache.search(params);
+  }
+
+  async count(filter?: VectorFilter): Promise<number> {
+    return this.memoryCache.count(filter);
+  }
+
+  async clear(): Promise<void> {
+    await this.memoryCache.clear();
+    try {
+      await this.pool.query('DELETE FROM rag_cache');
+    } catch (err) {
+      console.error('[PgVectorStore] Failed to clear DB:', (err as Error).message);
+    }
+  }
+
+  private parseEmbedding(embeddingStr: string): number[] {
+    // pgvector returns "[0.1,0.2,...]" format
+    try {
+      return JSON.parse(embeddingStr);
+    } catch {
+      // Try stripping brackets
+      return embeddingStr
+        .replace(/[\[\]]/g, '')
+        .split(',')
+        .map(Number);
+    }
+  }
+}
+
+// ============================================================================
 // Singleton
 // ============================================================================
 
