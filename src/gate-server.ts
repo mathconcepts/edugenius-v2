@@ -123,7 +123,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 
   // Try to serve static frontend files in production
   if (method === 'GET' && !pathname.startsWith('/api') && !pathname.startsWith('/telegram') && !pathname.startsWith('/health') && !pathname.startsWith('/solutions') && !pathname.startsWith('/topics') && pathname !== '/sitemap.xml') {
-    const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+    const frontendDist = path.join(process.cwd(), 'frontend', 'dist');
     if (fs.existsSync(frontendDist)) {
       const filePath = path.join(frontendDist, pathname === '/' ? 'index.html' : pathname);
       if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
