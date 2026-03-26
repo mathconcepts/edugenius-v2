@@ -4,7 +4,7 @@ services:
     name: gate-math-api
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev && cd frontend && npm install --include=dev && npm run build
+    buildCommand: NODE_ENV=development npm install && cd frontend && NODE_ENV=development npm install && npm run build
     startCommand: npx tsx src/gate-server.ts
     healthCheckPath: /health
     envVars:
