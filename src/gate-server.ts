@@ -314,7 +314,15 @@ Solve carefully:`;
     try { console.log(`[gate-server] Dist contents: ${fs.readdirSync(frontendDistPath).join(', ')}`); } catch {}
   }
 
-  const server = createServer(handleRequest);
+  const server = createServer((req, res) => {
+    handleRequest(req, res).catch((err) => {
+      console.error('[gate-server] Unhandled request error:', err);
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+      }
+    });
+  });
 
   server.listen(port, '0.0.0.0', () => {
     console.log(`
