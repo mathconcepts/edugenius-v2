@@ -1,262 +1,270 @@
-# EduGenius v2.0
+# GATE Math — AI-Powered Exam Prep
 
-**AI-powered EdTech platform — personalized exam tutoring at scale.**
+**Practice GATE Engineering Mathematics with verified solutions, AI tutoring, and spaced repetition.**
 
-Adaptive learning for GATE, CAT, JEE, NEET and more. Multi-agent backend (Scout · Atlas · Sage · Mentor · Herald · Forge · Oracle) + React frontend + Wolfram math engine.
+A focused, mobile-first exam prep app for GATE Engineering Mathematics. Every answer is verified through a 3-tier cascade (RAG cache → Gemini LLM dual-solve → Wolfram Alpha arbitration), so students can trust the solutions.
 
-🌐 **Live:** https://edugenius-ui.netlify.app  
-📦 **Repo:** https://github.com/mathconcepts/edugenius-v2  
-🗄️ **DB:** Supabase (pgvector RAG + auth)
+**Live:** https://gate-math-api.onrender.com
+**Repo:** https://github.com/mathconcepts/edugenius-v2
 
 ---
 
-## ⚡ 60-Second Setup
+## What You Can Do
+
+| Feature | Description |
+|---------|-------------|
+| **Practice Problems** | 50+ GATE math problems across 10 topics, with MCQ selection and step-by-step solutions |
+| **AI Tutor Chat** | Ask anything — study plans, concept explanations, problem solving. Streams responses via Gemini 2.5-flash |
+| **3-Tier Verification** | Every answer verified: RAG cache ($0, <500ms) → LLM dual-solve → Wolfram Alpha arbitration |
+| **Spaced Repetition** | SM-2 algorithm tracks your mastery per topic. Problems resurface when you're about to forget |
+| **Progress Dashboard** | Topic-by-topic mastery rings, weak-topic heatmap, streak tracking |
+| **Verify Any Problem** | Paste any math problem — the 3-tier engine verifies it (rate-limited) |
+| **Social Autopilot** | Content flywheel auto-generates Twitter, Instagram, LinkedIn posts from verified problems |
+| **SEO Pages** | Server-rendered solution pages with JSON-LD for organic search |
+| **Telegram Bot** | Daily problem posting to GATE prep groups |
+
+---
+
+## Quick Start (Local Dev)
 
 ```bash
 git clone https://github.com/mathconcepts/edugenius-v2.git
-cd edugenius-v2
+cd edugenius-v2/tehran
 
-# 1. Check and install all dependencies (with prompts)
-./scripts/check-deps.sh --install
+# Install dependencies
+npm install
+cd frontend && npm install && cd ..
 
-# 2. Copy env template and add your API keys
-cp deploy/local.env.example .env.local
-nano .env.local          # add GEMINI_API_KEY at minimum
+# Set up environment
+cp .env.example .env
+# Edit .env — add GEMINI_API_KEY (required), DATABASE_URL, WOLFRAM_APP_ID
 
-# 3. Launch locally
-./scripts/deploy-local.sh
+# Run backend (port 8080)
+npx tsx src/gate-server.ts
+
+# Run frontend (port 3000, separate terminal)
+cd frontend && npm run dev
 ```
 
-Frontend opens at **http://localhost:80** · API at **http://localhost:3000**
+**Minimum required:** `GEMINI_API_KEY` from [aistudio.google.com](https://aistudio.google.com/)
+**For full features:** `DATABASE_URL` (Supabase), `WOLFRAM_APP_ID`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    EduGenius Platform                        │
-├──────────────────────────────────────────────────────────────┤
-│  React Frontend (Vite)   ←→   Node.js Backend (Express)      │
-│  TailwindCSS + Zustand        TypeScript ESM + pg            │
-│  KaTeX · Recharts · Framer    Supabase · Redis               │
-├──────────────────────────────────────────────────────────────┤
-│              Frontend Routes (50+ pages)                     │
-│  /                 Dashboard (role-adaptive)                 │
-│  /settings         Settings (Profile · Security · Billing)  │
-│  /chat             Sage Tutor Chat (Gemini-powered)          │
-│  /connections      API Connection Registry                   │
-│  /agent-skills     VoltAgent Skills Dashboard                │
-│  ...and 45+ more (see docs/19-audit-report.md)               │
-├──────────────────────────────────────────────────────────────┤
-│                     7 AI Agents                              │
-│  Scout    Atlas    Sage     Mentor  Herald  Forge   Oracle   │
-│  Market   Content  Tutor    Engage  Market  DevOps  Analytics│
-├──────────────────────────────────────────────────────────────┤
-│           Knowledge Layer                                    │
-│  Wolfram Alpha · Gemini RAG · Static PYQs · Supabase pgvec  │
-├──────────────────────────────────────────────────────────────┤
-│  Manim Visualisation (Python/FastAPI · port 7341)            │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│              GATE Math App                       │
+├─────────────────────────────────────────────────┤
+│  React Frontend (Vite + TailwindCSS)            │
+│  10 routes, mobile-first, dark theme            │
+│  Framer Motion animations, KaTeX math rendering │
+├─────────────────────────────────────────────────┤
+│  Node.js Backend (raw HTTP server)              │
+│  TypeScript, gate-server.ts entry point         │
+├─────────────────────────────────────────────────┤
+│  API Routes                                     │
+│  /api/topics, /api/problems, /api/verify        │
+│  /api/chat (SSE streaming), /api/sr, /api/streak│
+│  /api/admin/social, /api/auth/migrate-session   │
+├─────────────────────────────────────────────────┤
+│  3-Tier Verification Engine                     │
+│  Tier 1: RAG (pgvector cosine similarity)       │
+│  Tier 2: Gemini 2.5-flash dual-solve            │
+│  Tier 3: Wolfram Alpha arbitration              │
+├─────────────────────────────────────────────────┤
+│  Supabase (PostgreSQL + pgvector + Auth)        │
+│  Tables: pyq_questions, sr_sessions, streaks,   │
+│  chat_messages, user_profiles, social_content,  │
+│  verification_log, rag_cache, seo_pages         │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Deployment Options
+## Frontend Routes
 
-| Option | Command | Cost/month | Best For |
-|--------|---------|-----------|----------|
-| **Local** (Docker) | `./scripts/deploy-local.sh` | ~$0 | Dev / testing |
-| **Hybrid** (Supabase) | `./scripts/deploy-hybrid.sh` | ~$0 | ✅ Current setup |
-| **Railway PaaS** | `./scripts/deploy-railway.sh` | $20–60 | Launch |
-| **GCP Cloud Run** | `./scripts/deploy-gcp.sh` | $15–40 | Scale (recommended) |
-| **AWS ECS Fargate** | `./scripts/deploy-aws.sh` | $50–80 | Enterprise |
-
-Each script **auto-installs** its required CLIs and guides you through credentials.
-
-> See [`docs/19-deployment-options.md`](docs/19-deployment-options.md) for full decision guide.
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | GateHome | Topic grid with mastery rings, streak badge, GATE countdown |
+| `/topic/:id` | TopicPage | Problem list for a topic with difficulty indicators |
+| `/practice/:id` | PracticePage | Answer MCQs, see verified solutions, confetti celebrations |
+| `/chat` | ChatPage | AI tutor — streaming chat with Gemini, suggested prompts |
+| `/verify` | VerifyPage | Paste any math problem for 3-tier verification |
+| `/progress` | ProgressPage | Mastery stats, weak-topic heatmap, animated counters |
+| `/settings` | SettingsPage | Theme toggle, session management |
+| `/login` | LoginPage | Supabase Auth — Google OAuth + email/password |
+| `/admin` | AdminPage | Dashboard + social media content queue (teacher/admin only) |
 
 ---
 
-## Dependency Check
+## API Endpoints
 
 ```bash
-# Audit all 7 layers — no changes made
-./scripts/check-deps.sh
+# Core
+GET  /health                     # Health check + DB diagnostics
+GET  /api/topics                 # List 10 GATE math topics with problem counts
+GET  /api/problems/:topic        # Problems for a topic
+POST /api/verify                 # 3-tier verification cascade
+POST /api/verify-any             # Verify arbitrary math (rate-limited)
 
-# Audit + install missing (asks before each)
-./scripts/check-deps.sh --install
+# AI Tutor
+POST /api/chat                   # Stream chat response (SSE)
+GET  /api/chat/:sessionId        # Chat history
 
-# Install everything silently
-./scripts/check-deps.sh --install-all
+# Spaced Repetition
+GET  /api/sr/:sessionId          # SR state for session
+POST /api/sr/:sessionId          # Update SR after answer
 
-# Check only one layer
-./scripts/check-deps.sh --layer python   # system|node|frontend|python|creds|cloud|docker
+# Progress & Streaks
+GET  /api/progress/:sessionId    # Progress + weak topics
+GET  /api/streak/:id             # Current + longest streak
+POST /api/streak/:id             # Update streak
+
+# Auth
+POST /api/auth/migrate-session   # Link anonymous data to authenticated user
+
+# Social Media (admin)
+GET  /api/admin/social           # List social content
+PUT  /api/admin/social/:id       # Approve/reject/schedule posts
+
+# Automation
+POST /api/flywheel/generate      # Content generation (cron, Bearer token)
+POST /telegram/daily-problem     # Post daily problem to Telegram groups
+
+# SEO
+GET  /topics/:slug               # Server-rendered topic pages
+GET  /solutions/:slug            # Server-rendered solution pages
+GET  /sitemap.xml                # Auto-generated sitemap
 ```
-
-**Layers checked:**
-- System: Node 20, Docker, Git, curl, Python 3, pip
-- Backend npm: all 11 packages + TypeScript build
-- Frontend npm: React, Vite, Supabase, KaTeX, Tailwind, Recharts…
-- Python/Manim: FastAPI, manim, numpy, ffmpeg, LaTeX, cairo
-- Credentials: Gemini, Anthropic, Supabase, Wolfram, Tavily
-- Cloud CLIs: AWS (+ auth), gcloud (+ auth), Railway (+ login)
-- Docker images: postgres:16, redis:7, node:20
 
 ---
 
-## Batch Jobs
+## Environment Variables
 
-Agent tasks run on a schedule via `batch-run.sh`:
+| Key | Required | Description |
+|-----|----------|-------------|
+| `GEMINI_API_KEY` | Yes | Google AI Studio — powers chat, verification, embeddings |
+| `DATABASE_URL` | Yes (prod) | Supabase PostgreSQL connection string (transaction pooler) |
+| `WOLFRAM_APP_ID` | No | Wolfram Alpha — Tier 3 verification arbitration |
+| `SUPABASE_URL` | No | Supabase project URL (for Auth) |
+| `SUPABASE_ANON_KEY` | No | Supabase anon key (for Auth) |
+| `JWT_SECRET` | No | For backend JWT verification |
+| `TELEGRAM_BOT_TOKEN` | No | Telegram bot for daily problems |
+| `TELEGRAM_GROUP_IDS` | No | Comma-separated Telegram group chat IDs |
+| `CRON_SECRET` | No | Bearer token for cron job endpoints |
+| `PORT` | No | Server port (default: 8080) |
+
+---
+
+## Deployment (Render)
+
+The app deploys to **Render** (free tier) via `render.yaml`:
 
 ```bash
-./scripts/batch-run.sh                        # run all DUE jobs
-./scripts/batch-run.sh all                    # run ALL jobs now
-./scripts/batch-run.sh atlas:content-gen      # run one specific job
-./scripts/batch-run.sh status                 # show all job statuses
-./scripts/batch-run.sh atlas:content-gen --dry-run
+# Push to main triggers auto-deploy
+git push origin main
 ```
 
-**Built-in jobs:**
+**Render dashboard:** Set `DATABASE_URL`, `GEMINI_API_KEY`, `WOLFRAM_APP_ID` as environment variables.
 
-| Job | Agent | Default Schedule |
-|-----|-------|-----------------|
-| `atlas:content-gen` | Atlas | Daily 2am |
-| `scout:market-scan` | Scout | Monday 6am |
-| `oracle:analytics` | Oracle | Every 6 hours |
-| `herald:campaign` | Herald | Daily 8am |
-| `mentor:engagement` | Mentor | Daily 9am |
-| `forge:health` | Forge | Every 30 min |
+Build command: `npm install && cd frontend && npm install --include=dev && npx vite build`
+Start command: `npx tsx src/gate-server.ts`
+
+---
+
+## Database Migrations
+
+```
+supabase/migrations/
+├── 001_rag_schema.sql           # documents, document_chunks, pyq_questions + pgvector
+├── 002_telegram_bot.sql         # posted_at column for daily problem tracking
+├── 003_gate_app.sql             # sr_sessions, verification_log, seo_pages
+├── 004_autopilot_growth.sql     # rag_cache, daily_limits, streaks, analytics_events
+└── 005_chat_and_roles.sql       # chat_messages, user_profiles, social_content
+```
+
+Run migrations: `PGPASSWORD=<pw> psql <connection_string> -f supabase/migrations/<file>.sql`
 
 ---
 
 ## Project Structure
 
 ```
-edugenius/
-├── src/                    # Backend TypeScript source
-│   ├── agents/             # 7 AI domain agents
-│   ├── api/                # REST API (Express)
-│   ├── autonomy/           # BatchRunner + self-improvement
-│   ├── deployment/         # DeploymentManager + options registry
-│   ├── llm/                # LLM abstraction (Gemini, Anthropic)
-│   ├── orchestrator/       # Agent coordinator
-│   ├── workflows/          # End-to-end workflows
-│   └── index.ts
-├── frontend/               # React + Vite frontend
+tehran/
+├── src/                          # Backend TypeScript
+│   ├── gate-server.ts            # Main entry point (standalone GATE server)
+│   ├── api/
+│   │   ├── gate-routes.ts        # Core API (topics, problems, verify, SR)
+│   │   ├── chat-routes.ts        # AI tutor chat (SSE streaming)
+│   │   ├── auth-middleware.ts     # JWT verification + role checks
+│   │   ├── social-routes.ts      # Social media content admin
+│   │   ├── streak-routes.ts      # Streak tracking
+│   │   ├── topic-pages.ts        # SEO pages + sitemap
+│   │   └── admin-routes.ts       # Admin seeding/reset
+│   ├── verification/
+│   │   ├── tiered-orchestrator.ts # 3-tier cascade engine
+│   │   └── verifiers/            # wolfram.ts, llm-consensus.ts, sympy.ts
+│   ├── data/
+│   │   └── vector-store.ts       # PgVectorStore + InMemoryVectorStore
+│   └── jobs/
+│       ├── content-flywheel.ts   # Auto-generate problems + social content
+│       ├── daily-problem.ts      # Telegram daily posting
+│       └── telegram-webhook.ts   # "Show Solution" button handler
+├── frontend/                     # React + Vite + TailwindCSS
 │   └── src/
-│       ├── components/     # UI components
-│       ├── pages/          # Route pages (CEO, Student, Teacher...)
-│       ├── services/       # API clients, LLM, knowledge router
-│       ├── stores/         # Zustand state
-│       └── types/
-├── manim-service/          # Python FastAPI — math animation renderer
-│   ├── main.py             # FastAPI app (port 7341)
-│   └── start.sh
-├── agents/                 # Agent workspace files (SOUL.md etc.)
-├── scripts/                # Deploy + maintenance scripts
-│   ├── check-deps.sh       # Dependency audit + install
-│   ├── deploy-local.sh     # Docker Compose local
-│   ├── deploy-hybrid.sh    # Local + Supabase
-│   ├── deploy-railway.sh   # Railway PaaS
-│   ├── deploy-aws.sh       # AWS ECS Fargate
-│   ├── deploy-gcp.sh       # GCP Cloud Run
-│   ├── batch-run.sh        # Agent batch job runner
-│   └── _install_common.sh  # Shared OS-aware installer library
-├── deploy/                 # Environment templates
-│   ├── local.env.example
-│   ├── hybrid.env.example
-│   ├── railway.env.example
-│   ├── aws.env.example
-│   └── gcp.env.example
-├── supabase/               # DB migrations + seeds
-│   ├── migrations/         # pgvector RAG schema
-│   └── seeds/              # GATE EM + CAT PYQs
-├── docs/                   # Full documentation (20 docs)
-├── Dockerfile
-├── docker-compose.yml
-└── railway.json
+│       ├── App.tsx               # 10-route SPA router
+│       ├── pages/gate/           # GateHome, ChatPage, PracticePage, etc.
+│       ├── components/gate/      # GateLayout, MasteryRing, StreakBadge, etc.
+│       ├── hooks/                # useApi, useSession, useAuth
+│       └── lib/                  # analytics, animations, supabase client
+├── supabase/
+│   ├── migrations/               # 5 migration files
+│   └── seeds/                    # GATE EM PYQ seed data
+├── render.yaml                   # Render deployment config
+├── CLAUDE.md                     # AI agent instructions
+└── TODOS.md                      # Deferred work tracker
 ```
 
 ---
 
-## Key API Endpoints
-
-```bash
-GET  /health                    # System health
-GET  /status                    # Agent status
-POST /tutoring/sessions         # Start a tutoring session
-POST /tutoring/sessions/:id/ask # Ask a question
-GET  /analytics/report          # Analytics report
-POST /api/batch/:agent/:job     # Trigger batch job (cloud schedulers)
-```
-
----
-
-## API Keys Required
-
-| Key | Where to Get | Required? |
-|-----|-------------|-----------|
-| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com/app/apikey) | ✅ Yes |
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com/) | ✅ Yes |
-| `SUPABASE_URL` + keys | [supabase.com/dashboard](https://supabase.com/dashboard) | For cloud DB |
-| `VITE_WOLFRAM_APP_ID` | [developer.wolframalpha.com](https://developer.wolframalpha.com/) | For math engine |
-| `TAVILY_API_KEY` | [tavily.com](https://tavily.com/) | For Scout search |
-
----
-
-## Development
-
-```bash
-# Backend dev (hot reload)
-npm run dev
-
-# Frontend dev (Vite HMR)
-cd frontend && npm run dev
-
-# Manim service (Python)
-cd manim-service && ./start.sh
-
-# Type check
-npm run typecheck
-
-# Tests
-npm test
-npm run test:coverage
-```
-
----
-
-## Documentation
-
-| Doc | Description |
-|-----|-------------|
-| [**00-index.md**](docs/00-index.md) | **Master doc index (start here)** |
-| [01-quick-start.md](docs/01-quick-start.md) | Installation + first run |
-| [02-agent-architecture.md](docs/02-agent-architecture.md) | 7-agent system design |
-| [09-deployment.md](docs/09-deployment.md) | Deployment reference |
-| [19-deployment-options.md](docs/19-deployment-options.md) | Deploy options + cost guide |
-| [11-multi-agent-setup.md](docs/11-multi-agent-setup.md) | OpenClaw multi-agent config |
-| [17-master-design-documentation.md](docs/17-master-design-documentation.md) | Full system specs (1500+ lines) |
-| [18-agent-connection-map.md](docs/18-agent-connection-map.md) | Bidirectional agent signal reference |
-| [**19-audit-report.md**](docs/19-audit-report.md) | **Full codebase audit 2026-03-10** |
-| [CEO-INTEGRATIONS-GUIDE.md](docs/CEO-INTEGRATIONS-GUIDE.md) | CEO portal integrations |
-
----
-
-## Current Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 · Vite 5 · TailwindCSS 3 · Zustand · Framer Motion |
-| Backend | Node.js 20 · TypeScript 5 · Express 5 · ESM |
+| Frontend | React 18, Vite 5, TailwindCSS 3, Framer Motion 11, KaTeX |
+| Backend | Node.js (raw HTTP), TypeScript 5, tsx runtime |
 | Database | Supabase (PostgreSQL 16 + pgvector) |
-| Cache | Redis 7 |
-| AI | Google Gemini · Anthropic Claude · Wolfram Alpha |
-| Visualisation | Manim 0.20 · FastAPI · ffmpeg |
-| Auth | Supabase Auth (OTP + Google) |
-| Hosting | Netlify (frontend) · local/Railway/GCP (backend) |
+| AI | Google Gemini 2.5-flash (chat, verification, embeddings) |
+| Math Engine | Wolfram Alpha API (Tier 3 arbitration) |
+| Auth | Supabase Auth (Google OAuth + email/password) |
+| Hosting | Render (free tier, auto-deploy from main) |
 
 ---
 
-*EduGenius v2.0 — Built with OpenClaw multi-agent framework*
+## Roles
+
+| Role | Access |
+|------|--------|
+| **Student** (default) | All practice pages, AI tutor, progress tracking |
+| **Teacher** | Student access + admin dashboard, content management |
+| **Admin** | Full access + social media queue, system settings |
+
+Anonymous users (no login) get full access to practice and chat. Login is optional — it enables persistent progress across devices and session migration.
+
+---
+
+## 3-Tier Verification Engine
+
+Every answer goes through a cost-optimized cascade:
+
+1. **Tier 1 — RAG Cache** ($0, <500ms): Check if this problem pattern was previously verified. Uses pgvector cosine similarity with 3072-dim Gemini embeddings.
+2. **Tier 2 — LLM Dual-Solve** ($0 free tier, <8s): Two Gemini 2.5-flash instances solve independently. If they agree, the answer is verified. Disagreement escalates to Tier 3.
+3. **Tier 3 — Wolfram Alpha** (free 2000/mo, <15s): Arbitrates when LLMs disagree. Rate-limited to 50/day. Result is cached back to Tier 1 for future use.
+
+Each verification generates a trace ID for observability. Results are logged to `verification_log`.
+
+---
+
+*GATE Math — Verified exam prep, powered by AI.*

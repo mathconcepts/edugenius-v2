@@ -1,5 +1,44 @@
 # CLAUDE.md
 
+## Project: GATE Math
+
+GATE Math is a focused, mobile-first exam prep app for GATE Engineering Mathematics.
+This is the active project — the legacy 7-agent EduGenius system (src/index.ts, agents/) is NOT in use.
+
+### Key Entry Points
+- **Server:** `src/gate-server.ts` (NOT `src/index.ts`) — standalone GATE API on port 8080
+- **Frontend:** `frontend/src/App.tsx` — 10-route React SPA
+- **Deploy:** Render (auto-deploys from `main` branch) — see `render.yaml`
+- **DB:** Supabase (PostgreSQL + pgvector) — migrations in `supabase/migrations/`
+- **Live:** https://gate-math-api.onrender.com
+
+### Running Locally
+```bash
+npm install && cd frontend && npm install && cd ..
+npx tsx src/gate-server.ts        # backend on :8080
+cd frontend && npm run dev        # frontend on :3000 (separate terminal)
+```
+
+### Architecture
+- **3-tier verification:** RAG cache → Gemini 2.5-flash dual-solve → Wolfram Alpha
+- **Auth:** Supabase Auth (Google OAuth + email/password), anonymous-first with optional upgrade
+- **Roles:** student (default), teacher, admin
+- **AI Tutor:** Streaming chat via SSE at POST /api/chat (Gemini 2.5-flash)
+- **Social Autopilot:** Content flywheel generates social posts; admin approves at /admin
+
+### Important Files
+- `src/api/gate-routes.ts` — Core API (topics, problems, verify, SR)
+- `src/api/chat-routes.ts` — AI tutor chat (SSE streaming)
+- `src/api/auth-middleware.ts` — JWT verification + role-based access
+- `src/verification/tiered-orchestrator.ts` — 3-tier verification engine
+- `src/jobs/content-flywheel.ts` — Auto-generate problems + social content
+- `frontend/src/components/gate/GateLayout.tsx` — Layout with 5-tab bottom nav
+
+### Database
+5 migrations applied (001–005). Key tables: pyq_questions, sr_sessions, chat_messages, user_profiles, social_content, verification_log, rag_cache.
+
+---
+
 ## gstack
 
 Use the `/browse` skill from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.

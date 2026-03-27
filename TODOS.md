@@ -2,7 +2,7 @@
 
 Tracked deferred work from /plan-eng-review + /plan-ceo-review.
 Branch: mathconcepts/install-gstack
-Updated: 2026-03-26
+Updated: 2026-03-27
 
 ---
 
@@ -18,16 +18,12 @@ Updated: 2026-03-26
 
 ---
 
-## 2. User Authentication (Supabase Auth) + Freemium Gate
+## 2. ~~User Authentication (Supabase Auth)~~ + Freemium Gate
 
-**What:** Wire up Supabase Auth — login, signup, session management, protected routes. Add freemium gate: anon 3 views/day, signed-in 10/day.
-**Why:** Anonymous usage means progress/streaks reset on browser clear. Streaks (now implemented) need persistent identity. Freemium gate captures sign-ups for traction metrics.
-**Pros:** Enables personalization, retention metrics, freemium gate, persistent streaks.
-**Cons:** Adds friction to first-time usage. Auth is a known drop-off point.
-**Context:** Supabase Auth already provisioned. daily_limits table created in 004_autopilot_growth.sql. Frontend needs: AuthProvider, LoginModal, FreemiumGate components. Backend needs: JWT middleware, daily limit check on /api/verify and /api/problems.
-**Depends on:** Core app working (done). Streak routes (done).
-**Blocked by:** Nothing — Supabase Auth is ready.
-**Priority:** High | **Added:** 2026-03-24 | **Updated:** 2026-03-26
+**Completed (Auth):** 2026-03-27 — Supabase Auth wired up with Google OAuth + email/password. JWT middleware (`auth-middleware.ts`), role-based access (student/teacher/admin), `user_profiles` table, session migration endpoint, login page, user avatar in header.
+
+**Remaining (Freemium Gate):** Daily view limits not yet enforced. `daily_limits` table exists but no middleware checks on `/api/verify` or `/api/problems`. Needs: rate-limit middleware checking `daily_limits` table, different caps per role (anon: 3/day, student: 10/day, teacher: unlimited).
+**Priority:** Medium | **Added:** 2026-03-24 | **Updated:** 2026-03-27
 
 ---
 
