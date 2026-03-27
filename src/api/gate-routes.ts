@@ -453,6 +453,30 @@ async function handleGetSEOPage(req: ParsedRequest, res: ServerResponse): Promis
 }
 
 // ============================================================================
+// Analytics (fire-and-forget, inserts into analytics_events)
+// ============================================================================
+
+async function handleAnalytics(req: ParsedRequest, res: ServerResponse) {
+  const body = req.body as { event_type?: string; identifier?: string; metadata?: object } | null;
+  if (!body?.event_type) {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  try {
+    const pool = getPool();
+    await pool.query(
+      `INSERT INTO analytics_events (event_type, identifier, metadata) VALUES ($1, $2, $3)`,
+      [body.event_type, body.identifier || null, JSON.stringify(body.metadata || {})]
+    );
+  } catch {
+    // Silently ignore — analytics should never break the app
+  }
+  res.writeHead(204);
+  res.end();
+}
+
+// ============================================================================
 // Route Definitions
 // ============================================================================
 
@@ -474,6 +498,9 @@ export const gateRoutes: RouteDefinition[] = [
 
   // Progress
   { method: 'GET', path: '/api/progress/:sessionId', handler: handleGetProgress },
+
+  // Analytics
+  { method: 'POST', path: '/api/analytics', handler: handleAnalytics },
 
   // SEO Pages
   { method: 'GET', path: '/solutions/:slug', handler: handleGetSEOPage },
