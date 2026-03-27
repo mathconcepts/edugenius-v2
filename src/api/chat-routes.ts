@@ -1,0 +1,215 @@
+// @ts-nocheck
+/**
+ * GATE Math App — AI Tutor Chat Routes
+ *
+ * Endpoints:
+ *   POST /api/chat           — Stream a chat response (SSE)
+ *   GET  /api/chat/:sessionId — Get chat history
+ */
+
+import { ServerResponse } from 'http';
+import pg from 'pg';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const { Pool } = pg;
+
+interface ParsedRequest {
+  pathname: string;
+  query: URLSearchParams;
+  params: Record<string, string>;
+  body: unknown;
+  headers: Record<string, string | string[] | undefined>;
+}
+
+type RouteHandler = (req: ParsedRequest, res: ServerResponse) => Promise<void>;
+
+interface RouteDefinition {
+  method: string;
+  path: string;
+  handler: RouteHandler;
+}
+
+// ============================================================================
+// Database
+// ============================================================================
+
+let _pool: any = null;
+
+function getPool() {
+  if (_pool) return _pool;
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error('[chat-routes] DATABASE_URL not configured');
+  _pool = new Pool({ connectionString, max: 5, idleTimeoutMillis: 30_000 });
+  return _pool;
+}
+
+function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
+
+function sendError(res: ServerResponse, status: number, message: string): void {
+  sendJSON(res, { error: message }, status);
+}
+
+// ============================================================================
+// Gemini Chat Model
+// ============================================================================
+
+let _chatModel: any = null;
+
+function getChatModel() {
+  if (_chatModel) return _chatModel;
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  const genAI = new GoogleGenerativeAI(key);
+  _chatModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  return _chatModel;
+}
+
+// ============================================================================
+// System Prompt
+// ============================================================================
+
+const SYSTEM_PROMPT = `You are an expert GATE Engineering Mathematics tutor. Your name is GATE Math Tutor.
+
+## Your Capabilities
+- **Exam Strategy**: Help students create study plans, prioritize topics, manage time
+- **Problem Solving**: Walk through problems step-by-step with clear explanations
+- **Concept Explanation**: Explain mathematical concepts intuitively with examples
+- **Doubt Clearing**: Answer any question about GATE math topics
+- **Motivation**: Encourage students, celebrate progress, build confidence
+
+## GATE Engineering Mathematics Topics
+1. Linear Algebra (eigenvalues, matrix operations, systems of equations)
+2. Calculus (limits, differentiation, integration, sequences & series)
+3. Differential Equations (ODE, PDE, Laplace transforms)
+4. Complex Variables (analytic functions, contour integration, residues)
+5. Probability & Statistics (distributions, hypothesis testing, regression)
+6. Numerical Methods (interpolation, numerical integration, root finding)
+7. Transform Theory (Fourier, Laplace, Z-transforms)
+8. Discrete Mathematics (logic, sets, combinatorics, recurrences)
+9. Graph Theory (trees, connectivity, coloring, matching)
+10. Vector Calculus (gradient, divergence, curl, line/surface integrals)
+
+## Response Guidelines
+- Use LaTeX for math: inline $...$ and display $$...$$
+- Be concise but thorough — students are preparing for a competitive exam
+- When solving problems, show each step clearly
+- If a student seems confused, simplify and use analogies
+- Always end with an encouraging note or a follow-up question
+- For study plans, be specific: topic order, daily hours, practice problems count
+- Reference GATE exam patterns and frequently tested concepts
+
+## Intent Detection
+- "How to prepare for X?" → Study plan with timeline
+- "Solve this..." / math expression → Step-by-step solution
+- "Explain X" / "What is X?" → Concept explanation with examples
+- "I'm stuck on X" → Identify the gap, then explain with simpler examples
+- General chat → Friendly, supportive exam prep guidance`;
+
+// ============================================================================
+// Routes
+// ============================================================================
+
+/**
+ * POST /api/chat — Stream a chat response via SSE
+ * Body: { sessionId, message, history?: { role, content }[] }
+ */
+async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const { sessionId, message, history } = req.body as any || {};
+
+  if (!sessionId || !message) {
+    return sendError(res, 400, 'sessionId and message are required');
+  }
+
+  const model = getChatModel();
+  if (!model) {
+    return sendError(res, 503, 'AI tutor not available (GEMINI_API_KEY not configured)');
+  }
+
+  // Build conversation history for context
+  const chatHistory = (history || []).slice(-10).map((msg: any) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }));
+
+  // Set up SSE
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  try {
+    // Start chat with history
+    const chat = model.startChat({
+      history: [
+        { role: 'user', parts: [{ text: 'System instructions: ' + SYSTEM_PROMPT }] },
+        { role: 'model', parts: [{ text: 'Understood! I\'m your GATE Engineering Mathematics tutor. I\'m here to help with problem solving, concept explanations, study plans, and exam strategy. How can I help you today?' }] },
+        ...chatHistory,
+      ],
+    });
+
+    // Stream response
+    const result = await chat.sendMessageStream(message);
+    let fullResponse = '';
+
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) {
+        fullResponse += text;
+        res.write(`data: ${JSON.stringify({ type: 'chunk', content: text })}\n\n`);
+      }
+    }
+
+    // Send done event
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+
+    // Persist messages to DB
+    try {
+      const pool = getPool();
+      await pool.query(
+        'INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3), ($1, $4, $5)',
+        [sessionId, 'user', message, 'assistant', fullResponse]
+      );
+    } catch (dbErr) {
+      console.error('[chat] DB persist error:', (dbErr as Error).message);
+    }
+
+  } catch (err) {
+    console.error('[chat] Stream error:', (err as Error).message);
+    res.write(`data: ${JSON.stringify({ type: 'error', content: 'Sorry, I encountered an error. Please try again.' })}\n\n`);
+  }
+
+  res.end();
+}
+
+/**
+ * GET /api/chat/:sessionId — Get chat history
+ */
+async function handleGetHistory(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const { sessionId } = req.params;
+
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      'SELECT id, role, content, metadata, created_at FROM chat_messages WHERE session_id = $1 ORDER BY created_at ASC LIMIT 100',
+      [sessionId]
+    );
+    sendJSON(res, { messages: result.rows });
+  } catch (err) {
+    console.error('[chat] History error:', (err as Error).message);
+    sendError(res, 500, 'Failed to load chat history');
+  }
+}
+
+// ============================================================================
+// Export
+// ============================================================================
+
+export const chatRoutes: RouteDefinition[] = [
+  { method: 'POST', path: '/api/chat', handler: handleChat },
+  { method: 'GET', path: '/api/chat/:sessionId', handler: handleGetHistory },
+];

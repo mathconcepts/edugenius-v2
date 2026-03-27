@@ -245,11 +245,73 @@ async function verifyAndPublish(problem: GeneratedProblem): Promise<{ verified: 
       console.warn('[flywheel] SEO page insert failed (non-fatal):', (seoErr as Error).message);
     }
 
+    // Generate social media content (fire-and-forget, non-blocking)
+    generateSocialContent(problem, pyqId).catch(err =>
+      console.warn('[flywheel] Social content generation failed (non-fatal):', (err as Error).message)
+    );
+
     console.log(`[flywheel] Published: ${problem.topic} (${problem.difficulty}) via ${result.tierUsed}, pyq_id=${pyqId}`);
     return { verified: true, tier: result.tierUsed };
   } catch (err) {
     console.error('[flywheel] Verify/publish error:', (err as Error).message);
     return { verified: false };
+  }
+}
+
+/**
+ * Generate social media content for Twitter, Instagram, and LinkedIn.
+ */
+async function generateSocialContent(problem: GeneratedProblem, pyqId: string): Promise<void> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return;
+
+  const genAI = new GoogleGenerativeAI(geminiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const topicLabel = problem.topic.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const appUrl = process.env.APP_URL || 'https://gate-math-api.onrender.com';
+
+  const prompt = `Generate social media content for this GATE Engineering Mathematics problem.
+
+Topic: ${topicLabel}
+Difficulty: ${problem.difficulty}
+Question: ${problem.question_text}
+Options: ${JSON.stringify(problem.options)}
+Answer: ${problem.correct_answer}
+Explanation: ${problem.explanation}
+
+Generate content for all 3 platforms in this exact JSON format:
+{
+  "twitter": "A thread-style post. Start with a hook question, then the problem (abbreviated), then 'Reply with your answer! Full solution: ${appUrl}'. Use relevant hashtags: #GATE2027 #EngineeringMath #${problem.topic.replace(/-/g, '')}. Max 280 chars per tweet, format as a single post.",
+  "instagram": "A carousel-style caption. Hook → Problem → Key insight → CTA to practice more. Use emojis. Include hashtags. Max 500 chars.",
+  "linkedin": "A professional post about this math concept. Start with an observation about GATE exam patterns, present the problem as a challenge, share a key insight from the solution, CTA to practice. Professional tone. Max 600 chars."
+}
+
+Return ONLY valid JSON, no markdown.`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return;
+
+    const content = JSON.parse(jsonMatch[0]);
+    const pool = getPool();
+
+    const platforms = ['twitter', 'instagram', 'linkedin'] as const;
+    for (const platform of platforms) {
+      if (content[platform]) {
+        await pool.query(
+          `INSERT INTO social_content (pyq_id, platform, content, status)
+           VALUES ($1, $2, $3, 'pending')
+           ON CONFLICT DO NOTHING`,
+          [pyqId, platform, content[platform]]
+        );
+      }
+    }
+    console.log(`[flywheel] Social content generated for ${platforms.length} platforms`);
+  } catch (err) {
+    console.warn('[flywheel] Social content LLM error:', (err as Error).message);
   }
 }
 

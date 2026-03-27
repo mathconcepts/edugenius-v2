@@ -17,6 +17,9 @@ import { flywheelRoutes, setFlywheelOrchestrator } from './jobs/content-flywheel
 import { topicPageRoutes } from './api/topic-pages';
 import { streakRoutes } from './api/streak-routes';
 import { adminRoutes } from './api/admin-routes';
+import { chatRoutes } from './api/chat-routes';
+import { socialRoutes } from './api/social-routes';
+import { getAuth, migrateSession } from './api/auth-middleware';
 import { TieredVerificationOrchestrator } from './verification/tiered-orchestrator';
 import { InMemoryVectorStore, PgVectorStore } from './data/vector-store';
 import { WolframVerifier } from './verification/verifiers/wolfram';
@@ -81,6 +84,37 @@ for (const route of streakRoutes) {
 for (const route of adminRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
+for (const route of chatRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of socialRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+
+// Auth session migration
+registerRoute('POST', '/api/auth/migrate-session', async (req, res) => {
+  const auth = await getAuth(req);
+  if (!auth) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Authentication required' }));
+    return;
+  }
+  const { sessionId } = req.body as any || {};
+  if (!sessionId) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'sessionId required' }));
+    return;
+  }
+  try {
+    await migrateSession(auth.userId, sessionId);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
+  } catch (err) {
+    console.error('[auth] Migration error:', (err as Error).message);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Migration failed' }));
+  }
+});
 
 // Health check
 registerRoute('GET', '/health', async (_req, res) => {
@@ -345,6 +379,14 @@ Solve carefully:`;
 │    GET  /solutions/:slug        Solution Page │
 │    GET  /topics/:slug           Topic Page    │
 │    GET  /sitemap.xml            Sitemap       │
+│  AI Tutor:                                   │
+│    POST /api/chat               Stream Chat   │
+│    GET  /api/chat/:id           History       │
+│  Auth:                                       │
+│    POST /api/auth/migrate-session Migrate    │
+│  Social:                                     │
+│    GET  /api/admin/social       List Content  │
+│    PUT  /api/admin/social/:id   Update        │
 │  Automation:                                 │
 │    POST /api/flywheel/generate  Content Gen   │
 │    POST /telegram/daily-problem Daily Post    │

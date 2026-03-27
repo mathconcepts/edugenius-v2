@@ -1,29 +1,37 @@
 /**
- * GateLayout — Mobile-first layout with animated bottom nav and scroll-aware header.
+ * GateLayout — Mobile-first layout with animated bottom nav, scroll-aware header, auth.
  */
 
 import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, CheckCircle, BarChart3, Settings } from 'lucide-react';
+import { Home, CheckCircle, BarChart3, Settings, MessageCircle, User, LogOut, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useAuth } from '@/hooks/useAuth';
 
 const NAV_ITEMS = [
-  { to: '/',         icon: Home,        label: 'Home',     end: true },
-  { to: '/verify',   icon: CheckCircle, label: 'Verify' },
-  { to: '/progress', icon: BarChart3,   label: 'Progress' },
-  { to: '/settings', icon: Settings,    label: 'Settings' },
+  { to: '/',         icon: Home,          label: 'Home',     end: true },
+  { to: '/chat',     icon: MessageCircle, label: 'Tutor' },
+  { to: '/verify',   icon: CheckCircle,   label: 'Verify' },
+  { to: '/progress', icon: BarChart3,     label: 'Progress' },
+  { to: '/settings', icon: Settings,      label: 'Settings' },
 ];
 
 export function GateLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Close menu on route change
+  useEffect(() => setShowMenu(false), [location]);
 
   return (
     <div className="min-h-dvh bg-surface-950 text-white">
@@ -39,7 +47,56 @@ export function GateLayout() {
           <span className="font-bold text-white text-base tracking-tight">GATE Math</span>
         </a>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-surface-500 hidden sm:block">GATE Engineering Mathematics</span>
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-800 transition-colors"
+              >
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500 to-emerald-500 flex items-center justify-center text-xs font-bold">
+                    {(user.display_name || user.email)?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+              </button>
+              {showMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-surface-900 border border-surface-700 shadow-xl py-1 z-50"
+                >
+                  <div className="px-3 py-2 border-b border-surface-800">
+                    <p className="text-xs font-medium text-white truncate">{user.display_name || user.email}</p>
+                    <p className="text-xs text-surface-500 capitalize">{user.role}</p>
+                  </div>
+                  {(user.role === 'teacher' || user.role === 'admin') && (
+                    <button
+                      onClick={() => navigate('/admin')}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-surface-300 hover:bg-surface-800 transition-colors"
+                    >
+                      <Shield size={14} /> Admin
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { signOut(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-surface-800 transition-colors"
+                  >
+                    <LogOut size={14} /> Sign Out
+                  </button>
+                </motion.div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-surface-300 text-sm transition-colors"
+            >
+              <User size={14} />
+              <span className="hidden sm:inline">Sign In</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -50,7 +107,7 @@ export function GateLayout() {
         </div>
       </main>
 
-      {/* Bottom Nav — animated active indicator */}
+      {/* Bottom Nav — 5 items with animated active indicator */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch bg-surface-950/95 border-t border-surface-800/80 backdrop-blur-md"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
@@ -79,11 +136,16 @@ export function GateLayout() {
                 />
               )}
               <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className="text-[11px] font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium">{item.label}</span>
             </NavLink>
           );
         })}
       </nav>
+
+      {/* Click-away for menu */}
+      {showMenu && (
+        <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+      )}
     </div>
   );
 }

@@ -1,16 +1,17 @@
 /**
- * GATE Math Practice — Focused 6-route app.
- *
- * Surgical route swap: all 45+ old pages remain on disk (App.legacy.tsx).
- * This router exposes only the GATE math experience.
+ * GATE Math Practice — 10-route app with AI tutor, auth, and admin.
  *
  * Routes:
  *   /              → Home (topic grid)
  *   /topic/:id     → Topic problems list
  *   /practice/:id  → Practice flow (answer + verify)
  *   /verify        → Verify Any Problem
+ *   /chat          → AI Tutor Chat
  *   /progress      → Progress + weak-topic heat map
  *   /settings      → Settings (theme, session)
+ *   /login         → Login / Sign up
+ *   /admin         → Admin dashboard (teacher/admin only)
+ *   *              → 404
  */
 
 import { lazy, Suspense } from 'react';
@@ -26,6 +27,9 @@ const PracticePage = lazy(() => import('@/pages/gate/PracticePage'));
 const VerifyPage = lazy(() => import('@/pages/gate/VerifyPage'));
 const ProgressPage = lazy(() => import('@/pages/gate/ProgressPage'));
 const SettingsPage = lazy(() => import('@/pages/gate/SettingsPage'));
+const ChatPage = lazy(() => import('@/pages/gate/ChatPage'));
+const LoginPage = lazy(() => import('@/pages/gate/LoginPage'));
+const AdminPage = lazy(() => import('@/pages/gate/AdminPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -50,8 +54,11 @@ export default function App() {
           <Route path="topic/:topicId" element={<TopicPage />} />
           <Route path="practice/:problemId" element={<PracticePage />} />
           <Route path="verify" element={<VerifyPage />} />
+          <Route path="chat" element={<ChatPage />} />
           <Route path="progress" element={<ProgressPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
