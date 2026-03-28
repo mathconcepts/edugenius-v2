@@ -9,8 +9,9 @@ import { apiFetch } from '@/hooks/useApi';
 import { useSession } from '@/hooks/useSession';
 import { trackEvent } from '@/lib/analytics';
 import { fadeInUp, staggerContainer, tapScale, celebration } from '@/lib/animations';
-import { CheckCircle, XCircle, Loader2, AlertTriangle, Zap, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, AlertTriangle, Zap, Clock, Camera } from 'lucide-react';
 import { clsx } from 'clsx';
+import { CameraInput } from '@/components/gate/CameraInput';
 
 interface VerifyResult {
   traceId: string;
@@ -33,6 +34,7 @@ export default function VerifyPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [error, setError] = useState('');
+  const [image, setImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -50,17 +52,23 @@ export default function VerifyPage() {
   };
 
   const handleVerify = async () => {
-    if (!problem.trim() || !answer.trim()) return;
+    if ((!problem.trim() && !image) || !answer.trim()) return;
     setLoading(true);
     setResult(null);
     setError('');
 
-    trackEvent('verify_submit', { problemLength: problem.length });
+    trackEvent('verify_submit', { problemLength: problem.length, hasImage: !!image });
 
     try {
+      const payload: any = { answer: answer.trim(), sessionId };
+      if (problem.trim()) payload.problem = problem.trim();
+      if (image) {
+        payload.image = image.base64;
+        payload.imageMimeType = image.mimeType;
+      }
       const res = await apiFetch<VerifyResult>('/api/verify-any', {
         method: 'POST',
-        body: JSON.stringify({ problem: problem.trim(), answer: answer.trim(), sessionId }),
+        body: JSON.stringify(payload),
       });
       setResult(res);
     } catch (err) {
@@ -89,7 +97,7 @@ export default function VerifyPage() {
     return 'Could not verify';
   };
 
-  const canSubmit = problem.trim() && answer.trim() && !loading;
+  const canSubmit = (problem.trim() || image) && answer.trim() && !loading;
 
   return (
     <motion.div
@@ -99,11 +107,27 @@ export default function VerifyPage() {
       variants={staggerContainer}
     >
       <motion.div variants={fadeInUp}>
-        <h1 className="text-xl font-bold text-surface-100">Verify Any Problem</h1>
+        <h1 className="text-xl font-bold text-surface-100">Scan & Verify</h1>
         <p className="text-sm text-surface-500 mt-1">
-          Enter any math problem and your answer — we'll verify it through our 3-tier pipeline.
+          Snap a photo of any math problem or type it in. We'll verify your answer through our 3-tier pipeline.
         </p>
       </motion.div>
+
+      {/* Camera Input */}
+      <motion.div variants={fadeInUp}>
+        <CameraInput
+          onCapture={(b, m) => setImage({ base64: b, mimeType: m })}
+          onClear={() => setImage(null)}
+          preview={image?.base64 || null}
+        />
+      </motion.div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-surface-800" />
+        <span className="text-xs text-surface-500">or type manually</span>
+        <div className="flex-1 h-px bg-surface-800" />
+      </div>
 
       {/* Problem Input */}
       <motion.div variants={fadeInUp} className="space-y-3">

@@ -5,8 +5,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader2, Sparkles, BookOpen, Target, Brain, Trash2 } from 'lucide-react';
+import { Send, Loader2, Sparkles, BookOpen, Target, Brain, Trash2, Camera, ImageIcon } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
+import { CameraInput } from '@/components/gate/CameraInput';
 
 interface ChatMessage {
   id: string;
@@ -25,11 +26,12 @@ const SUGGESTIONS = [
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export default function ChatPage() {
-  const { sessionId } = useSession();
+  const sessionId = useSession();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -60,10 +62,11 @@ export default function ChatPage() {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isStreaming || !sessionId) return;
 
+    const currentImage = attachedImage;
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: text.trim(),
+      content: currentImage ? `[Photo attached] ${text.trim()}` : text.trim(),
     };
 
     const assistantMsg: ChatMessage = {
@@ -74,17 +77,24 @@ export default function ChatPage() {
 
     setMessages(prev => [...prev, userMsg, assistantMsg]);
     setInput('');
+    setAttachedImage(null);
     setIsStreaming(true);
 
     try {
+      const chatBody: any = {
+        sessionId,
+        message: text.trim(),
+        history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+      };
+      if (currentImage) {
+        chatBody.image = currentImage.base64;
+        chatBody.imageMimeType = currentImage.mimeType;
+      }
+
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          message: text.trim(),
-          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
-        }),
+        body: JSON.stringify(chatBody),
       });
 
       if (!response.ok) throw new Error('Chat request failed');
@@ -133,7 +143,7 @@ export default function ChatPage() {
     }
 
     setIsStreaming(false);
-  }, [sessionId, isStreaming, messages]);
+  }, [sessionId, isStreaming, messages, attachedImage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -223,6 +233,17 @@ export default function ChatPage() {
 
       {/* Input bar */}
       <div className="border-t border-surface-800/80 bg-surface-950/95 backdrop-blur-md px-4 py-3">
+        {/* Image preview */}
+        {attachedImage && (
+          <div className="max-w-3xl mx-auto mb-2">
+            <CameraInput
+              onCapture={(b, m) => setAttachedImage({ base64: b, mimeType: m })}
+              onClear={() => setAttachedImage(null)}
+              preview={attachedImage.base64}
+              compact
+            />
+          </div>
+        )}
         <div className="max-w-3xl mx-auto flex items-end gap-2">
           {messages.length > 0 && (
             <button
@@ -233,6 +254,12 @@ export default function ChatPage() {
               <Trash2 size={18} />
             </button>
           )}
+          <CameraInput
+            onCapture={(b, m) => setAttachedImage({ base64: b, mimeType: m })}
+            onClear={() => setAttachedImage(null)}
+            preview={null}
+            compact
+          />
           <div className="flex-1 relative">
             <textarea
               ref={inputRef}

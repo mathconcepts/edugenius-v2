@@ -12,6 +12,7 @@ import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { MasteryRing } from '@/components/gate/MasteryRing';
 import { CountUp } from '@/components/gate/CountUp';
 import { Confetti } from '@/components/gate/Confetti';
+import { ExamReadinessBreakdown } from '@/components/gate/ExamReadiness';
 import { BarChart3, TrendingDown, Clock, ChevronRight, Sparkles, PartyPopper } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -121,6 +122,9 @@ export default function ProgressPage() {
           </div>
         ))}
       </motion.div>
+
+      {/* Exam Readiness Breakdown */}
+      <ExamReadinessBreakdown sessionId={sessionId} />
 
       {/* All Caught Up celebration */}
       {allCaughtUp && (

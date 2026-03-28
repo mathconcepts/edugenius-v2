@@ -28,6 +28,7 @@ const VerifyPage = lazy(() => import('@/pages/gate/VerifyPage'));
 const ProgressPage = lazy(() => import('@/pages/gate/ProgressPage'));
 const SettingsPage = lazy(() => import('@/pages/gate/SettingsPage'));
 const ChatPage = lazy(() => import('@/pages/gate/ChatPage'));
+const NotebookPage = lazy(() => import('@/pages/gate/NotebookPage'));
 const LoginPage = lazy(() => import('@/pages/gate/LoginPage'));
 const AdminPage = lazy(() => import('@/pages/gate/AdminPage'));
 
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="practice/:problemId" element={<PracticePage />} />
           <Route path="verify" element={<VerifyPage />} />
           <Route path="chat" element={<ChatPage />} />
+          <Route path="notebook" element={<NotebookPage />} />
           <Route path="progress" element={<ProgressPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="login" element={<LoginPage />} />

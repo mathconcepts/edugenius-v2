@@ -5,16 +5,16 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, CheckCircle, BarChart3, Settings, MessageCircle, User, LogOut, Shield } from 'lucide-react';
+import { Home, Camera, BarChart3, Settings, MessageCircle, User, LogOut, Shield, BookOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
 
 const NAV_ITEMS = [
-  { to: '/',         icon: Home,          label: 'Home',     end: true },
-  { to: '/chat',     icon: MessageCircle, label: 'Tutor' },
-  { to: '/verify',   icon: CheckCircle,   label: 'Verify' },
-  { to: '/progress', icon: BarChart3,     label: 'Progress' },
-  { to: '/settings', icon: Settings,      label: 'Settings' },
+  { to: '/',          icon: Home,          label: 'Home',     end: true },
+  { to: '/chat',      icon: MessageCircle, label: 'Tutor' },
+  { to: '/verify',    icon: Camera,        label: 'Scan' },
+  { to: '/notebook',  icon: BookOpen,      label: 'Notebook' },
+  { to: '/progress',  icon: BarChart3,     label: 'Progress' },
 ];
 
 export function GateLayout() {
@@ -71,6 +71,12 @@ export function GateLayout() {
                     <p className="text-xs font-medium text-white truncate">{user.display_name || user.email}</p>
                     <p className="text-xs text-surface-500 capitalize">{user.role}</p>
                   </div>
+                  <button
+                    onClick={() => navigate('/settings')}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-surface-300 hover:bg-surface-800 transition-colors"
+                  >
+                    <Settings size={14} /> Settings
+                  </button>
                   {(user.role === 'teacher' || user.role === 'admin') && (
                     <button
                       onClick={() => navigate('/admin')}
@@ -89,13 +95,21 @@ export function GateLayout() {
               )}
             </div>
           ) : (
-            <button
-              onClick={() => navigate('/login')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-surface-300 text-sm transition-colors"
-            >
-              <User size={14} />
-              <span className="hidden sm:inline">Sign In</span>
-            </button>
+            <>
+              <button
+                onClick={() => navigate('/settings')}
+                className="p-1.5 rounded-lg hover:bg-surface-800 transition-colors"
+              >
+                <Settings size={16} className="text-surface-400" />
+              </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-surface-300 text-sm transition-colors"
+              >
+                <User size={14} />
+                <span className="hidden sm:inline">Sign In</span>
+              </button>
+            </>
           )}
         </div>
       </header>

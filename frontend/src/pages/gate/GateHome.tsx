@@ -12,6 +12,7 @@ import { fadeInUp, staggerContainer, cardHover } from '@/lib/animations';
 import { MasteryRing } from '@/components/gate/MasteryRing';
 import { StreakBadge } from '@/components/gate/StreakBadge';
 import { GATECountdown } from '@/components/gate/GATECountdown';
+import { ExamReadinessBadge } from '@/components/gate/ExamReadiness';
 import {
   Grid3x3, Activity, GitBranch, Circle, BarChart,
   Hash, Repeat, Layers, Share2, Navigation, ChevronRight,
@@ -106,6 +107,9 @@ export function GateHome() {
           <GATECountdown />
         </div>
       </motion.div>
+
+      {/* Exam Readiness Score */}
+      <ExamReadinessBadge sessionId={sessionId} />
 
       {/* Welcome Banner (first visit only) */}
       <AnimatePresence>

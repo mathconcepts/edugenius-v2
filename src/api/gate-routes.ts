@@ -16,6 +16,7 @@
 
 import { ServerResponse } from 'http';
 import pg from 'pg';
+import { detectTopic } from '../utils/topic-detection';
 const { Pool } = pg;
 
 // ============================================================================
@@ -146,9 +147,14 @@ async function handleGetProblemById(req: ParsedRequest, res: ServerResponse): Pr
 // These handlers call it and log to verification_log.
 
 let _orchestrator: any = null;
+let _geminiModel: any = null;
 
 export function setOrchestrator(orch: any): void {
   _orchestrator = orch;
+}
+
+export function setGeminiModel(model: any): void {
+  _geminiModel = model;
 }
 
 async function handleVerify(req: ParsedRequest, res: ServerResponse): Promise<void> {
@@ -192,6 +198,22 @@ async function handleVerify(req: ParsedRequest, res: ServerResponse): Promise<vo
       console.error('[gate-routes] Failed to log verification:', (logErr as Error).message);
     }
 
+    // Auto-populate notebook
+    try {
+      const topic = detectTopic(body.problem);
+      const nbStatus = result.overallStatus === 'verified' ? 'mastered' :
+                        result.overallStatus === 'partial' ? 'in_progress' : 'to_review';
+      await pool.query(
+        `INSERT INTO notebook_entries (session_id, source, source_id, topic, query_text, answer_text, status, confidence)
+         VALUES ($1, 'verify', $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (session_id, source, source_id) WHERE source_id IS NOT NULL
+         DO UPDATE SET status = $6, confidence = $7, updated_at = NOW()`,
+        [body.sessionId, result.traceId, topic, body.problem.slice(0, 200), body.answer, nbStatus, result.overallConfidence]
+      );
+    } catch (nbErr) {
+      console.error('[gate-routes] Notebook persist error:', (nbErr as Error).message);
+    }
+
     sendJSON(res, {
       traceId: result.traceId,
       status: result.overallStatus,
@@ -217,9 +239,24 @@ const VERIFY_ANY_LIMIT = 10; // per hour per session
 const VERIFY_ANY_WINDOW = 60 * 60 * 1000; // 1 hour
 
 async function handleVerifyAny(req: ParsedRequest, res: ServerResponse): Promise<void> {
-  const body = req.body as { problem?: string; answer?: string; sessionId?: string };
+  const body = req.body as { problem?: string; answer?: string; sessionId?: string; image?: string; imageMimeType?: string };
+
+  // If image provided but no problem text, extract via Gemini vision
+  if (body?.image && !body?.problem && _geminiModel) {
+    try {
+      const extractResult = await _geminiModel.generateContent([
+        { text: 'Extract the math problem from this image. Return ONLY the problem text exactly as written, no solutions or commentary.' },
+        { inlineData: { mimeType: body.imageMimeType || 'image/jpeg', data: body.image } },
+      ]);
+      body.problem = extractResult.response.text().trim();
+    } catch (err) {
+      console.error('[gate-routes] Image extraction error:', (err as Error).message);
+      return sendError(res, 422, 'Could not extract problem from image');
+    }
+  }
+
   if (!body?.problem || !body?.answer) {
-    return sendError(res, 400, 'problem and answer required');
+    return sendError(res, 400, 'problem and answer required (or provide an image)');
   }
 
   // Rate limit by session + IP
@@ -345,6 +382,24 @@ async function handleUpdateSR(req: ParsedRequest, res: ServerResponse): Promise<
     );
   }
 
+  // Auto-populate notebook from SR
+  try {
+    const questionResult = await pool.query('SELECT topic, question_text FROM pyq_questions WHERE id = $1', [body.pyqId]);
+    if (questionResult.rows.length > 0) {
+      const q = questionResult.rows[0];
+      const nbStatus = quality >= 4 ? 'mastered' : quality >= 3 ? 'in_progress' : 'to_review';
+      await pool.query(
+        `INSERT INTO notebook_entries (session_id, source, source_id, topic, query_text, status, confidence)
+         VALUES ($1, 'practice', $2, $3, $4, $5, $6)
+         ON CONFLICT (session_id, source, source_id) WHERE source_id IS NOT NULL
+         DO UPDATE SET status = $5, confidence = $6, updated_at = NOW()`,
+        [sessionId, body.pyqId, q.topic, (q.question_text || '').slice(0, 200), nbStatus, quality / 5]
+      );
+    }
+  } catch (nbErr) {
+    console.error('[gate-routes] Notebook SR persist error:', (nbErr as Error).message);
+  }
+
   sendJSON(res, {
     easiness,
     intervalDays: interval,
@@ -415,6 +470,92 @@ async function handleGetProgress(req: ParsedRequest, res: ServerResponse): Promi
     overall: overall.rows[0],
     weakTopics,
   });
+}
+
+// ============================================================================
+// Exam Readiness Score
+// ============================================================================
+
+async function handleExamReadiness(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const sessionId = req.params.sessionId;
+  if (!sessionId) return sendError(res, 400, 'Session ID required');
+
+  const pool = getPool();
+
+  try {
+    // Topic coverage + accuracy from sr_sessions
+    const srStats = await pool.query(
+      `SELECT
+         COUNT(DISTINCT pq.topic) as topics_attempted,
+         SUM(sr.correct_count) as total_correct,
+         SUM(sr.attempts) as total_attempts,
+         COUNT(*) as total_sr,
+         SUM(CASE WHEN sr.next_review >= CURRENT_DATE THEN 1 ELSE 0 END) as on_schedule
+       FROM sr_sessions sr
+       JOIN pyq_questions pq ON pq.id = sr.pyq_id
+       WHERE sr.session_id = $1`,
+      [sessionId],
+    );
+
+    // Weak topics (mastery < 50%)
+    const weakTopics = await pool.query(
+      `SELECT pq.topic, SUM(sr.correct_count) as correct, SUM(sr.attempts) as attempts
+       FROM sr_sessions sr
+       JOIN pyq_questions pq ON pq.id = sr.pyq_id
+       WHERE sr.session_id = $1
+       GROUP BY pq.topic
+       HAVING SUM(sr.attempts) > 0 AND (SUM(sr.correct_count)::float / SUM(sr.attempts)) < 0.5`,
+      [sessionId],
+    );
+
+    // Streak
+    const streak = await pool.query(
+      'SELECT current_streak FROM streaks WHERE identifier = $1',
+      [sessionId],
+    );
+
+    const stats = srStats.rows[0] || {};
+    const topicsAttempted = parseInt(stats.topics_attempted) || 0;
+    const totalCorrect = parseInt(stats.total_correct) || 0;
+    const totalAttempts = parseInt(stats.total_attempts) || 0;
+    const totalSR = parseInt(stats.total_sr) || 0;
+    const onSchedule = parseInt(stats.on_schedule) || 0;
+    const currentStreak = parseInt(streak.rows[0]?.current_streak) || 0;
+    const weakCount = weakTopics.rows.length;
+
+    // Sub-scores (each 0-1)
+    const coverage = topicsAttempted / GATE_TOPICS.length;
+    const accuracy = totalAttempts > 0 ? totalCorrect / totalAttempts : 0;
+    const srHealth = totalSR > 0 ? onSchedule / totalSR : 0;
+    const weakPenalty = topicsAttempted > 0 ? 1 - (weakCount / topicsAttempted) : 0;
+    const consistency = Math.min(currentStreak / 30, 1.0);
+
+    // Composite score (0-100)
+    const score = Math.round(
+      (coverage * 0.30 + accuracy * 0.25 + srHealth * 0.25 + weakPenalty * 0.10 + consistency * 0.10) * 100
+    );
+
+    // Days until GATE 2027 (Feb 1)
+    const gateDate = new Date('2027-02-01T00:00:00+05:30');
+    const daysLeft = Math.max(0, Math.ceil((gateDate.getTime() - Date.now()) / 86400000));
+
+    sendJSON(res, {
+      score,
+      breakdown: {
+        coverage: Math.round(coverage * 100),
+        accuracy: Math.round(accuracy * 100),
+        srHealth: Math.round(srHealth * 100),
+        weakSpots: Math.round(weakPenalty * 100),
+        consistency: Math.round(consistency * 100),
+      },
+      daysLeft,
+      topicsAttempted,
+      weakTopicCount: weakCount,
+    });
+  } catch (err) {
+    console.error('[gate-routes] Exam readiness error:', (err as Error).message);
+    sendError(res, 500, 'Failed to compute exam readiness');
+  }
 }
 
 // ============================================================================
@@ -498,6 +639,9 @@ export const gateRoutes: RouteDefinition[] = [
 
   // Progress
   { method: 'GET', path: '/api/progress/:sessionId', handler: handleGetProgress },
+
+  // Exam Readiness
+  { method: 'GET', path: '/api/exam-readiness/:sessionId', handler: handleExamReadiness },
 
   // Analytics
   { method: 'POST', path: '/api/analytics', handler: handleAnalytics },

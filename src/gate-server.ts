@@ -10,7 +10,8 @@
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
-import { gateRoutes, setOrchestrator } from './api/gate-routes';
+import { gateRoutes, setOrchestrator, setGeminiModel } from './api/gate-routes';
+import { notebookRoutes } from './api/notebook-routes';
 import { dailyProblemRoutes } from './jobs/daily-problem';
 import { telegramWebhookRoutes } from './jobs/telegram-webhook';
 import { flywheelRoutes, setFlywheelOrchestrator } from './jobs/content-flywheel';
@@ -90,6 +91,9 @@ for (const route of chatRoutes) {
 for (const route of socialRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
+for (const route of notebookRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
 
 // Auth session migration
 registerRoute('POST', '/api/auth/migrate-session', async (req, res) => {
@@ -144,10 +148,20 @@ registerRoute('GET', '/health', async (_req, res) => {
 // Request handling
 // ============================================================================
 
+const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB (supports base64 images)
+
 async function parseBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk) => chunks.push(chunk));
+    let totalSize = 0;
+    req.on('data', (chunk) => {
+      totalSize += chunk.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        req.destroy();
+        return reject(new Error('Request body too large'));
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => {
       const raw = Buffer.concat(chunks).toString();
       if (!raw) return resolve(undefined);
@@ -347,6 +361,11 @@ Solve carefully:`;
 
   setOrchestrator(orchestrator);
   setFlywheelOrchestrator(orchestrator);
+
+  // Inject Gemini model for image extraction in verify-any
+  if (genAI) {
+    setGeminiModel(genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }));
+  }
 
   console.log(`[gate-server] Verification tiers: RAG${genAI ? ' + Gemini LLM' : ''}${wolfram ? ' + Wolfram' : ''}`);
 

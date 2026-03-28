@@ -10,6 +10,7 @@
 import { ServerResponse } from 'http';
 import pg from 'pg';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { detectTopic } from '../utils/topic-detection';
 
 const { Pool } = pg;
 
@@ -117,7 +118,7 @@ const SYSTEM_PROMPT = `You are an expert GATE Engineering Mathematics tutor. You
  * Body: { sessionId, message, history?: { role, content }[] }
  */
 async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void> {
-  const { sessionId, message, history } = req.body as any || {};
+  const { sessionId, message, history, image, imageMimeType } = req.body as any || {};
 
   if (!sessionId || !message) {
     return sendError(res, 400, 'sessionId and message are required');
@@ -152,8 +153,14 @@ async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void
       ],
     });
 
+    // Build message parts (text + optional image)
+    const messageParts: any[] = [{ text: message }];
+    if (image) {
+      messageParts.push({ inlineData: { mimeType: imageMimeType || 'image/jpeg', data: image } });
+    }
+
     // Stream response
-    const result = await chat.sendMessageStream(message);
+    const result = await chat.sendMessageStream(messageParts);
     let fullResponse = '';
 
     for await (const chunk of result.stream) {
@@ -174,6 +181,19 @@ async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void
         'INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3), ($1, $4, $5)',
         [sessionId, 'user', message, 'assistant', fullResponse]
       );
+      // Auto-populate notebook from chat
+      const topic = detectTopic(message + ' ' + fullResponse);
+      if (topic !== 'general') {
+        try {
+          await pool.query(
+            `INSERT INTO notebook_entries (session_id, source, topic, query_text, answer_text, status, confidence)
+             VALUES ($1, 'chat', $2, $3, $4, 'to_review', 0.5)`,
+            [sessionId, topic, message.slice(0, 200), fullResponse.slice(0, 500)]
+          );
+        } catch (nbErr) {
+          console.error('[chat] Notebook persist error:', (nbErr as Error).message);
+        }
+      }
     } catch (dbErr) {
       console.error('[chat] DB persist error:', (dbErr as Error).message);
     }
