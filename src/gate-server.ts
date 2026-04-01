@@ -20,6 +20,7 @@ import { streakRoutes } from './api/streak-routes';
 import { adminRoutes } from './api/admin-routes';
 import { chatRoutes } from './api/chat-routes';
 import { socialRoutes } from './api/social-routes';
+import { commanderRoutes } from './api/commander-routes';
 import { getAuth, migrateSession } from './api/auth-middleware';
 import { TieredVerificationOrchestrator } from './verification/tiered-orchestrator';
 import { InMemoryVectorStore, PgVectorStore } from './data/vector-store';
@@ -92,6 +93,9 @@ for (const route of socialRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
 for (const route of notebookRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of commanderRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
 
@@ -401,6 +405,14 @@ Solve carefully:`;
 │  AI Tutor:                                   │
 │    POST /api/chat               Stream Chat   │
 │    GET  /api/chat/:id           History       │
+│  Study Commander:                            │
+│    POST /api/onboard             Onboard     │
+│    GET  /api/onboard/:id         Profile     │
+│    GET  /api/diagnostic/:id      Questions   │
+│    POST /api/diagnostic/:id      Save Diag   │
+│    GET  /api/today/:id           Daily Plan  │
+│    POST /api/today/:id/:i/rate   Rate Task   │
+│    GET  /api/priority/:id        Priorities  │
 │  Auth:                                       │
 │    POST /api/auth/migrate-session Migrate    │
 │  Social:                                     │

@@ -1,11 +1,11 @@
 # Design System — GATE Math
 
 ## Product Context
-- **What this is:** Mobile-first GATE Engineering Mathematics exam prep app with AI tutor, camera scan, and smart notebook
+- **What this is:** Mobile-first GATE Engineering Mathematics exam prep app with Study Commander (tells you what to study each day), AI tutor, camera scan, and smart notebook
 - **Who it's for:** GATE exam aspirants (engineering students, 21-28), studying late nights on mobile
 - **Space/industry:** Competitive exam prep (India). Peers: EduRev, Testbook, GradeUp, Unacademy
 - **Project type:** Progressive web app, mobile-first SPA
-- **Differentiator:** Duolingo's gamification + Photomath's camera input + structured Smart Notebook. No other GATE app combines these.
+- **Differentiator:** Study strategist that tells you what to study next — priority engine based on marks weight, weakness, improvement speed, recency, and exam proximity. No other GATE app provides personalized daily study plans.
 
 ## Aesthetic Direction
 - **Direction:** Playful-Serious — warm dark theme with vibrant accents

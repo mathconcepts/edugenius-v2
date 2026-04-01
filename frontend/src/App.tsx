@@ -31,6 +31,8 @@ const ChatPage = lazy(() => import('@/pages/gate/ChatPage'));
 const NotebookPage = lazy(() => import('@/pages/gate/NotebookPage'));
 const LoginPage = lazy(() => import('@/pages/gate/LoginPage'));
 const AdminPage = lazy(() => import('@/pages/gate/AdminPage'));
+const OnboardPage = lazy(() => import('@/pages/gate/OnboardPage'));
+const DiagnosticPage = lazy(() => import('@/pages/gate/DiagnosticPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -61,6 +63,8 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route path="onboard" element={<OnboardPage />} />
+          <Route path="diagnostic" element={<DiagnosticPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

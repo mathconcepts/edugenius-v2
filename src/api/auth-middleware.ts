@@ -140,4 +140,7 @@ export async function migrateSession(userId: string, sessionId: string): Promise
   await pool.query('UPDATE streaks SET user_id = $1 WHERE identifier = $2 AND user_id IS NULL', [userId, sessionId]);
   await pool.query('UPDATE chat_messages SET user_id = $1 WHERE session_id = $2 AND user_id IS NULL', [userId, sessionId]);
   await pool.query('UPDATE user_profiles SET session_id = $2 WHERE id = $1', [userId, sessionId]);
+  await pool.query('UPDATE notebook_entries SET user_id = $1 WHERE session_id = $2 AND user_id IS NULL', [userId, sessionId]);
+  await pool.query('UPDATE study_profiles SET user_id = $1 WHERE session_id = $2 AND user_id IS NULL', [userId, sessionId]);
+  await pool.query('UPDATE daily_plans SET user_id = $1 WHERE session_id = $2 AND user_id IS NULL', [userId, sessionId]);
 }
