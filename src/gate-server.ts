@@ -18,7 +18,7 @@ import { flywheelRoutes, setFlywheelOrchestrator } from './jobs/content-flywheel
 import { topicPageRoutes } from './api/topic-pages';
 import { streakRoutes } from './api/streak-routes';
 import { adminRoutes } from './api/admin-routes';
-import { chatRoutes } from './api/chat-routes';
+import { chatRoutes, setChatVectorStore, setChatEmbedder } from './api/chat-routes';
 import { socialRoutes } from './api/social-routes';
 import { commanderRoutes } from './api/commander-routes';
 import { getAuth, migrateSession } from './api/auth-middleware';
@@ -370,6 +370,11 @@ Solve carefully:`;
   if (genAI) {
     setGeminiModel(genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }));
   }
+
+  // ── Content Pipeline: inject vector store + embedder into chat routes ──
+  setChatVectorStore(vectorStore);
+  setChatEmbedder(embedder);
+  console.log(`[gate-server] Content pipeline: chat grounding enabled`);
 
   console.log(`[gate-server] Verification tiers: RAG${genAI ? ' + Gemini LLM' : ''}${wolfram ? ' + Wolfram' : ''}`);
 
