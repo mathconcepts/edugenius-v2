@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Build started ==="
-echo "NODE_ENV: $NODE_ENV"
+echo "=== GATE Math Build ==="
 echo "Node: $(node --version)"
 echo "NPM: $(npm --version)"
 
@@ -14,8 +13,9 @@ cd frontend
 npm install --include=dev
 
 echo "=== Building frontend ==="
-npx tsc --version
-npm run build
+VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-$SUPABASE_URL}" \
+VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-$SUPABASE_ANON_KEY}" \
+npx vite build
 
 echo "=== Build complete ==="
 ls -la dist/

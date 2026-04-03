@@ -18,16 +18,28 @@ import { flywheelRoutes, setFlywheelOrchestrator } from './jobs/content-flywheel
 import { topicPageRoutes } from './api/topic-pages';
 import { streakRoutes } from './api/streak-routes';
 import { adminRoutes } from './api/admin-routes';
-import { chatRoutes } from './api/chat-routes';
+import { chatRoutes, setChatVectorStore, setChatEmbedder } from './api/chat-routes';
 import { socialRoutes } from './api/social-routes';
 import { commanderRoutes } from './api/commander-routes';
+import { blogRoutes } from './api/blog-routes';
+import { funnelRoutes } from './api/funnel-routes';
+import { notificationRoutes } from './api/notification-routes';
+import { retentionRoutes } from './jobs/retention-engine';
 import { getAuth, migrateSession } from './api/auth-middleware';
 import { TieredVerificationOrchestrator } from './verification/tiered-orchestrator';
 import { InMemoryVectorStore, PgVectorStore } from './data/vector-store';
 import { WolframVerifier } from './verification/verifiers/wolfram';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { renderBlogPost } from './templates/blog-post';
+import { renderBlogIndex } from './templates/blog-index';
+import { renderExamLanding } from './templates/exam-landing';
+import { renderSitemap, buildSitemapEntries } from './templates/sitemap';
+import { renderRssFeed } from './templates/rss-feed';
 import path from 'path';
 import fs from 'fs';
+import pg from 'pg';
+
+const ssrPool = new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL || process.env.DATABASE_URL });
 
 // ============================================================================
 // Route matching (simplified from APIServer)
@@ -98,6 +110,157 @@ for (const route of notebookRoutes) {
 for (const route of commanderRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
+for (const route of blogRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of funnelRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of notificationRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of retentionRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+
+// ── SSR Routes (server-rendered HTML for SEO) ─────────────────────────────────
+
+registerRoute('GET', '/blog/:slug', async (req, res) => {
+  try {
+    const result = await ssrPool.query(
+      `SELECT * FROM blog_posts WHERE slug = $1 AND status = 'published'`,
+      [req.params.slug]
+    );
+    if (result.rows.length === 0) {
+      res.writeHead(404, { 'Content-Type': 'text/html' });
+      res.end('<html><body><h1>Post not found</h1><a href="/blog">Back to blog</a></body></html>');
+      return;
+    }
+    // Increment view count (fire-and-forget)
+    ssrPool.query('UPDATE blog_posts SET views = views + 1 WHERE id = $1', [result.rows[0].id]).catch(() => {});
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(renderBlogPost(result.rows[0]));
+  } catch (err) {
+    console.error('[ssr] Blog post error:', err);
+    res.writeHead(500, { 'Content-Type': 'text/html' });
+    res.end('<html><body><h1>Server error</h1></body></html>');
+  }
+});
+
+registerRoute('GET', '/blog', async (req, res) => {
+  try {
+    const page = parseInt(req.query.get('page') || '1', 10);
+    const topic = req.query.get('topic');
+    const limit = 20;
+    const offset = (page - 1) * limit;
+
+    let where = "WHERE status = 'published'";
+    const params: unknown[] = [];
+    let idx = 1;
+    if (topic) { where += ` AND topic = $${idx++}`; params.push(topic); }
+
+    const countResult = await ssrPool.query(`SELECT COUNT(*) FROM blog_posts ${where}`, params);
+    const total = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.ceil(total / limit);
+
+    const result = await ssrPool.query(
+      `SELECT id, slug, title, excerpt, content_type, topic, exam_tags, views, published_at
+       FROM blog_posts ${where}
+       ORDER BY published_at DESC NULLS LAST
+       LIMIT $${idx++} OFFSET $${idx}`,
+      [...params, limit, offset]
+    );
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(renderBlogIndex(result.rows, page, totalPages, topic || undefined));
+  } catch (err) {
+    console.error('[ssr] Blog index error:', err);
+    res.writeHead(500, { 'Content-Type': 'text/html' });
+    res.end('<html><body><h1>Server error</h1></body></html>');
+  }
+});
+
+registerRoute('GET', '/exams/:examId', async (req, res) => {
+  try {
+    const examId = req.params.examId;
+    const topicName = examId.replace(/-/g, ' ');
+
+    const problemsResult = await ssrPool.query(
+      `SELECT id, question_text, topic, difficulty, options
+       FROM pyq_questions WHERE LOWER(topic) = LOWER($1)
+       ORDER BY RANDOM() LIMIT 5`,
+      [topicName]
+    );
+
+    const blogsResult = await ssrPool.query(
+      `SELECT slug, title, content_type, excerpt
+       FROM blog_posts WHERE LOWER(topic) = LOWER($1) AND status = 'published'
+       ORDER BY published_at DESC LIMIT 4`,
+      [topicName]
+    );
+
+    const statsResult = await ssrPool.query(
+      `SELECT topic, COUNT(*) as count, difficulty
+       FROM pyq_questions WHERE LOWER(topic) = LOWER($1)
+       GROUP BY topic, difficulty`,
+      [topicName]
+    );
+
+    const totalProblems = statsResult.rows.reduce((acc, r) => acc + parseInt(r.count), 0);
+    const diffDist: Record<string, number> = {};
+    statsResult.rows.forEach(r => { diffDist[r.difficulty] = parseInt(r.count); });
+
+    const allTopics = await ssrPool.query(`SELECT DISTINCT topic FROM pyq_questions WHERE topic IS NOT NULL`);
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(renderExamLanding({
+      examId,
+      title: `GATE ${topicName.split(' ').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')} — Practice & Study Guide`,
+      description: `Master ${topicName} for GATE Engineering Mathematics. ${totalProblems} verified problems with step-by-step solutions, AI tutor, and personalized study plans.`,
+      problems: problemsResult.rows,
+      blogs: blogsResult.rows,
+      stats: {
+        totalProblems,
+        topics: allTopics.rows.map(r => r.topic).slice(0, 10),
+        difficultyDistribution: diffDist,
+      },
+    }));
+  } catch (err) {
+    console.error('[ssr] Exam landing error:', err);
+    res.writeHead(500, { 'Content-Type': 'text/html' });
+    res.end('<html><body><h1>Server error</h1></body></html>');
+  }
+});
+
+registerRoute('GET', '/sitemap.xml', async (_req, res) => {
+  try {
+    const blogs = await ssrPool.query(`SELECT slug, updated_at FROM blog_posts WHERE status = 'published'`);
+    const topics = await ssrPool.query(`SELECT DISTINCT topic FROM pyq_questions WHERE topic IS NOT NULL`);
+    const entries = buildSitemapEntries(blogs.rows, topics.rows.map(r => r.topic));
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+    res.end(renderSitemap(entries));
+  } catch (err) {
+    console.error('[ssr] Sitemap error:', err);
+    res.writeHead(500, { 'Content-Type': 'application/xml' });
+    res.end('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+  }
+});
+
+registerRoute('GET', '/rss.xml', async (_req, res) => {
+  try {
+    const result = await ssrPool.query(
+      `SELECT title, slug, excerpt, topic, published_at
+       FROM blog_posts WHERE status = 'published'
+       ORDER BY published_at DESC LIMIT 50`
+    );
+    res.writeHead(200, { 'Content-Type': 'application/rss+xml; charset=utf-8' });
+    res.end(renderRssFeed(result.rows));
+  } catch (err) {
+    console.error('[ssr] RSS error:', err);
+    res.writeHead(500, { 'Content-Type': 'application/xml' });
+    res.end('<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>');
+  }
+});
 
 // Auth session migration
 registerRoute('POST', '/api/auth/migrate-session', async (req, res) => {
@@ -192,7 +355,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   const method = (req.method || 'GET').toUpperCase();
 
   // Try to serve static frontend files in production
-  if (method === 'GET' && !pathname.startsWith('/api') && !pathname.startsWith('/telegram') && !pathname.startsWith('/health') && !pathname.startsWith('/solutions') && !pathname.startsWith('/topics') && pathname !== '/sitemap.xml') {
+  if (method === 'GET' && !pathname.startsWith('/api') && !pathname.startsWith('/telegram') && !pathname.startsWith('/health') && !pathname.startsWith('/solutions') && !pathname.startsWith('/topics') && !pathname.startsWith('/blog') && !pathname.startsWith('/exams') && pathname !== '/sitemap.xml' && pathname !== '/rss.xml') {
     const frontendDist = path.join(process.cwd(), 'frontend', 'dist');
     if (fs.existsSync(frontendDist)) {
       const filePath = path.join(frontendDist, pathname === '/' ? 'index.html' : pathname);
@@ -370,6 +533,11 @@ Solve carefully:`;
   if (genAI) {
     setGeminiModel(genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }));
   }
+
+  // ── Content Pipeline: inject vector store + embedder into chat routes ──
+  setChatVectorStore(vectorStore);
+  setChatEmbedder(embedder);
+  console.log(`[gate-server] Content pipeline: chat grounding enabled`);
 
   console.log(`[gate-server] Verification tiers: RAG${genAI ? ' + Gemini LLM' : ''}${wolfram ? ' + Wolfram' : ''}`);
 

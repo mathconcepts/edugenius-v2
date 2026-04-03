@@ -1,43 +1,81 @@
-version: '3.9'
-services:
-  backend:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://edugenius:edugenius@db:5432/edugenius
-      - REDIS_URL=redis://redis:6379
-    env_file:
-      - .env.production
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    restart: unless-stopped
+# ── GATE Math — Local Development with Docker Compose ─────────────────────────
+# Usage:
+#   cp .env.example .env  (fill in at least GEMINI_API_KEY)
+#   docker compose up --build
+#
+# This spins up PostgreSQL + pgvector locally so you don't need Supabase.
+# Access: http://localhost:8080
 
+services:
+  # ── PostgreSQL with pgvector ──────────────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: edugenius
-      POSTGRES_USER: edugenius
-      POSTGRES_PASSWORD: edugenius
+      POSTGRES_USER: gatemath
+      POSTGRES_PASSWORD: gatemath
+      POSTGRES_DB: gatemath
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U edugenius"]
+      test: ["CMD-SHELL", "pg_isready -U gatemath"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Run migrations ────────────────────────────────────────────────────────
+  migrate:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./supabase/migrations:/migrations
+    entrypoint: >
+      sh -c '
+        for f in /migrations/*.sql; do
+          echo "Applying $$f..."
+          PGPASSWORD=gatemath psql -h db -U gatemath -d gatemath -f "$$f" 2>&1 || true
+        done
+        echo "All migrations applied."
+      '
+
+  # ── GATE Math API ─────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://localhost:8080}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-local}
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PORT: ${PORT:-8080}
+      DATABASE_URL: postgres://gatemath:gatemath@db:5432/gatemath
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      WOLFRAM_APP_ID: ${WOLFRAM_APP_ID:-}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production-please}
+      CRON_SECRET: ${CRON_SECRET:-dev-cron-secret}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_GROUP_IDS: ${TELEGRAM_GROUP_IDS:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      BASE_URL: http://localhost:${PORT:-8080}
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PORT:-8080}/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redisdata:/data
-    restart: unless-stopped
+      start_period: 15s
+      retries: 3
 
 volumes:
   pgdata:
-  redisdata:

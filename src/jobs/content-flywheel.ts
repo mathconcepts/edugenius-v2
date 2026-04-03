@@ -250,6 +250,11 @@ async function verifyAndPublish(problem: GeneratedProblem): Promise<{ verified: 
       console.warn('[flywheel] Social content generation failed (non-fatal):', (err as Error).message)
     );
 
+    // Generate blog post (fire-and-forget, non-blocking)
+    generateBlogPost(problem, pyqId).catch(err =>
+      console.warn('[flywheel] Blog post generation failed (non-fatal):', (err as Error).message)
+    );
+
     console.log(`[flywheel] Published: ${problem.topic} (${problem.difficulty}) via ${result.tierUsed}, pyq_id=${pyqId}`);
     return { verified: true, tier: result.tierUsed };
   } catch (err) {
@@ -312,6 +317,158 @@ Return ONLY valid JSON, no markdown.`;
     console.log(`[flywheel] Social content generated for ${platforms.length} platforms`);
   } catch (err) {
     console.warn('[flywheel] Social content LLM error:', (err as Error).message);
+  }
+}
+
+/**
+ * Generate a blog post from a verified problem.
+ * Rotates through 4 content types: solved_problem, topic_explainer, exam_strategy, comparison.
+ */
+const BLOG_CONTENT_TYPES = ['solved_problem', 'topic_explainer', 'exam_strategy', 'comparison'] as const;
+let _blogTypeIndex = 0;
+
+async function generateBlogPost(problem: GeneratedProblem, pyqId: string): Promise<void> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return;
+
+  const genAI = new GoogleGenerativeAI(geminiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const topicLabel = problem.topic.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const contentType = BLOG_CONTENT_TYPES[_blogTypeIndex % BLOG_CONTENT_TYPES.length];
+  _blogTypeIndex++;
+
+  const prompts: Record<string, string> = {
+    solved_problem: `Write a blog post titled "GATE ${topicLabel} — Solved Problem with Detailed Solution".
+
+Problem: ${problem.question_text}
+Options: ${JSON.stringify(problem.options)}
+Correct Answer: ${problem.correct_answer}
+Explanation: ${problem.explanation}
+
+Structure:
+1. Brief introduction to the topic (2-3 sentences)
+2. The full problem statement
+3. Step-by-step solution approach
+4. Key concept explanation
+5. Common mistakes to avoid
+6. Practice tip
+
+~600 words. Educational, clear, useful for GATE aspirants.`,
+
+    topic_explainer: `Write a blog post titled "${topicLabel} for GATE Engineering Mathematics — Complete Guide".
+
+Use this problem as a teaching example:
+${problem.question_text}
+Answer: ${problem.correct_answer}
+Explanation: ${problem.explanation}
+
+Structure:
+1. What is ${topicLabel} and why it matters for GATE
+2. Key concepts and formulas
+3. Worked example (the problem above)
+4. Common GATE question patterns
+5. Study strategy for this topic
+
+~600 words. Educational, comprehensive, focused on GATE exam patterns.`,
+
+    exam_strategy: `Write a blog post titled "How to Master ${topicLabel} in GATE Engineering Mathematics".
+
+Context: ${topicLabel} appears in GATE every year, worth 10-15 marks.
+
+Structure:
+1. GATE weightage and importance of ${topicLabel}
+2. Topic breakdown (subtopics to cover)
+3. Time management tips for ${topicLabel} questions
+4. Recommended preparation order
+5. Common pitfalls and how to avoid them
+6. Quick revision checklist
+
+~600 words. Strategic, actionable, confident tone.`,
+
+    comparison: `Write a blog post titled "GATE vs JEE Mathematics: How ${topicLabel} Differs".
+
+Structure:
+1. Brief overview of ${topicLabel} in both exams
+2. Key differences in question style and difficulty
+3. What GATE emphasizes vs what JEE emphasizes
+4. How JEE preparation helps (or doesn't) for GATE
+5. Specific topics to focus on for GATE
+6. Transition strategy for JEE students preparing for GATE
+
+~600 words. Analytical, helpful for students transitioning from JEE to GATE prep.`,
+  };
+
+  const blogPrompt = `${prompts[contentType]}
+
+Return the blog post as a JSON array of sections. Each section has:
+- type: "heading" | "paragraph" | "bullets" | "callout"
+- content: the text content
+- level: 1|2|3 (for headings only)
+- items: string[] (for bullets only)
+- calloutType: "tip"|"info"|"warning" (for callouts only)
+
+Also return title, excerpt (1-2 sentences), and keywords (5-8 SEO keywords).
+
+Return ONLY valid JSON in this format:
+{
+  "title": "...",
+  "excerpt": "...",
+  "keywords": ["keyword1", "keyword2"],
+  "sections": [{"type":"heading","level":1,"content":"..."},{"type":"paragraph","content":"..."}]
+}`;
+
+  try {
+    const result = await model.generateContent(blogPrompt);
+    const text = result.response.text().trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn('[flywheel] Blog generation: no JSON found in response');
+      return;
+    }
+
+    const blog = JSON.parse(jsonMatch[0]);
+    if (!blog.title || !blog.sections || !Array.isArray(blog.sections)) {
+      console.warn('[flywheel] Blog generation: missing title or sections');
+      return;
+    }
+
+    const pool = getPool();
+    const slugBase = contentType === 'solved_problem'
+      ? `gate-${problem.topic}-solved-${pyqId.slice(0, 8)}`
+      : contentType === 'topic_explainer'
+        ? `gate-${problem.topic}-guide`
+        : contentType === 'exam_strategy'
+          ? `gate-${problem.topic}-strategy`
+          : `gate-vs-jee-${problem.topic}`;
+
+    // Add disclaimer section at the end
+    blog.sections.push({
+      type: 'callout',
+      calloutType: 'info',
+      content: 'Explanations in this article are AI-generated. Problems and solutions are verified through our 3-tier verification system (RAG cache, dual LLM solve, Wolfram Alpha).',
+    });
+
+    await pool.query(
+      `INSERT INTO blog_posts
+       (slug, title, excerpt, content_type, sections, seo_meta, topic, exam_tags, pyq_id, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'draft')
+       ON CONFLICT (slug) DO NOTHING`,
+      [
+        slugBase,
+        blog.title,
+        blog.excerpt || '',
+        contentType,
+        JSON.stringify(blog.sections),
+        JSON.stringify({ title: blog.title, description: blog.excerpt, keywords: blog.keywords || [] }),
+        problem.topic,
+        ['GATE'],
+        contentType === 'solved_problem' || contentType === 'topic_explainer' ? pyqId : null,
+      ]
+    );
+
+    console.log(`[flywheel] Blog post generated: "${blog.title}" (${contentType})`);
+  } catch (err) {
+    console.warn('[flywheel] Blog generation error:', (err as Error).message);
   }
 }
 

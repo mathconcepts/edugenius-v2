@@ -113,3 +113,27 @@ Updated: 2026-03-27
 **Depends on:** Telegram bot working.
 **Blocked by:** Nothing.
 **Priority:** High | **Added:** 2026-03-25
+
+---
+
+## 10. ContentResolver Class for T4/T5 Paid Tiers
+
+**What:** Build a ContentResolver class with 5-tier cascade (T1-T5) including Wolfram REST (T4) and Gemini generation (T5) with budget caps and write-back.
+**Why:** Current content pipeline ships T1-T3 only (all $0). When real traffic data shows T1-T3 miss rate > 20%, paid tiers become necessary for content coverage.
+**Pros:** Clean architecture for multi-tier resolution with observability, budget caps, and self-warming cache (T5 writes back to rag_cache).
+**Cons:** Only needed when real users exist and miss rates are measured. Overbuilt until then.
+**Context:** Codex outside voice correctly identified ContentResolver was overbuilt for T1-T3. The abstraction earns its keep when budget caps, Wolfram Language queries, and LLM generation enter the picture. Pattern: follow tiered-orchestrator.ts cascade structure.
+**Depends on:** TODO #5 (tier hit rate data) showing T1-T3 miss rate > 20%.
+**Priority:** Medium | **Added:** 2026-04-02
+
+---
+
+## 11. Learning Objectives System
+
+**What:** Static GATE learning objectives (~80 LOs across 10 topics) with Bloom's taxonomy levels, GATE frequency, keyword matching, and tagging of pyq_questions with LO IDs.
+**Why:** Enables LO-targeted content generation when T4/T5 ship. Also enables "study topic X at apply level" precision in commander tasks.
+**Pros:** Foundation for precision content delivery. Makes the pipeline smarter about what to generate vs retrieve.
+**Cons:** Maintenance cost of 80 static LOs. Nothing consumes LOs until T4/T5 or commander upgrades to LO-level tasks.
+**Context:** User originally requested LO alignment. Deferred during eng review because nothing in the product currently operates at LO granularity (commander, SR, chat, notebook, progress, flywheel all work at topic level).
+**Depends on:** TODO #10 (ContentResolver class) or commander upgrade to LO-level tasks.
+**Priority:** Medium | **Added:** 2026-04-02

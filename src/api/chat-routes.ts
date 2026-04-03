@@ -11,6 +11,9 @@ import { ServerResponse } from 'http';
 import pg from 'pg';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { detectTopic } from '../utils/topic-detection';
+import { composeSystemContext } from '../content-pipeline/prompt-modifiers';
+import type { UserContext } from '../content-pipeline/prompt-modifiers';
+import type { VectorStore, VectorSearchResult } from '../data/vector-store';
 
 const { Pool } = pg;
 
@@ -52,6 +55,16 @@ function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
 function sendError(res: ServerResponse, status: number, message: string): void {
   sendJSON(res, { error: message }, status);
 }
+
+// ============================================================================
+// Content Pipeline Dependencies (injected from gate-server.ts)
+// ============================================================================
+
+let _vectorStore: VectorStore | null = null;
+let _embedder: ((text: string) => Promise<number[]>) | null = null;
+
+export function setChatVectorStore(vs: VectorStore): void { _vectorStore = vs; }
+export function setChatEmbedder(fn: (text: string) => Promise<number[]>): void { _embedder = fn; }
 
 // ============================================================================
 // Gemini Chat Model
@@ -135,6 +148,76 @@ async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void
     parts: [{ text: msg.content }],
   }));
 
+  // ── Content grounding + prompt modifiers ──────────────────────────────
+  let groundingContext = '';
+  let studentContext = '';
+
+  try {
+    const pool = getPool();
+    const detectedTopic = detectTopic(message);
+
+    // Grounding: search verified content from PgVectorStore (in-memory, $0)
+    if (_vectorStore && _embedder && detectedTopic !== 'general') {
+      const embedding = await _embedder(message);
+      const results = await _vectorStore.search({
+        embedding,
+        topK: 3,
+        filter: { topic: detectedTopic },
+      });
+      const relevant = (results as any[]).filter((r: any) => r.score >= 0.85);
+      if (relevant.length > 0) {
+        groundingContext = '\n\n## Relevant Verified Content\n' +
+          relevant.map((r: any) => r.content || r.document?.content || '').filter(Boolean).join('\n---\n');
+
+        // Log to content_pipeline_log (fire-and-forget)
+        const { randomUUID } = await import('crypto');
+        pool.query(
+          `INSERT INTO content_pipeline_log (trace_id, session_id, source, topic, tier_used, latency_ms)
+           VALUES ($1, $2, 'chat_grounding', $3, 'rag_cache', 0)`,
+          [randomUUID(), sessionId, detectedTopic]
+        ).catch(() => {});
+      }
+    }
+
+    // Prompt modifiers: compose student context from study profile + SR data
+    const profileResult = await pool.query(
+      `SELECT exam_date, diagnostic_scores, topic_confidence FROM study_profiles WHERE session_id = $1`,
+      [sessionId]
+    );
+    if (profileResult.rows.length > 0) {
+      const profile = profileResult.rows[0];
+      const diagnosticScores = profile.diagnostic_scores || [];
+      const latestDiag = diagnosticScores.length > 0 ? diagnosticScores[diagnosticScores.length - 1] : null;
+      const topicScore = latestDiag?.scores?.[detectedTopic];
+
+      // Get actual practice accuracies from SR
+      const srResult = await pool.query(
+        `SELECT pq.topic, AVG(CASE WHEN ss.correct_count > 0 THEN ss.correct_count::float / NULLIF(ss.attempts, 0) ELSE 0 END) as accuracy
+         FROM sr_sessions ss JOIN pyq_questions pq ON ss.pyq_id = pq.id
+         WHERE ss.session_id = $1 AND pq.topic IS NOT NULL GROUP BY pq.topic`,
+        [sessionId]
+      );
+      const topicAccuracies: Record<string, number> = {};
+      for (const row of srResult.rows) {
+        topicAccuracies[row.topic] = parseFloat(row.accuracy) || 0;
+      }
+
+      const userCtx: UserContext = {
+        sessionId,
+        topic: detectedTopic !== 'general' ? detectedTopic : undefined,
+        examDate: profile.exam_date,
+        diagnosticScore: topicScore != null ? topicScore : undefined,
+        topicAccuracies: Object.keys(topicAccuracies).length > 0 ? topicAccuracies : undefined,
+      };
+      studentContext = composeSystemContext(userCtx);
+    }
+  } catch (ctxErr) {
+    console.error('[chat] Context enrichment error:', (ctxErr as Error).message);
+    // Non-fatal: continue with plain system prompt
+  }
+
+  const enrichedSystemPrompt = SYSTEM_PROMPT + groundingContext + studentContext;
+
   // Set up SSE
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -147,7 +230,7 @@ async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void
     // Start chat with history
     const chat = model.startChat({
       history: [
-        { role: 'user', parts: [{ text: 'System instructions: ' + SYSTEM_PROMPT }] },
+        { role: 'user', parts: [{ text: 'System instructions: ' + enrichedSystemPrompt }] },
         { role: 'model', parts: [{ text: 'Understood! I\'m your GATE Engineering Mathematics tutor. I\'m here to help with problem solving, concept explanations, study plans, and exam strategy. How can I help you today?' }] },
         ...chatHistory,
       ],

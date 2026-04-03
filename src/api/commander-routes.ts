@@ -13,6 +13,7 @@
  */
 
 import { ServerResponse } from 'http';
+import { randomUUID } from 'crypto';
 import pg from 'pg';
 import { computePriority, generateDailyTasks, MARKS_WEIGHTS, TOPIC_NAMES } from '../engine/priority-engine';
 
@@ -283,16 +284,17 @@ async function handleGetToday(req: ParsedRequest, res: ServerResponse): Promise<
 
   const profile = profileResult.rows[0];
 
-  // Get SR stats for priority computation
+  // Get SR stats for priority computation (JOIN with pyq_questions to get topic)
   const srResult = await pool.query(`
     SELECT
-      topic,
-      AVG(CASE WHEN is_correct THEN 1.0 ELSE 0.0 END) as accuracy,
+      pq.topic,
+      AVG(CASE WHEN ss.correct_count > 0 THEN ss.correct_count::float / NULLIF(ss.attempts, 0) ELSE 0 END) as accuracy,
       COUNT(*) as sessions_count,
-      MAX(created_at) as last_practice_date
-    FROM sr_sessions
-    WHERE session_id = $1 AND topic IS NOT NULL
-    GROUP BY topic
+      MAX(ss.updated_at) as last_practice_date
+    FROM sr_sessions ss
+    JOIN pyq_questions pq ON ss.pyq_id = pq.id
+    WHERE ss.session_id = $1 AND pq.topic IS NOT NULL
+    GROUP BY pq.topic
   `, [sessionId]);
 
   const srStats = srResult.rows.map((row: any) => ({
@@ -304,10 +306,11 @@ async function handleGetToday(req: ParsedRequest, res: ServerResponse): Promise<
     last_practice_date: row.last_practice_date ? new Date(row.last_practice_date).toISOString() : null,
   }));
 
-  // Get SR-due topics
+  // Get SR-due topics (JOIN with pyq_questions to get topic from pyq_id)
   const dueResult = await pool.query(`
-    SELECT DISTINCT topic FROM sr_sessions
-    WHERE session_id = $1 AND next_review_at <= NOW() AND topic IS NOT NULL
+    SELECT DISTINCT pq.topic FROM sr_sessions ss
+    JOIN pyq_questions pq ON ss.pyq_id = pq.id
+    WHERE ss.session_id = $1 AND ss.next_review <= CURRENT_DATE AND pq.topic IS NOT NULL
   `, [sessionId]);
   const srDueTopics = dueResult.rows.map((r: any) => r.topic);
 
@@ -322,6 +325,58 @@ async function handleGetToday(req: ParsedRequest, res: ServerResponse): Promise<
 
   const priorities = computePriority(studyProfile, srStats, getISTNow());
   const tasks = generateDailyTasks(priorities, srDueTopics, studyProfile.weekly_hours);
+
+  // Attach content previews to each task (dedup via content_served table)
+  for (const task of tasks) {
+    try {
+      // Try to find a problem not yet served to this user
+      let previewResult = await pool.query(
+        `SELECT id, question_text, options, difficulty
+         FROM pyq_questions
+         WHERE topic = $1
+           AND id NOT IN (SELECT content_id FROM content_served WHERE session_id = $2)
+         ORDER BY RANDOM() LIMIT 1`,
+        [task.topic, sessionId]
+      );
+
+      // Fallback: if all content exhausted, pick any random problem
+      if (previewResult.rows.length === 0) {
+        previewResult = await pool.query(
+          `SELECT id, question_text, options, difficulty
+           FROM pyq_questions WHERE topic = $1
+           ORDER BY RANDOM() LIMIT 1`,
+          [task.topic]
+        );
+      }
+
+      if (previewResult.rows.length > 0) {
+        const preview = previewResult.rows[0];
+        (task as any).content_preview = {
+          pyq_id: preview.id,
+          question_text: preview.question_text,
+          options: preview.options,
+          difficulty: preview.difficulty,
+        };
+        // Track what we served for dedup + observability (fire-and-forget)
+        await pool.query(
+          `INSERT INTO content_served (session_id, content_id, source)
+           VALUES ($1, $2, 'commander_preview')
+           ON CONFLICT (session_id, content_id) DO NOTHING`,
+          [sessionId, preview.id]
+        ).catch(() => {});
+        pool.query(
+          `INSERT INTO content_pipeline_log (trace_id, session_id, source, topic, content_id, tier_used, latency_ms)
+           VALUES ($1, $2, 'commander_preview', $3, $4, 'pyq_questions', 0)`,
+          [randomUUID(), sessionId, task.topic, preview.id]
+        ).catch(() => {});
+      } else {
+        (task as any).content_preview = null;
+      }
+    } catch (err) {
+      console.error('[commander] Content preview error:', (err as Error).message);
+      (task as any).content_preview = null;
+    }
+  }
 
   // INSERT...ON CONFLICT DO NOTHING for race condition safety
   await pool.query(

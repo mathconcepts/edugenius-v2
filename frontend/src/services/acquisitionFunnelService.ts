@@ -416,6 +416,47 @@ class AcquisitionFunnelService {
     } catch {
       // Ignore storage full errors
     }
+
+    // Also persist to backend API (fire-and-forget)
+    this._persistToApi(event);
+  }
+
+  private _persistToApi(event: FunnelEvent): void {
+    try {
+      // Extract UTM params from current URL
+      const params = new URLSearchParams(window.location.search);
+      const utmParams: Record<string, string> = {};
+      for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
+        const val = params.get(key);
+        if (val) utmParams[key] = val;
+      }
+
+      // Map FunnelEventType to API event_type
+      const apiEventType = event.type === 'content_consumed' ? 'blog_read'
+        : event.type === 'first_lesson' ? 'first_practice'
+        : event.type === 'returned_after_7d' ? 'activated'
+        : event.type;
+
+      fetch('/api/funnel/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: event.sessionId,
+          event_type: apiEventType,
+          source: event.source,
+          utm_params: utmParams,
+          metadata: {
+            ...event.metadata,
+            exam_id: event.examId,
+            page_id: event.pageId,
+            topic_id: event.topicId,
+            blog_slug: event.metadata?.blog_slug,
+          },
+        }),
+      }).catch(() => {}); // Silent failure — localStorage is the primary store
+    } catch {
+      // Ignore
+    }
   }
 
   private _loadEvents(): FunnelEvent[] {

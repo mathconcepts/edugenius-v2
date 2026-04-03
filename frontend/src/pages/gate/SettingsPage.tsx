@@ -2,11 +2,11 @@
  * SettingsPage — Theme toggle + session info with animations.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSession } from '@/hooks/useSession';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
-import { Moon, Sun, Copy, Check, Trash2 } from 'lucide-react';
+import { Moon, Sun, Copy, Check, Trash2, Bell, BellOff, Mail, Zap } from 'lucide-react';
 
 export default function SettingsPage() {
   const sessionId = useSession();
@@ -14,6 +14,28 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
   });
+  const [notifPrefs, setNotifPrefs] = useState({
+    email_digest: true,
+    streak_reminders: true,
+    push_enabled: true,
+  });
+
+  useEffect(() => {
+    fetch(`/api/notifications/preferences?session_id=${sessionId}`)
+      .then(r => r.json())
+      .then(data => setNotifPrefs(prev => ({ ...prev, ...data })))
+      .catch(() => {});
+  }, [sessionId]);
+
+  const updateNotifPref = (key: keyof typeof notifPrefs) => {
+    const updated = { ...notifPrefs, [key]: !notifPrefs[key] };
+    setNotifPrefs(updated);
+    fetch('/api/notifications/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, ...updated }),
+    }).catch(() => {});
+  };
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -98,6 +120,36 @@ export default function SettingsPage() {
         <p className="text-xs text-surface-600">
           Your progress is tied to this session ID. Save it to restore progress on another device.
         </p>
+      </motion.div>
+
+      {/* Notifications */}
+      <motion.div variants={fadeInUp} className="p-4 rounded-xl bg-surface-900 border border-surface-800 space-y-4">
+        <p className="text-sm font-medium text-surface-200">Notifications</p>
+        {([
+          { key: 'email_digest' as const, label: 'Weekly Email Digest', desc: 'Problems solved, accuracy, weak topics', icon: Mail },
+          { key: 'streak_reminders' as const, label: 'Streak Reminders', desc: 'Get notified when your streak is at risk', icon: Zap },
+          { key: 'push_enabled' as const, label: 'Push Notifications', desc: 'Daily practice reminders in your browser', icon: Bell },
+        ]).map(({ key, label, desc, icon: Icon }) => (
+          <div key={key} className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Icon size={16} className="text-surface-400" />
+              <div>
+                <p className="text-sm text-surface-200">{label}</p>
+                <p className="text-xs text-surface-500">{desc}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => updateNotifPref(key)}
+              className={`w-10 h-6 rounded-full transition-colors ${notifPrefs[key] ? 'bg-emerald-500' : 'bg-surface-700'}`}
+            >
+              <motion.div
+                className="w-4 h-4 rounded-full bg-white shadow"
+                animate={{ x: notifPrefs[key] ? 18 : 2 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
+            </button>
+          </div>
+        ))}
       </motion.div>
 
       {/* Danger Zone */}
