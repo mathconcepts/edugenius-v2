@@ -174,10 +174,19 @@ registerRoute('GET', '/blog', async (req, res) => {
     if (topic) { where += ` AND topic = $${idx++}`; params.push(topic); }
     if (contentType) { where += ` AND content_type = $${idx++}`; params.push(contentType); }
 
+    // Check if content_score column exists (migration may not be applied yet)
+    let hasContentScore = false;
+    try {
+      await ssrPool.query(`SELECT content_score FROM blog_posts LIMIT 0`);
+      hasContentScore = true;
+    } catch { /* column doesn't exist yet */ }
+
     // Sort options
     const orderMap: Record<string, string> = {
       recent: 'published_at DESC NULLS LAST',
-      trending: 'content_score DESC NULLS LAST, published_at DESC NULLS LAST',
+      trending: hasContentScore
+        ? 'content_score DESC NULLS LAST, published_at DESC NULLS LAST'
+        : 'views DESC NULLS LAST, published_at DESC NULLS LAST',
       views: 'views DESC NULLS LAST',
     };
     const orderBy = orderMap[sort] || orderMap.recent;
@@ -186,8 +195,9 @@ registerRoute('GET', '/blog', async (req, res) => {
     const total = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(total / limit);
 
+    const scoreCol = hasContentScore ? ', content_score' : '';
     const result = await ssrPool.query(
-      `SELECT id, slug, title, excerpt, content_type, topic, exam_tags, views, published_at, content_score
+      `SELECT id, slug, title, excerpt, content_type, topic, exam_tags, views, published_at${scoreCol}
        FROM blog_posts ${where}
        ORDER BY ${orderBy}
        LIMIT $${idx++} OFFSET $${idx}`,
