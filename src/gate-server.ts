@@ -25,6 +25,9 @@ import { blogRoutes } from './api/blog-routes';
 import { funnelRoutes } from './api/funnel-routes';
 import { notificationRoutes } from './api/notification-routes';
 import { retentionRoutes } from './jobs/retention-engine';
+import { trendCollectorRoutes } from './jobs/trend-collector';
+import { contentPrioritizerRoutes } from './jobs/content-prioritizer';
+import { feedbackScorerRoutes } from './jobs/feedback-scorer';
 import { getAuth, migrateSession } from './api/auth-middleware';
 import { TieredVerificationOrchestrator } from './verification/tiered-orchestrator';
 import { InMemoryVectorStore, PgVectorStore } from './data/vector-store';
@@ -122,6 +125,15 @@ for (const route of notificationRoutes) {
 for (const route of retentionRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
+for (const route of trendCollectorRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of contentPrioritizerRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of feedbackScorerRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
 
 // ── SSR Routes (server-rendered HTML for SEO) ─────────────────────────────────
 
@@ -151,6 +163,8 @@ registerRoute('GET', '/blog', async (req, res) => {
   try {
     const page = parseInt(req.query.get('page') || '1', 10);
     const topic = req.query.get('topic');
+    const sort = req.query.get('sort') || 'recent';
+    const contentType = req.query.get('type');
     const limit = 20;
     const offset = (page - 1) * limit;
 
@@ -158,21 +172,30 @@ registerRoute('GET', '/blog', async (req, res) => {
     const params: unknown[] = [];
     let idx = 1;
     if (topic) { where += ` AND topic = $${idx++}`; params.push(topic); }
+    if (contentType) { where += ` AND content_type = $${idx++}`; params.push(contentType); }
+
+    // Sort options
+    const orderMap: Record<string, string> = {
+      recent: 'published_at DESC NULLS LAST',
+      trending: 'content_score DESC NULLS LAST, published_at DESC NULLS LAST',
+      views: 'views DESC NULLS LAST',
+    };
+    const orderBy = orderMap[sort] || orderMap.recent;
 
     const countResult = await ssrPool.query(`SELECT COUNT(*) FROM blog_posts ${where}`, params);
     const total = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(total / limit);
 
     const result = await ssrPool.query(
-      `SELECT id, slug, title, excerpt, content_type, topic, exam_tags, views, published_at
+      `SELECT id, slug, title, excerpt, content_type, topic, exam_tags, views, published_at, content_score
        FROM blog_posts ${where}
-       ORDER BY published_at DESC NULLS LAST
+       ORDER BY ${orderBy}
        LIMIT $${idx++} OFFSET $${idx}`,
       [...params, limit, offset]
     );
 
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(renderBlogIndex(result.rows, page, totalPages, topic || undefined));
+    res.end(renderBlogIndex(result.rows, page, totalPages, topic || undefined, sort, contentType || undefined));
   } catch (err) {
     console.error('[ssr] Blog index error:', err);
     res.writeHead(500, { 'Content-Type': 'text/html' });

@@ -83,6 +83,29 @@ export function setFlywheelOrchestrator(orch: any): void {
 async function selectTopic(): Promise<string> {
   try {
     const pool = getPool();
+
+    // Try priority-based selection first (from content-prioritizer)
+    const { rows: priorities } = await pool.query(
+      `SELECT topic, priority_score FROM content_priorities
+       WHERE created_at > NOW() - INTERVAL '2 days'
+       ORDER BY priority_score DESC LIMIT 5`
+    );
+
+    if (priorities.length > 0) {
+      // Weighted random from top 5 priorities
+      const totalWeight = priorities.reduce((s, r) => s + parseFloat(r.priority_score), 0);
+      let roll = Math.random() * totalWeight;
+      for (const r of priorities) {
+        roll -= parseFloat(r.priority_score);
+        if (roll <= 0) {
+          console.log(`[flywheel] Topic selected via priorities: ${r.topic} (score=${parseFloat(r.priority_score).toFixed(3)})`);
+          return r.topic;
+        }
+      }
+      return priorities[0].topic;
+    }
+
+    // Fallback: inverse-count logic (original behavior)
     const result = await pool.query(`
       SELECT topic, COUNT(*) as count
       FROM pyq_questions
@@ -93,17 +116,16 @@ async function selectTopic(): Promise<string> {
       counts[row.topic] = parseInt(row.count, 10);
     }
 
-    // Weight: inverse of count (low-count topics get picked more)
     const maxCount = Math.max(...Object.values(counts), 1);
     const weighted = GATE_TOPICS.map(t => ({
       topic: t,
       weight: maxCount - (counts[t] || 0) + 1,
     }));
-    const totalWeight = weighted.reduce((s, w) => s + w.weight, 0);
-    let roll = Math.random() * totalWeight;
+    const totalW = weighted.reduce((s, w) => s + w.weight, 0);
+    let roll2 = Math.random() * totalW;
     for (const w of weighted) {
-      roll -= w.weight;
-      if (roll <= 0) return w.topic;
+      roll2 -= w.weight;
+      if (roll2 <= 0) return w.topic;
     }
   } catch {
     // Fallback: random topic
@@ -398,7 +420,33 @@ Structure:
 ~600 words. Analytical, helpful for students transitioning from JEE to GATE prep.`,
   };
 
-  const blogPrompt = `${prompts[contentType]}
+  // Fetch trend context for this topic (enriches the prompt)
+  let trendContext = '';
+  try {
+    const trendResult = await pool.query(
+      `SELECT title, source, score FROM trend_signals
+       WHERE topic_match = $1 AND collected_at > NOW() - INTERVAL '7 days'
+       ORDER BY score DESC LIMIT 3`, [problem.topic]
+    );
+    if (trendResult.rows.length > 0) {
+      trendContext = `\n\nCurrently trending in ${topicLabel}: ${trendResult.rows.map(r => `"${r.title}" (${r.source})`).join(', ')}. Weave these trends into the content naturally where relevant.`;
+    }
+  } catch {
+    // Non-fatal: proceed without trend context
+  }
+
+  // App feature CTAs per content type
+  const APP_FEATURE_CTAS: Record<string, { text: string; url: string; context: string }> = {
+    solved_problem: { text: 'Solve similar problems', url: `/practice/${problem.topic}`, context: 'Include a section suggesting readers practice similar problems in the app.' },
+    topic_explainer: { text: 'Get your personalized study plan', url: '/onboard', context: 'Include a section about how Study Commander can create a personalized plan for this topic.' },
+    exam_strategy: { text: 'Take the diagnostic test', url: '/diagnostic', context: 'Include a section about taking a diagnostic test to identify weak areas.' },
+    comparison: { text: 'Chat with AI tutor', url: '/chat', context: 'Include a section about asking the AI tutor for help with concept differences.' },
+  };
+  const ctaInfo = APP_FEATURE_CTAS[contentType] || APP_FEATURE_CTAS.solved_problem;
+
+  const blogPrompt = `${prompts[contentType]}${trendContext}
+
+${ctaInfo.context}
 
 Return the blog post as a JSON array of sections. Each section has:
 - type: "heading" | "paragraph" | "bullets" | "callout"
@@ -440,6 +488,14 @@ Return ONLY valid JSON in this format:
         : contentType === 'exam_strategy'
           ? `gate-${problem.topic}-strategy`
           : `gate-vs-jee-${problem.topic}`;
+
+    // Add app feature CTA section
+    blog.sections.push({
+      type: 'cta',
+      ctaText: ctaInfo.text,
+      ctaUrl: ctaInfo.url,
+      content: ctaInfo.text,
+    });
 
     // Add disclaimer section at the end
     blog.sections.push({

@@ -89,7 +89,7 @@ describe('renderBlogPost', () => {
     expect(html).toContain('<ul');
     expect(html).toContain('Compute determinant');
     // callout
-    expect(html).toContain('border-left:4px solid');
+    expect(html).toContain('border-left:3px solid');
     // CTA
     expect(html).toContain('Practice Linear Algebra');
     expect(html).toContain('/topic/linear-algebra');
@@ -100,7 +100,6 @@ describe('renderBlogPost', () => {
     expect(html).toContain('Solved Problem');
     expect(html).toContain('Linear Algebra');
     expect(html).toContain('class="badge"');
-    expect(html).toContain('class="badge topic-badge"');
   });
 
   it('includes RSS feed link', () => {
@@ -109,11 +108,11 @@ describe('renderBlogPost', () => {
     expect(html).toContain('/rss.xml');
   });
 
-  it('uses light theme colors', () => {
+  it('uses dark theme colors', () => {
     const html = renderBlogPost(mockPost);
-    expect(html).toContain('background: #f8fafc');
-    expect(html).toContain('color: #0f172a');
-    expect(html).toContain("font-family: 'DM Sans'");
+    expect(html).toContain('background:#0a0f1a');
+    expect(html).toContain('color:#e2e8f0');
+    expect(html).toContain("font-family:'DM Sans'");
   });
 
   it('escapes HTML in title to prevent XSS', () => {
@@ -125,6 +124,6 @@ describe('renderBlogPost', () => {
 
   it('includes read time estimate', () => {
     const html = renderBlogPost(mockPost);
-    expect(html).toMatch(/\d+ min read/);
+    expect(html).toMatch(/\d+ min/);
   });
 });

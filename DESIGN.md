@@ -33,6 +33,7 @@
 - **Semantic:** success `#10b981`, warning `#f59e0b`, error `#ef4444`, info `#38bdf8`
 - **Soft variants:** Each accent has a 15% opacity background variant for badges, alerts, soft buttons
 - **Dark mode:** This IS the primary theme. Light mode: swap to slate backgrounds (#f8fafc, #ffffff, #f1f5f9)
+- **Blog/public pages:** Use the SAME dark theme as the app (unified brand). No separate light blog.
 
 ## Spacing
 - **Base unit:** 4px
@@ -79,6 +80,33 @@
 - Factors: topic coverage, accuracy %, SR health, weak spot count, days until exam
 - Updates in real-time as student practices
 
+## Blog & Public Pages
+
+### Layout: Single-Column Feed
+- **Index:** Single-column feed (not card grid). Scannable, content-first.
+- **Filters:** Topic pills (horizontal scroll) + sort tabs (Recent, Trending, Most Read) + content type tabs
+- **Post page:** Full-width reading, max 680px. Sticky floating CTA pill at bottom.
+- **Sort:** Uses `content_score` from Content Intelligence Engine for "Trending" sort.
+
+### Blog Motion (CSS-only, zero JS)
+- **Entrance:** `@keyframes fadeSlideUp` with staggered `animation-delay` (50ms per item)
+- **Scroll reveal:** `animation-timeline: view()` (CSS scroll-driven, progressive enhancement)
+- **Interactions:** CSS `transition` on hover (transform + box-shadow, 0.15-0.2s)
+- **Budget:** ~3KB CSS total. No JavaScript animation libraries on public pages.
+
+### Blog-to-App Bridge
+- Every blog post has an inline app feature CTA card (dark, matches app aesthetic)
+- Sticky floating pill at bottom: "Practice [topic]" + "Open App" button
+- Deep links to relevant app feature per content type (practice, onboard, diagnostic, chat)
+
+## App Declutter Rules
+- **Hero:** Compact single-line bar (title left, streak+countdown right). Not centered block.
+- **Welcome banner:** Removed. Topic grid IS the welcome.
+- **Onboarding CTA:** Subtle inline row after topic grid. Not a full-width gradient banner.
+- **Daily challenge:** Only shows when >= 3 reviews due (not 1-2).
+- **Verify CTA:** Removed from home. Accessible via bottom nav (Scan tab).
+- **Principle:** Topic grid visible above the fold. That's the product.
+
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
@@ -87,3 +115,8 @@
 | 2026-03-28 | Dark-first with emerald/amber/sky | Late-night study context, emerald = mastery/success, amber = urgency/streaks, sky = AI/focus |
 | 2026-03-28 | 6-tab nav (added Scan + Notebook) | Camera input and structured notebook are the key differentiators |
 | 2026-03-28 | Exam Readiness Score | Single motivating metric that goes beyond "problems solved" |
+| 2026-04-04 | Dark blog (unified brand) | Every GATE prep site has white blogs. Dark stands out, feels premium, matches app. 11.5:1 contrast ratio exceeds WCAG AAA |
+| 2026-04-04 | Single-column feed layout | Card grids waste space on mobile. Feed is scannable, each post gets enough room to read |
+| 2026-04-04 | CSS-only blog animations | Zero JS runtime cost. scroll-driven animations via CSS. Progressive enhancement for Safari |
+| 2026-04-04 | Home declutter — removed welcome banner, consolidated CTAs | Topic grid is the product. CTAs should support, not compete with content |
+| 2026-04-04 | Sticky floating CTA pill on blog posts | Less intrusive than inline button. Always visible without breaking reading flow |
