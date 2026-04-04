@@ -2,6 +2,23 @@
 
 All notable changes to GATE Math are documented here.
 
+## [0.2.0.0] - 2026-04-04
+
+### Added
+- **Content Intelligence Engine:** Self-improving content loop that gets smarter over time
+  - Trend collection from Reddit, Stack Exchange, YouTube, and NewsAPI. Matches external signals to your 10 GATE topics automatically
+  - 5-signal priority scoring (user struggle, trend signal, conversion rate, view velocity, coverage gap) decides what content to create next
+  - Feedback scoring grades every blog post on engagement, conversion, and relevance. Low performers get auto-archived after 90 days
+  - Smart flywheel integration: content-flywheel now picks topics based on priority scores and weaves trend context into Gemini prompts
+- **Blog redesign:** Dark theme matching the app, single-column feed, topic filter pills, sort by Recent/Trending/Most Read, content type tabs
+  - CSS-only scroll-reveal animations (zero JS runtime, progressive enhancement via `animation-timeline: view()`)
+  - Sticky floating CTA pill on blog posts bridges readers to the app
+  - Content type accent colors: emerald (solved), sky (guide), amber (strategy), purple (compare)
+- **App declutter:** Compact hero bar, removed welcome banner, daily challenge threshold raised to 3+ reviews, subtle inline onboarding nudge
+
+### Fixed
+- Blog route gracefully falls back when `content_score` column missing (migration not yet applied)
+
 ## [0.1.0.0] - 2026-04-03
 
 ### Added

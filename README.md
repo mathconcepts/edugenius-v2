@@ -21,6 +21,8 @@ A focused, mobile-first exam prep app for GATE Engineering Mathematics. Every an
 | **Verify Any Problem** | Paste any math problem — the 3-tier engine verifies it (rate-limited) |
 | **Social Autopilot** | Content flywheel auto-generates Twitter, Instagram, LinkedIn posts from verified problems |
 | **SEO Pages** | Server-rendered solution pages with JSON-LD for organic search |
+| **Blog + Dynamic Feed** | Dark-themed blog with topic filters, sort by trending/views, content type tabs. CSS-only scroll animations |
+| **Content Intelligence** | Self-improving content loop: trend collection (Reddit, Stack Exchange, YouTube) → 5-signal priority scoring → smart flywheel → feedback scoring with auto-archive |
 | **Telegram Bot** | Daily problem posting to GATE prep groups |
 
 ---
@@ -69,6 +71,10 @@ cd frontend && npm run dev
 │  /api/chat (SSE streaming), /api/sr, /api/streak│
 │  /api/admin/social, /api/auth/migrate-session   │
 ├─────────────────────────────────────────────────┤
+│  Content Intelligence Engine                    │
+│  Trends → Priority scoring → Smart flywheel     │
+│  Feedback scoring → Auto-archive                │
+├─────────────────────────────────────────────────┤
 │  3-Tier Verification Engine                     │
 │  Tier 1: RAG (pgvector cosine similarity)       │
 │  Tier 2: Gemini 2.5-flash dual-solve            │
@@ -77,7 +83,8 @@ cd frontend && npm run dev
 │  Supabase (PostgreSQL + pgvector + Auth)        │
 │  Tables: pyq_questions, sr_sessions, streaks,   │
 │  chat_messages, user_profiles, social_content,  │
-│  verification_log, rag_cache, seo_pages         │
+│  verification_log, rag_cache, seo_pages,        │
+│  blog_posts, trend_signals, content_priorities  │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -133,6 +140,11 @@ PUT  /api/admin/social/:id       # Approve/reject/schedule posts
 POST /api/flywheel/generate      # Content generation (cron, Bearer token)
 POST /telegram/daily-problem     # Post daily problem to Telegram groups
 
+# Content Intelligence (cron, Bearer token)
+POST /api/trends/collect          # Collect trends from Reddit, Stack Exchange, YouTube, NewsAPI
+POST /api/content/prioritize      # Compute 5-signal priority scores for all topics
+POST /api/content/score           # Score blog posts + auto-archive low performers
+
 # SEO
 GET  /topics/:slug               # Server-rendered topic pages
 GET  /solutions/:slug            # Server-rendered solution pages
@@ -182,7 +194,8 @@ supabase/migrations/
 ├── 002_telegram_bot.sql         # posted_at column for daily problem tracking
 ├── 003_gate_app.sql             # sr_sessions, verification_log, seo_pages
 ├── 004_autopilot_growth.sql     # rag_cache, daily_limits, streaks, analytics_events
-└── 005_chat_and_roles.sql       # chat_messages, user_profiles, social_content
+├── 005_chat_and_roles.sql       # chat_messages, user_profiles, social_content
+└── 010_content_intelligence.sql # trend_signals, content_priorities, blog_posts.content_score
 ```
 
 Run migrations: `PGPASSWORD=<pw> psql <connection_string> -f supabase/migrations/<file>.sql`
@@ -210,6 +223,9 @@ tehran/
 │   │   └── vector-store.ts       # PgVectorStore + InMemoryVectorStore
 │   └── jobs/
 │       ├── content-flywheel.ts   # Auto-generate problems + social content
+│       ├── trend-collector.ts    # External trend collection (Reddit, SE, YouTube, NewsAPI)
+│       ├── content-prioritizer.ts # 5-signal weighted priority scoring
+│       ├── feedback-scorer.ts    # Blog post scoring + auto-archive
 │       ├── daily-problem.ts      # Telegram daily posting
 │       └── telegram-webhook.ts   # "Show Solution" button handler
 ├── frontend/                     # React + Vite + TailwindCSS
@@ -220,7 +236,7 @@ tehran/
 │       ├── hooks/                # useApi, useSession, useAuth
 │       └── lib/                  # analytics, animations, supabase client
 ├── supabase/
-│   ├── migrations/               # 5 migration files
+│   ├── migrations/               # 6 migration files
 │   └── seeds/                    # GATE EM PYQ seed data
 ├── render.yaml                   # Render deployment config
 ├── CLAUDE.md                     # AI agent instructions
