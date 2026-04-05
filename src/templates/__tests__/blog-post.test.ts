@@ -89,7 +89,7 @@ describe('renderBlogPost', () => {
     expect(html).toContain('<ul');
     expect(html).toContain('Compute determinant');
     // callout
-    expect(html).toContain('border-left:3px solid');
+    expect(html).toContain('border-left-width:4px');
     // CTA
     expect(html).toContain('Practice Linear Algebra');
     expect(html).toContain('/topic/linear-algebra');
@@ -112,7 +112,7 @@ describe('renderBlogPost', () => {
     const html = renderBlogPost(mockPost);
     expect(html).toContain('background:#0a0f1a');
     expect(html).toContain('color:#e2e8f0');
-    expect(html).toContain("font-family:'DM Sans'");
+    expect(html).toContain("font-family:'Space Grotesk'");
   });
 
   it('escapes HTML in title to prevent XSS', () => {
