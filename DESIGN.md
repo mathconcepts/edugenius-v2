@@ -82,21 +82,29 @@
 
 ## Blog & Public Pages
 
+### Style: Dark Neubrutalism (Gen Z/Gen Alpha)
+- **Aesthetic:** Hard 2px borders, colored offset shadows (3px 3px), sharp 4px corners, bold uppercase labels
+- **Typography:** Space Grotesk (geometric, modern) + JetBrains Mono for code. Bold 700 weight headings, tight letter-spacing (-0.03em)
+- **Cards:** Each feed item is a bordered card with content-type accent color. Shadow shifts to 0 on hover (200ms).
+- **Badges:** 2px bordered, uppercase, type-colored. Not rounded pills, squared off (2px radius).
+- **Influence:** Neubrutalism style from UI/UX Pro Max — excellent performance, WCAG AAA, low complexity, high personality.
+
 ### Layout: Single-Column Feed
-- **Index:** Single-column feed (not card grid). Scannable, content-first.
-- **Filters:** Topic pills (horizontal scroll) + sort tabs (Recent, Trending, Most Read) + content type tabs
-- **Post page:** Full-width reading, max 680px. Sticky floating CTA pill at bottom.
+- **Index:** Single-column card feed. Each post gets a bordered neubrutalist card.
+- **Filters:** Topic pills (uppercase, 4px corners) + sort tabs + content type tabs
+- **Post page:** Full-width reading, max 700px. Sticky floating CTA bar at bottom.
 - **Sort:** Uses `content_score` from Content Intelligence Engine for "Trending" sort.
 
 ### Blog Motion (CSS-only, zero JS)
-- **Entrance:** `@keyframes fadeSlideUp` with staggered `animation-delay` (50ms per item)
+- **Entrance:** `@keyframes enterUp` with staggered delay (80ms per card, capped at 640ms)
+- **Hover:** Shadow-shift micro-interaction (`translate(3px,3px)` + `box-shadow:0 0 0`) — feels tactile
 - **Scroll reveal:** `animation-timeline: view()` (CSS scroll-driven, progressive enhancement)
-- **Interactions:** CSS `transition` on hover (transform + box-shadow, 0.15-0.2s)
-- **Budget:** ~3KB CSS total. No JavaScript animation libraries on public pages.
+- **Reduced motion:** Full `prefers-reduced-motion:reduce` support — disables all animations and transitions
+- **Budget:** ~4KB CSS total. Zero JavaScript. Single font load (Space Grotesk).
 
 ### Blog-to-App Bridge
-- Every blog post has an inline app feature CTA card (dark, matches app aesthetic)
-- Sticky floating pill at bottom: "Practice [topic]" + "Open App" button
+- Every blog post has a neubrutalist app feature CTA card (bordered, offset shadow, accent-colored)
+- Sticky CTA bar at bottom: bordered, offset shadow, "Practice [topic]" + "Open App" button
 - Deep links to relevant app feature per content type (practice, onboard, diagnostic, chat)
 
 ## App Declutter Rules
@@ -120,3 +128,5 @@
 | 2026-04-04 | CSS-only blog animations | Zero JS runtime cost. scroll-driven animations via CSS. Progressive enhancement for Safari |
 | 2026-04-04 | Home declutter — removed welcome banner, consolidated CTAs | Topic grid is the product. CTAs should support, not compete with content |
 | 2026-04-04 | Sticky floating CTA pill on blog posts | Less intrusive than inline button. Always visible without breaking reading flow |
+| 2026-04-05 | Dark Neubrutalism blog redesign | Gen Z/Gen Alpha aesthetic. Hard borders, offset shadows, Space Grotesk. Excellent perf (WCAG AAA), zero JS, high personality. Via UI/UX Pro Max skill. |
+| 2026-04-05 | prefers-reduced-motion support | Full accessibility: all blog animations + transitions disabled when user prefers reduced motion |

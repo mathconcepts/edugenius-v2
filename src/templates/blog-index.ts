@@ -2,8 +2,10 @@
 /**
  * Blog Index SSR Template
  *
- * Dark theme, single-column feed layout. Topic filter pills, sort options.
- * CSS-only stagger animations. No JS dependencies.
+ * Dark Neubrutalism — Gen Z/Gen Alpha aesthetic.
+ * Hard borders, colored offset shadows, bold type, sharp corners.
+ * CSS-only motion: stagger entrance + hover shadow-shift.
+ * Zero JS. ~4KB CSS. prefers-reduced-motion respected.
  */
 
 const BASE_URL = process.env.BASE_URL || 'https://gate-math-api.onrender.com';
@@ -39,7 +41,7 @@ function typeAccent(type: string): string {
   const accents: Record<string, string> = {
     solved_problem: '#10b981',
     topic_explainer: '#38bdf8',
-    exam_strategy: '#f59e0b',
+    exam_strategy: '#facc15',
     comparison: '#a78bfa',
   };
   return accents[type] || '#10b981';
@@ -68,7 +70,6 @@ export function renderBlogIndex(
         parts.push(`${k}=${encodeURIComponent(String(v))}`);
       }
     }
-    // Only add page if > 1
     if (params.page && Number(params.page) > 1) {
       // already added above
     } else {
@@ -115,7 +116,7 @@ export function renderBlogIndex(
   const sortTabsHtml = sorts.map(s => {
     const isActive = currentSort === s.key;
     const href = buildUrl({ topic, sort: s.key, type: contentType, page: 1 });
-    return `<a href="${href}" class="sort-tab${isActive ? ' active' : ''}">${s.label}</a>`;
+    return `<a href="${href}" class="tab${isActive ? ' active' : ''}">${s.label}</a>`;
   }).join('');
 
   // Content type tabs
@@ -129,26 +130,26 @@ export function renderBlogIndex(
   const typeTabsHtml = types.map(t => {
     const isActive = (contentType || 'all') === t.key;
     const href = buildUrl({ topic, sort: currentSort, type: t.key === 'all' ? undefined : t.key, page: 1 });
-    return `<a href="${href}" class="sort-tab${isActive ? ' active' : ''}">${t.label}</a>`;
+    return `<a href="${href}" class="tab${isActive ? ' active' : ''}">${t.label}</a>`;
   }).join('');
 
-  // Post feed items
+  // Post feed items — neubrutalist cards with colored borders + offset shadows
   const postsHtml = posts.map((post, i) => {
     const accent = typeAccent(post.content_type);
-    const delay = Math.min(i * 50, 400);
+    const delay = Math.min(i * 80, 640);
     const topicLabel = post.topic ? post.topic.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '';
     const dateStr = post.published_at
       ? new Date(post.published_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
       : '';
 
-    return `<a href="/blog/${escapeHtml(post.slug)}" class="feed-item" style="animation-delay:${delay}ms">
-      <div class="feed-meta">
-        <span class="feed-badge" style="color:${accent}">${contentTypeLabel(post.content_type)}</span>
-        ${topicLabel ? `<span class="feed-dot">&middot;</span><span class="feed-topic">${escapeHtml(topicLabel)}</span>` : ''}
-        ${dateStr ? `<span class="feed-dot">&middot;</span><span class="feed-date">${dateStr}</span>` : ''}
+    return `<a href="/blog/${escapeHtml(post.slug)}" class="card" style="--accent:${accent};--delay:${delay}ms">
+      <div class="card-top">
+        <span class="badge" style="border-color:${accent};color:${accent}">${contentTypeLabel(post.content_type)}</span>
+        ${topicLabel ? `<span class="card-meta">${escapeHtml(topicLabel)}</span>` : ''}
+        ${dateStr ? `<span class="card-meta">${dateStr}</span>` : ''}
       </div>
-      <h2 class="feed-title">${escapeHtml(post.title)}</h2>
-      ${post.excerpt ? `<p class="feed-excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
+      <h2 class="card-title">${escapeHtml(post.title)}</h2>
+      ${post.excerpt ? `<p class="card-excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
     </a>`;
   }).join('\n');
 
@@ -174,59 +175,60 @@ export function renderBlogIndex(
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="alternate" type="application/rss+xml" title="GATE Math Blog" href="${BASE_URL}/rss.xml">
   <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'DM Sans',sans-serif;background:#0a0f1a;color:#e2e8f0;-webkit-font-smoothing:antialiased}
-    .container{max-width:640px;margin:0 auto;padding:32px 20px}
-    .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:40px}
-    .nav .logo{color:#f8fafc;font-weight:700;font-size:1rem;text-decoration:none}
-    .nav a{color:#64748b;text-decoration:none;font-size:0.85rem;transition:color 0.2s}
-    .nav a:hover{color:#10b981}
-    h1{font-size:1.5rem;font-weight:800;color:#f8fafc;margin-bottom:6px;letter-spacing:-0.02em}
+    body{font-family:'Space Grotesk',system-ui,sans-serif;background:#0a0f1a;color:#e2e8f0;-webkit-font-smoothing:antialiased}
+    .wrap{max-width:660px;margin:0 auto;padding:32px 20px}
+    nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:40px}
+    nav .logo{color:#f8fafc;font-weight:700;font-size:1.05rem;text-decoration:none;letter-spacing:-0.02em}
+    nav a{color:#64748b;text-decoration:none;font-size:0.85rem;transition:color 0.2s}
+    nav a:hover{color:#10b981}
+    h1{font-size:1.8rem;font-weight:700;color:#f8fafc;letter-spacing:-0.03em;margin-bottom:6px}
     .subtitle{color:#64748b;font-size:0.9rem;margin-bottom:24px}
-    .pills{display:flex;gap:6px;overflow-x:auto;padding:2px 0 16px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .pills{display:flex;gap:6px;overflow-x:auto;padding:2px 0 18px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
     .pills::-webkit-scrollbar{display:none}
-    .pill{white-space:nowrap;padding:6px 14px;border-radius:999px;font-size:0.78rem;font-weight:500;color:#94a3b8;background:#111827;border:1px solid #1f2937;text-decoration:none;transition:all 0.2s ease;flex-shrink:0}
-    .pill:hover{color:#e2e8f0;border-color:#374151}
-    .pill.active{color:#10b981;background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3)}
-    .controls{display:flex;gap:16px;align-items:center;margin-bottom:24px;border-bottom:1px solid #1f2937;padding-bottom:12px}
-    .sort-tab{color:#64748b;font-size:0.8rem;font-weight:500;text-decoration:none;padding:4px 0;transition:color 0.2s;position:relative}
-    .sort-tab:hover{color:#cbd5e1}
-    .sort-tab.active{color:#e2e8f0}
-    .sort-tab.active::after{content:'';position:absolute;bottom:-13px;left:0;right:0;height:2px;background:#10b981;border-radius:1px}
-    .divider{width:1px;height:16px;background:#1f2937;margin:0 4px}
-    .feed-item{display:block;padding:20px 0;border-bottom:1px solid #111827;text-decoration:none;transition:background 0.15s ease;animation:fadeSlideUp 0.4s ease both}
-    .feed-item:hover{background:rgba(17,24,39,0.5);margin:0 -20px;padding:20px;border-radius:12px;border-color:transparent}
-    .feed-item:last-child{border-bottom:none}
-    .feed-meta{display:flex;align-items:center;gap:6px;margin-bottom:8px}
-    .feed-badge{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
-    .feed-dot{color:#374151;font-size:0.7rem}
-    .feed-topic,.feed-date{color:#475569;font-size:0.78rem}
-    .feed-title{color:#f1f5f9;font-size:1.05rem;font-weight:600;line-height:1.4;margin-bottom:6px;transition:color 0.15s}
-    .feed-item:hover .feed-title{color:#fff}
-    .feed-excerpt{color:#64748b;font-size:0.88rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .pill{white-space:nowrap;padding:7px 14px;border-radius:4px;font-size:0.78rem;font-weight:600;color:#94a3b8;background:#111827;border:2px solid #1f2937;text-decoration:none;transition:all 0.2s ease;flex-shrink:0;text-transform:uppercase;letter-spacing:0.04em}
+    .pill:hover{color:#e2e8f0;border-color:#475569;transform:translateY(-1px)}
+    .pill.active{color:#10b981;background:rgba(16,185,129,0.08);border-color:#10b981}
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:28px;flex-wrap:wrap}
+    .tab{color:#64748b;font-size:0.8rem;font-weight:600;text-decoration:none;padding:6px 12px;border-radius:4px;border:2px solid transparent;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.03em}
+    .tab:hover{color:#cbd5e1;border-color:#374151}
+    .tab.active{color:#f8fafc;border-color:#f8fafc;background:rgba(248,250,252,0.05)}
+    .divider{width:2px;height:18px;background:#1f2937;margin:0 2px}
+    .feed{display:flex;flex-direction:column;gap:16px}
+    .card{display:block;padding:20px;border:2px solid var(--accent,#10b981);border-radius:4px;background:#111827;text-decoration:none;box-shadow:3px 3px 0 var(--accent,#10b981);transition:transform 0.2s ease,box-shadow 0.2s ease;animation:enterUp 0.4s ease both;animation-delay:var(--delay,0ms)}
+    .card:hover{transform:translate(3px,3px);box-shadow:0 0 0 var(--accent,#10b981)}
+    .card:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--accent,#10b981)}
+    .card-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    .badge{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:3px 10px;border:2px solid;border-radius:2px}
+    .card-meta{color:#475569;font-size:0.78rem;font-weight:500}
+    .card-title{color:#f1f5f9;font-size:1.05rem;font-weight:600;line-height:1.4;margin-bottom:6px;letter-spacing:-0.01em}
+    .card:hover .card-title{color:#fff}
+    .card-excerpt{color:#64748b;font-size:0.88rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     .empty{text-align:center;padding:64px 0;color:#475569}
     .pagination{display:flex;justify-content:space-between;align-items:center;padding:24px 0;margin-top:8px}
-    .page-btn{color:#10b981;text-decoration:none;font-size:0.85rem;font-weight:500;padding:8px 16px;border-radius:8px;border:1px solid #1f2937;transition:all 0.2s}
-    .page-btn:hover{background:#111827;border-color:#374151}
-    .page-info{color:#475569;font-size:0.82rem}
-    .footer{margin-top:48px;padding-top:20px;border-top:1px solid #111827;color:#374151;font-size:0.78rem;text-align:center}
-    .footer a{color:#475569;text-decoration:none}
-    .footer a:hover{color:#10b981}
-    @keyframes fadeSlideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .page-btn{color:#f8fafc;text-decoration:none;font-size:0.85rem;font-weight:600;padding:8px 18px;border-radius:4px;border:2px solid #f8fafc;box-shadow:3px 3px 0 #f8fafc;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.03em}
+    .page-btn:hover{transform:translate(3px,3px);box-shadow:0 0 0 #f8fafc}
+    .page-info{color:#475569;font-size:0.82rem;font-weight:600}
+    footer{margin-top:48px;padding-top:20px;border-top:2px solid #1f2937;color:#374151;font-size:0.78rem;text-align:center}
+    footer a{color:#475569;text-decoration:none}
+    footer a:hover{color:#10b981}
+    @keyframes enterUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @media(prefers-reduced-motion:reduce){
+      .card,.page-btn,.pill,.tab{animation:none!important;transition:none!important}
+    }
     @media(max-width:640px){
-      .container{padding:20px 16px}
-      h1{font-size:1.3rem}
-      .feed-item:hover{margin:0 -16px;padding:20px 16px}
+      .wrap{padding:20px 16px}
+      h1{font-size:1.5rem}
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <nav class="nav">
+  <div class="wrap">
+    <nav>
       <a href="/blog" class="logo">GATE Math</a>
       <a href="/">Open App &rarr;</a>
     </nav>
@@ -246,7 +248,7 @@ export function renderBlogIndex(
       ${posts.length === 0 ? '<p class="empty">No posts yet. Check back soon.</p>' : ''}
     </div>
     ${paginationHtml}
-    <footer class="footer">
+    <footer>
       <p><a href="/blog">Blog</a> &middot; <a href="/">App</a> &middot; <a href="/rss.xml">RSS</a></p>
       <p style="margin-top:6px">&copy; ${new Date().getFullYear()} GATE Math</p>
     </footer>

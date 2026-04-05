@@ -2,7 +2,7 @@
 
 All notable changes to GATE Math are documented here.
 
-## [0.2.0.0] - 2026-04-04
+## [0.2.0.0] - 2026-04-05
 
 ### Added
 - **Content Intelligence Engine:** Self-improving content loop that gets smarter over time
@@ -10,10 +10,14 @@ All notable changes to GATE Math are documented here.
   - 5-signal priority scoring (user struggle, trend signal, conversion rate, view velocity, coverage gap) decides what content to create next
   - Feedback scoring grades every blog post on engagement, conversion, and relevance. Low performers get auto-archived after 90 days
   - Smart flywheel integration: content-flywheel now picks topics based on priority scores and weaves trend context into Gemini prompts
-- **Blog redesign:** Dark theme matching the app, single-column feed, topic filter pills, sort by Recent/Trending/Most Read, content type tabs
-  - CSS-only scroll-reveal animations (zero JS runtime, progressive enhancement via `animation-timeline: view()`)
-  - Sticky floating CTA pill on blog posts bridges readers to the app
-  - Content type accent colors: emerald (solved), sky (guide), amber (strategy), purple (compare)
+- **Dark Neubrutalism blog redesign:** Gen Z/Gen Alpha aesthetic with personality
+  - Hard 2px borders with content-type accent colors, colored offset shadows (3px 3px) that shift on hover
+  - Space Grotesk font (geometric, modern), uppercase bold labels, sharp 4px corners
+  - Single-column card feed, topic filter pills, sort tabs (Recent/Trending/Most Read), content type tabs
+  - CSS-only stagger entrance animations (80ms per card) + scroll-reveal (progressive enhancement)
+  - Full `prefers-reduced-motion` accessibility support
+  - Sticky floating CTA bar on blog posts bridges readers to the app
+  - Zero JS, single font load, ~4KB CSS total
 - **App declutter:** Compact hero bar, removed welcome banner, daily challenge threshold raised to 3+ reviews, subtle inline onboarding nudge
 
 ### Fixed
