@@ -28,6 +28,8 @@ cd frontend && npm run dev        # frontend on :3000 (separate terminal)
 - **Content Intelligence:** Trend collection → priority scoring → smart flywheel → feedback scoring (self-improving loop)
 
 ### Important Files
+- `src/constants/topics.ts` — Single source of truth for 10 GATE topics (labels, icons, keywords)
+- `src/constants/content-types.ts` — Single source of truth for blog content types (labels, accents)
 - `src/api/gate-routes.ts` — Core API (topics, problems, verify, SR)
 - `src/api/chat-routes.ts` — AI tutor chat (SSE streaming)
 - `src/api/auth-middleware.ts` — JWT verification + role-based access
@@ -39,7 +41,7 @@ cd frontend && npm run dev        # frontend on :3000 (separate terminal)
 - `frontend/src/components/gate/GateLayout.tsx` — Layout with 5-tab bottom nav
 
 ### Database
-6 migrations applied (001–005, 010). Key tables: pyq_questions, sr_sessions, chat_messages, user_profiles, social_content, verification_log, rag_cache, blog_posts, trend_signals, content_priorities.
+10 migrations (001–010). Key tables: pyq_questions, sr_sessions, chat_messages, user_profiles, social_content, verification_log, rag_cache, blog_posts, trend_signals, content_priorities.
 
 ### Design System
 Always read DESIGN.md before making any visual or UI decisions.

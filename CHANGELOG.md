@@ -5,13 +5,12 @@ All notable changes to GATE Math are documented here.
 ## [0.2.1.0] - 2026-04-08
 
 ### Fixed
-- Blog CTA route sends students to topic page (`/topic/:slug`) instead of broken practice route (`/practice/:slug`)
-- Frontend `ContentType` union aligned with backend (4 types instead of 7 mismatched types)
+- Blog "See Problems" CTA now takes you to the topic page instead of a broken route. Previously, clicking the CTA on any blog post led nowhere
+- Frontend and backend content types are now in sync (was 7 vs 4, only `comparison` overlapped)
 
 ### Changed
-- GATE topic definitions centralized into `src/constants/topics.ts` (was duplicated across 7 files)
-- Blog content type definitions centralized into `src/constants/content-types.ts` (was duplicated across 5 files)
-- All consumers now import from shared constants instead of maintaining local copies
+- All 10 GATE topic definitions live in one place (`src/constants/topics.ts`). Previously scattered across 7 files, which meant adding a topic required 7 edits
+- Blog content types centralized into `src/constants/content-types.ts`. Labels, accent colors, and type lists all come from one source now
 
 ## [0.2.0.0] - 2026-04-05
 
