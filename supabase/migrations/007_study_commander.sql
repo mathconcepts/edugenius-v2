@@ -1,7 +1,7 @@
 -- Migration 007: Study Commander
 -- Adds study profiles (onboarding + diagnostic) and daily plans for the priority engine.
 
-CREATE TABLE study_profiles (
+CREATE TABLE IF NOT EXISTS study_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id TEXT NOT NULL UNIQUE,
   user_id UUID REFERENCES auth.users(id),
@@ -15,7 +15,7 @@ CREATE TABLE study_profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE daily_plans (
+CREATE TABLE IF NOT EXISTS daily_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id TEXT NOT NULL,
   user_id UUID REFERENCES auth.users(id),
@@ -26,6 +26,6 @@ CREATE TABLE daily_plans (
   UNIQUE(session_id, plan_date)
 );
 
-CREATE INDEX idx_study_profiles_user ON study_profiles(user_id) WHERE user_id IS NOT NULL;
-CREATE INDEX idx_daily_plans_session ON daily_plans(session_id);
-CREATE INDEX idx_daily_plans_user ON daily_plans(user_id) WHERE user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_study_profiles_user ON study_profiles(user_id) WHERE user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_daily_plans_session ON daily_plans(session_id);
+CREATE INDEX IF NOT EXISTS idx_daily_plans_user ON daily_plans(user_id) WHERE user_id IS NOT NULL;
