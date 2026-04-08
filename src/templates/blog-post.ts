@@ -8,6 +8,8 @@
  * Zero JS runtime. prefers-reduced-motion respected.
  */
 
+import { CONTENT_TYPE_ACCENTS } from '../constants/content-types';
+
 const BASE_URL = process.env.BASE_URL || 'https://gate-math-api.onrender.com';
 
 interface BlogSection {
@@ -117,21 +119,15 @@ function contentTypeLabel(type: string): string {
 }
 
 function typeAccent(type: string): string {
-  const accents: Record<string, string> = {
-    solved_problem: '#10b981',
-    topic_explainer: '#38bdf8',
-    exam_strategy: '#facc15',
-    comparison: '#a78bfa',
-  };
-  return accents[type] || '#10b981';
+  return (CONTENT_TYPE_ACCENTS as Record<string, string>)[type] || '#10b981';
 }
 
 const APP_FEATURE_CALLOUTS: Record<string, { title: string; description: string; ctaText: string; ctaUrl: string }> = {
   solved_problem: {
     title: 'Practice Similar Problems',
     description: 'Solve more verified problems on this topic with instant feedback.',
-    ctaText: 'Start Practicing',
-    ctaUrl: '/practice',
+    ctaText: 'See Problems',
+    ctaUrl: '/topic',
   },
   topic_explainer: {
     title: 'Get Your Study Plan',
@@ -156,7 +152,7 @@ const APP_FEATURE_CALLOUTS: Record<string, { title: string; description: string;
 function renderAppFeatureCallout(contentType: string, topic: string | null): string {
   const callout = APP_FEATURE_CALLOUTS[contentType] || APP_FEATURE_CALLOUTS.solved_problem;
   const url = contentType === 'solved_problem' && topic
-    ? `/practice/${encodeURIComponent(topic)}`
+    ? `/topic/${encodeURIComponent(topic)}`
     : callout.ctaUrl;
   const accent = typeAccent(contentType);
 

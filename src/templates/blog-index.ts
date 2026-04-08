@@ -8,6 +8,9 @@
  * Zero JS. ~4KB CSS. prefers-reduced-motion respected.
  */
 
+import { GATE_TOPICS } from '../constants/topics';
+import { CONTENT_TYPE_LABELS, CONTENT_TYPE_ACCENTS } from '../constants/content-types';
+
 const BASE_URL = process.env.BASE_URL || 'https://gate-math-api.onrender.com';
 
 interface BlogPostSummary {
@@ -28,30 +31,12 @@ function escapeHtml(str: string): string {
 }
 
 function contentTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    solved_problem: 'Solved',
-    topic_explainer: 'Guide',
-    exam_strategy: 'Strategy',
-    comparison: 'Compare',
-  };
-  return labels[type] || type;
+  return (CONTENT_TYPE_LABELS as Record<string, string>)[type] || type;
 }
 
 function typeAccent(type: string): string {
-  const accents: Record<string, string> = {
-    solved_problem: '#10b981',
-    topic_explainer: '#38bdf8',
-    exam_strategy: '#facc15',
-    comparison: '#a78bfa',
-  };
-  return accents[type] || '#10b981';
+  return (CONTENT_TYPE_ACCENTS as Record<string, string>)[type] || '#10b981';
 }
-
-const GATE_TOPICS = [
-  'linear-algebra', 'calculus', 'differential-equations', 'complex-variables',
-  'probability-statistics', 'numerical-methods', 'transform-theory',
-  'discrete-mathematics', 'graph-theory', 'vector-calculus',
-];
 
 export function renderBlogIndex(
   posts: BlogPostSummary[],

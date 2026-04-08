@@ -16,6 +16,8 @@
  */
 
 import { ServerResponse } from 'http';
+import { GATE_TOPICS } from '../constants/topics';
+import { BLOG_CONTENT_TYPES } from '../constants/content-types';
 
 interface ParsedRequest {
   pathname: string;
@@ -33,13 +35,9 @@ interface RouteDefinition {
   handler: RouteHandler;
 }
 
-const GATE_TOPICS = [
-  'linear-algebra', 'calculus', 'differential-equations', 'complex-variables',
-  'probability-statistics', 'numerical-methods', 'transform-theory',
-  'discrete-mathematics', 'graph-theory', 'vector-calculus',
-];
-
-const CONTENT_TYPES = ['solved_problem', 'topic_explainer', 'exam_strategy', 'comparison'] as const;
+// GATE_TOPICS imported from ../constants/topics
+// BLOG_CONTENT_TYPES imported from ../constants/content-types
+const CONTENT_TYPES = BLOG_CONTENT_TYPES;
 
 // ============================================================================
 // Database
