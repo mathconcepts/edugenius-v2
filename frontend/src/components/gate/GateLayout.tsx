@@ -8,6 +8,8 @@ import { motion } from 'framer-motion';
 import { Home, Camera, BarChart3, Settings, MessageCircle, User, LogOut, Shield, BookOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
+import { useSession } from '@/hooks/useSession';
+import { StreakBadge } from '@/components/gate/StreakBadge';
 
 const NAV_ITEMS = [
   { to: '/',          icon: Home,          label: 'Home',     end: true },
@@ -21,6 +23,7 @@ export function GateLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const sessionId = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -47,6 +50,7 @@ export function GateLayout() {
           <span className="font-bold text-white text-base tracking-tight">GATE Math</span>
         </a>
         <div className="flex items-center gap-2">
+          <StreakBadge sessionId={sessionId} />
           {user ? (
             <div className="relative">
               <button

@@ -1,8 +1,8 @@
 # TODOS
 
-Tracked deferred work from /plan-eng-review + /plan-ceo-review.
-Branch: mathconcepts/install-gstack
-Updated: 2026-03-27
+Tracked deferred work from /plan-eng-review + /plan-ceo-review + /plan-design-review.
+Branch: docs/content-intelligence-v2
+Updated: 2026-04-09
 
 ---
 
@@ -137,3 +137,23 @@ Updated: 2026-03-27
 **Context:** User originally requested LO alignment. Deferred during eng review because nothing in the product currently operates at LO granularity (commander, SR, chat, notebook, progress, flywheel all work at topic level).
 **Depends on:** TODO #10 (ContentResolver class) or commander upgrade to LO-level tasks.
 **Priority:** Medium | **Added:** 2026-04-02
+
+---
+
+## 12. Evaluate Removing Topic Grid After Validation
+
+**What:** After validation data, evaluate removing topic grid entirely for all users.
+**Why:** If One Thing mode shows >30% Day-3 retention, topic grid is unnecessary complexity.
+**Effort:** S (human: ~1 day / CC: ~15 min)
+**Depends on:** Real user data from Telegram validation.
+**Priority:** Low | **Added:** 2026-04-09
+
+---
+
+## 13. Auto-Mark Task on Return from Practice
+
+**What:** When student returns from `/practice/:pyqId` to home, auto-mark the task as done and show inline rating pills instead of requiring manual "Done" tap.
+**Why:** Reduces friction in progressive disclosure flow. Student already demonstrated completion by doing the problem.
+**Effort:** S (human: ~2 hours / CC: ~10 min)
+**Depends on:** One Thing Mode shipped + practice page completion detection.
+**Priority:** Medium | **Added:** 2026-04-09
