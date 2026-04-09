@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   composeSystemContext,
   difficultyContext,
   examProximityContext,
   weaknessContext,
+  tiredStudentContext,
   type UserContext,
 } from '../prompt-modifiers';
 
@@ -115,6 +116,63 @@ describe('prompt-modifiers', () => {
       // Should only include 3, not all 5
       const matches = result.match(/%\)/g);
       expect(matches?.length).toBe(3);
+    });
+  });
+
+  describe('tiredStudentContext', () => {
+    it('returns empty when no exam date', () => {
+      expect(tiredStudentContext(baseCtx)).toBe('');
+    });
+
+    it('returns empty when exam is more than 30 days away', () => {
+      const examDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+      expect(tiredStudentContext({ ...baseCtx, examDate })).toBe('');
+    });
+
+    it('returns empty when exam is in the past', () => {
+      const examDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+      expect(tiredStudentContext({ ...baseCtx, examDate })).toBe('');
+    });
+
+    it('returns tired context when exam within 30 days and late night IST', () => {
+      // Mock time to 10pm IST (4:30pm UTC)
+      const originalNow = Date.now;
+      const mockDate = new Date('2026-04-09T16:30:00Z'); // 10pm IST
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+
+      const examDate = new Date(mockDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString();
+      const result = tiredStudentContext({ ...baseCtx, examDate });
+      expect(result).toContain('studying late');
+      expect(result).toContain('SHORT');
+
+      vi.useRealTimers();
+    });
+
+    it('returns empty when exam within 30 days but daytime IST', () => {
+      // Mock time to 2pm IST (8:30am UTC)
+      const mockDate = new Date('2026-04-09T08:30:00Z'); // 2pm IST
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+
+      const examDate = new Date(mockDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString();
+      const result = tiredStudentContext({ ...baseCtx, examDate });
+      expect(result).toBe('');
+
+      vi.useRealTimers();
+    });
+
+    it('is included in composeSystemContext chain', () => {
+      // Mock late night IST
+      const mockDate = new Date('2026-04-09T16:30:00Z'); // 10pm IST
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+
+      const examDate = new Date(mockDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString();
+      const result = composeSystemContext({ ...baseCtx, examDate });
+      expect(result).toContain('studying late');
+
+      vi.useRealTimers();
     });
   });
 });
