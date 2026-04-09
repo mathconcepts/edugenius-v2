@@ -9,7 +9,7 @@
  * Empty tasks fallback: "Free study day!" + topic grid
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiFetch } from '@/hooks/useApi';
@@ -97,6 +97,8 @@ export function GateHome() {
   const [masteryMap, setMasteryMap] = useState<Record<string, TopicMastery>>({});
   const [ratingLoading, setRatingLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [rateError, setRateError] = useState(false);
+  const ratingInFlight = useRef(false);
 
   // Respect prefers-reduced-motion
   const prefersReducedMotion = useMemo(() =>
@@ -127,6 +129,7 @@ export function GateHome() {
   const fetchData = () => {
     setLoading(true);
     setError(false);
+    setProfileChecked(false);
 
     setAnalyticsSession(sessionId);
     trackEvent('page_view', { page: 'home' });
@@ -159,7 +162,10 @@ export function GateHome() {
   // --- Rate / Skip ---
 
   const handleRateTask = async (taskIdx: number, rating: string) => {
+    if (ratingInFlight.current) return;
+    ratingInFlight.current = true;
     setRatingLoading(true);
+    setRateError(false);
     try {
       const data = await apiFetch<{ plan: DailyPlan }>(`/api/today/${sessionId}/${taskIdx}/rate`, {
         method: 'POST',
@@ -174,8 +180,10 @@ export function GateHome() {
         setShowConfetti(true);
       }
     } catch {
-      // Toast would go here; for now silent fail
+      setRateError(true);
+      setTimeout(() => setRateError(false), 3000);
     } finally {
+      ratingInFlight.current = false;
       setRatingLoading(false);
     }
   };
@@ -369,6 +377,7 @@ export function GateHome() {
 
   // One Thing card — progressive disclosure
   const currentTask = dailyPlan.tasks[currentTaskIdx];
+  if (!currentTask) return null;
   const weight = TOPIC_WEIGHTS[currentTask.topic] || 10;
   const isWeakest = currentTaskIdx === 0;
   const whyLine = `${weight}% of marks · ${isWeakest ? 'Biggest room to grow' : 'Due for review'}${daysToExam != null ? ` · ${daysToExam} days to go` : ''}`;
@@ -413,6 +422,13 @@ export function GateHome() {
             >
               Start practicing <ArrowRight size={16} />
             </motion.button>
+
+            {/* Rate error toast */}
+            {rateError && (
+              <p className="text-xs text-red-400 text-center" role="alert">
+                Couldn't save — tap again
+              </p>
+            )}
 
             {/* Divider + progress */}
             <div className="border-t border-surface-800 pt-3 flex items-center justify-between">

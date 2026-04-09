@@ -2,6 +2,14 @@
 
 All notable changes to GATE Math are documented here.
 
+## [0.2.2.1] - 2026-04-09
+
+### Fixed
+- Double-tap race condition on rating buttons (ref guard prevents duplicate POSTs)
+- Silent error swallowing on rate/skip — now shows transient "Couldn't save" toast
+- `profileChecked` not reset on retry — prevents stale profile flash after error recovery
+- Defensive guard on `currentTask` access to prevent crash if task index is invalid
+
 ## [0.2.2.0] - 2026-04-09
 
 ### Added
