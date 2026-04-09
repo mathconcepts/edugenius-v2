@@ -2,6 +2,23 @@
 
 All notable changes to GATE Math are documented here.
 
+## [0.2.2.0] - 2026-04-09
+
+### Added
+- **One Thing Mode:** Home page stripped to a single priority card per session. Tired students at 11pm see one clear instruction instead of a 12-element dashboard
+  - Three user states: no profile (onboard CTA), no diagnostic (diagnostic CTA), fully onboarded (One Thing card)
+  - Progressive disclosure: complete or skip task #1 to reveal task #2, then #3
+  - "Start practicing" navigates directly to a problem via `content_preview.pyq_id` from the daily plan API
+  - Celebration state with confetti and MasteryRing when all tasks are done
+  - "Free study day!" fallback with topic grid when no tasks are scheduled
+- **Tired Student Mode:** AI tutor prompt modifier detects late-night study (after 9pm IST + exam within 30 days) and keeps responses short and actionable
+- Streak badge moved to global header (visible on all pages)
+
+### Changed
+- Home page WHY line uses encouraging tone ("Biggest room to grow") instead of shaming ("weakest topic")
+- All interactive elements now meet 44px minimum touch targets
+- Added `prefers-reduced-motion` support, `aria-live` regions, and focus-visible rings throughout home page
+
 ## [0.2.1.0] - 2026-04-08
 
 ### Fixed
