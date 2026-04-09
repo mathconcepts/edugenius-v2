@@ -1,0 +1,1 @@
+/Users/girimsp/conductor/workspaces/edugenius-v2/tehran/.claude/skills/gstack/plan-devex-review/SKILL.md

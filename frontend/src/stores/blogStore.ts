@@ -12,7 +12,7 @@ import type { StrategySignal, LayoutIntelligence, BlogPerformanceSignal } from '
 
 export type BlogStatus = 'draft' | 'review' | 'scheduled' | 'published' | 'archived';
 export type BlogLayout = 'magazine' | 'grid' | 'list' | 'hero-focus' | 'minimal';
-export type ContentType = 'educational' | 'exam-tips' | 'strategy' | 'success-story' | 'news' | 'comparison' | 'how-to';
+export type ContentType = 'solved_problem' | 'topic_explainer' | 'exam_strategy' | 'comparison';
 export type ExamTag = 'JEE' | 'NEET' | 'CBSE_10' | 'CBSE_12' | 'CAT' | 'UPSC' | 'GATE' | 'ICSE' | 'General';
 
 export interface BlogSection {

@@ -35,8 +35,30 @@ export function composeSystemContext(ctx: UserContext): string {
   const weak = weaknessContext(ctx);
   if (weak) parts.push(weak);
 
+  const tired = tiredStudentContext(ctx);
+  if (tired) parts.push(tired);
+
   if (parts.length === 0) return '';
   return '\n\n## Student Context\n' + parts.join('\n');
+}
+
+/**
+ * Tired student modifier — if studying late at night and exam is approaching,
+ * prompt for shorter, more direct responses.
+ */
+export function tiredStudentContext(ctx: UserContext): string {
+  if (!ctx.examDate) return '';
+
+  // Check if exam is within 30 days
+  const now = new Date();
+  const istHour = new Date(now.getTime() + 5.5 * 3600 * 1000).getUTCHours();
+  const exam = new Date(ctx.examDate);
+  const daysLeft = Math.ceil((exam.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (daysLeft > 30 || daysLeft < 0) return '';
+  if (istHour < 21 && istHour >= 5) return ''; // Not late night (9pm-5am IST)
+
+  return '- Student is likely studying late. Keep answers SHORT and actionable. Lead with the formula or method, then explain why. No preamble.';
 }
 
 /**

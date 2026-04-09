@@ -17,6 +17,7 @@
 import { ServerResponse } from 'http';
 import pg from 'pg';
 import { detectTopic } from '../utils/topic-detection';
+import { GATE_TOPICS, TOPIC_LABELS, TOPIC_ICONS } from '../constants/topics';
 const { Pool } = pg;
 
 // ============================================================================
@@ -66,18 +67,12 @@ function sendError(res: ServerResponse, status: number, message: string): void {
 // GATE Topics (static — derived from seed data)
 // ============================================================================
 
-const GATE_TOPICS = [
-  { id: 'linear-algebra',          name: 'Linear Algebra',            icon: 'grid' },
-  { id: 'calculus',                name: 'Calculus',                  icon: 'activity' },
-  { id: 'differential-equations',  name: 'Differential Equations',    icon: 'git-branch' },
-  { id: 'complex-variables',       name: 'Complex Variables',         icon: 'circle' },
-  { id: 'probability-statistics',  name: 'Probability & Statistics',  icon: 'bar-chart' },
-  { id: 'numerical-methods',       name: 'Numerical Methods',         icon: 'hash' },
-  { id: 'transform-theory',        name: 'Transform Theory',          icon: 'repeat' },
-  { id: 'discrete-mathematics',    name: 'Discrete Mathematics',      icon: 'layers' },
-  { id: 'graph-theory',            name: 'Graph Theory',              icon: 'share-2' },
-  { id: 'vector-calculus',         name: 'Vector Calculus',           icon: 'navigation' },
-];
+// GATE_TOPICS, TOPIC_LABELS, TOPIC_ICONS imported from ../constants/topics
+const GATE_TOPIC_OBJECTS = GATE_TOPICS.map(id => ({
+  id,
+  name: TOPIC_LABELS[id],
+  icon: TOPIC_ICONS[id],
+}));
 
 async function handleGetTopics(_req: ParsedRequest, res: ServerResponse): Promise<void> {
   const pool = getPool();
@@ -94,7 +89,7 @@ async function handleGetTopics(_req: ParsedRequest, res: ServerResponse): Promis
     countMap[row.topic] = parseInt(row.count, 10);
   }
 
-  const topics = GATE_TOPICS.map(t => ({
+  const topics = GATE_TOPIC_OBJECTS.map(t => ({
     ...t,
     problemCount: countMap[t.id] || 0,
   }));

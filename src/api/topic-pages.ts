@@ -11,6 +11,7 @@
 
 import { ServerResponse } from 'http';
 import pg from 'pg';
+import { GATE_TOPICS, TOPIC_LABELS } from '../constants/topics';
 const { Pool } = pg;
 
 // ============================================================================
@@ -47,18 +48,8 @@ function getPool() {
   return _pool;
 }
 
-const GATE_TOPICS = [
-  { id: 'linear-algebra',          name: 'Linear Algebra' },
-  { id: 'calculus',                name: 'Calculus' },
-  { id: 'differential-equations',  name: 'Differential Equations' },
-  { id: 'complex-variables',       name: 'Complex Variables' },
-  { id: 'probability-statistics',  name: 'Probability & Statistics' },
-  { id: 'numerical-methods',       name: 'Numerical Methods' },
-  { id: 'transform-theory',        name: 'Transform Theory' },
-  { id: 'discrete-mathematics',    name: 'Discrete Mathematics' },
-  { id: 'graph-theory',            name: 'Graph Theory' },
-  { id: 'vector-calculus',         name: 'Vector Calculus' },
-];
+// GATE_TOPICS, TOPIC_LABELS imported from ../constants/topics
+const GATE_TOPIC_OBJECTS = GATE_TOPICS.map(id => ({ id, name: TOPIC_LABELS[id] }));
 
 // ============================================================================
 // Topic Landing Page
@@ -66,7 +57,7 @@ const GATE_TOPICS = [
 
 async function handleTopicPage(req: ParsedRequest, res: ServerResponse): Promise<void> {
   const slug = req.params.slug;
-  const topic = GATE_TOPICS.find(t => t.id === slug);
+  const topic = GATE_TOPIC_OBJECTS.find(t => t.id === slug);
   if (!topic) {
     res.writeHead(404, { 'Content-Type': 'text/html' });
     res.end('<h1>Topic not found</h1>');
@@ -199,7 +190,7 @@ async function handleSitemap(_req: ParsedRequest, res: ServerResponse): Promise<
     // Homepage
     `<url><loc>${baseUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
     // Topic pages
-    ...GATE_TOPICS.map(t =>
+    ...GATE_TOPIC_OBJECTS.map(t =>
       `<url><loc>${baseUrl}/topics/${t.id}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`
     ),
     // SEO solution pages

@@ -10,6 +10,7 @@
  */
 
 import { ServerResponse } from 'http';
+import { TOPIC_KEYWORDS } from '../constants/topics';
 
 interface ParsedRequest {
   pathname: string;
@@ -40,18 +41,7 @@ interface TrendSignal {
 // Topic keyword matching
 // ============================================================================
 
-const TOPIC_KEYWORDS: Record<string, string[]> = {
-  'linear-algebra': ['eigenvalue', 'eigenvector', 'matrix', 'determinant', 'rank', 'vector space', 'linear transformation', 'diagonalization', 'orthogonal'],
-  'calculus': ['integral', 'derivative', 'limit', 'taylor', 'maclaurin', 'series', 'convergence', 'differentiation', 'integration', 'maxima', 'minima'],
-  'differential-equations': ['ode', 'pde', 'differential equation', 'laplace', 'boundary value', 'initial value', 'first order', 'second order', 'homogeneous'],
-  'complex-variables': ['complex analysis', 'analytic function', 'cauchy', 'residue', 'contour', 'conformal mapping', 'complex variable', 'holomorphic'],
-  'probability-statistics': ['probability', 'statistics', 'bayes', 'random variable', 'distribution', 'expectation', 'variance', 'normal distribution', 'poisson'],
-  'numerical-methods': ['numerical method', 'newton raphson', 'interpolation', 'numerical integration', 'bisection', 'runge kutta', 'finite difference', 'gauss elimination'],
-  'transform-theory': ['fourier transform', 'laplace transform', 'z-transform', 'fourier series', 'dft', 'fft', 'convolution'],
-  'discrete-mathematics': ['combinatorics', 'recurrence', 'set theory', 'boolean algebra', 'lattice', 'group theory', 'permutation', 'combination', 'pigeonhole'],
-  'graph-theory': ['graph theory', 'tree', 'spanning tree', 'shortest path', 'euler', 'hamiltonian', 'adjacency', 'planar graph', 'coloring'],
-  'vector-calculus': ['vector calculus', 'divergence', 'gradient', 'curl', 'stokes', 'green theorem', 'gauss divergence', 'line integral', 'surface integral'],
-};
+// TOPIC_KEYWORDS imported from ../constants/topics
 
 function matchTopics(text: string): string[] {
   const lower = text.toLowerCase();
@@ -343,7 +333,8 @@ async function handleTrendCollect(req: ParsedRequest, res: ServerResponse): Prom
 // Exports
 // ============================================================================
 
-export { runTrendCollection, matchTopics, TOPIC_KEYWORDS };
+export { runTrendCollection, matchTopics };
+export { TOPIC_KEYWORDS } from '../constants/topics';
 
 export const trendCollectorRoutes: RouteDefinition[] = [
   { method: 'POST', path: '/api/trends/collect', handler: handleTrendCollect },

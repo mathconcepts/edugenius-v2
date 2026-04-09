@@ -195,6 +195,10 @@ supabase/migrations/
 ├── 003_gate_app.sql             # sr_sessions, verification_log, seo_pages
 ├── 004_autopilot_growth.sql     # rag_cache, daily_limits, streaks, analytics_events
 ├── 005_chat_and_roles.sql       # chat_messages, user_profiles, social_content
+├── 006_notebook_readiness.sql   # notebook_entries, exam_readiness
+├── 007_study_commander.sql      # study plans, daily tasks
+├── 008_content_pipeline.sql     # blog_posts table
+├── 009_growth_engine.sql        # funnel_events, retention, social_content expansion
 └── 010_content_intelligence.sql # trend_signals, content_priorities, blog_posts.content_score
 ```
 
@@ -221,6 +225,15 @@ tehran/
 │   │   └── verifiers/            # wolfram.ts, llm-consensus.ts, sympy.ts
 │   ├── data/
 │   │   └── vector-store.ts       # PgVectorStore + InMemoryVectorStore
+│   ├── constants/
+│   │   ├── topics.ts            # Single source of truth: 10 GATE topics
+│   │   └── content-types.ts     # Single source of truth: blog content types
+│   ├── templates/
+│   │   ├── blog-post.ts         # SSR blog post template (dark neubrutalism)
+│   │   ├── blog-index.ts        # SSR blog index with topic filters
+│   │   ├── exam-landing.ts      # SEO landing page
+│   │   ├── rss-feed.ts          # RSS feed generator
+│   │   └── sitemap.ts           # Sitemap generator
 │   └── jobs/
 │       ├── content-flywheel.ts   # Auto-generate problems + social content
 │       ├── trend-collector.ts    # External trend collection (Reddit, SE, YouTube, NewsAPI)
@@ -236,7 +249,7 @@ tehran/
 │       ├── hooks/                # useApi, useSession, useAuth
 │       └── lib/                  # analytics, animations, supabase client
 ├── supabase/
-│   ├── migrations/               # 6 migration files
+│   ├── migrations/               # 10 migration files
 │   └── seeds/                    # GATE EM PYQ seed data
 ├── render.yaml                   # Render deployment config
 ├── CLAUDE.md                     # AI agent instructions

@@ -17,6 +17,8 @@
 
 import { ServerResponse } from 'http';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GATE_TOPICS } from '../constants/topics';
+import { BLOG_CONTENT_TYPES } from '../constants/content-types';
 
 // ============================================================================
 // Types
@@ -51,11 +53,7 @@ interface GeneratedProblem {
 // Configuration
 // ============================================================================
 
-const GATE_TOPICS = [
-  'linear-algebra', 'calculus', 'differential-equations', 'complex-variables',
-  'probability-statistics', 'numerical-methods', 'transform-theory',
-  'discrete-mathematics', 'graph-theory', 'vector-calculus',
-];
+// GATE_TOPICS imported from ../constants/topics
 
 const BATCH_SIZE = 5;
 const MIN_CONFIDENCE = 0.8;
@@ -346,7 +344,7 @@ Return ONLY valid JSON, no markdown.`;
  * Generate a blog post from a verified problem.
  * Rotates through 4 content types: solved_problem, topic_explainer, exam_strategy, comparison.
  */
-const BLOG_CONTENT_TYPES = ['solved_problem', 'topic_explainer', 'exam_strategy', 'comparison'] as const;
+// BLOG_CONTENT_TYPES imported from ../constants/content-types
 let _blogTypeIndex = 0;
 
 async function generateBlogPost(problem: GeneratedProblem, pyqId: string): Promise<void> {

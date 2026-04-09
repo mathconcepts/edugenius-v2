@@ -41,6 +41,7 @@ import { renderRssFeed } from './templates/rss-feed';
 import path from 'path';
 import fs from 'fs';
 import pg from 'pg';
+import { autoMigrate } from './db/auto-migrate';
 
 const ssrPool = new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL || process.env.DATABASE_URL });
 
@@ -459,6 +460,18 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 async function main() {
   const port = parseInt(process.env.PORT || '8080', 10);
 
+  // ── Auto-migrate database ─────────────────────────────────────────────
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    const migratePool = new pg.Pool({ connectionString: dbUrl, max: 2 });
+    try {
+      await autoMigrate(migratePool);
+    } catch (err) {
+      console.error('[gate-server] Auto-migrate error (non-fatal):', (err as Error).message);
+    }
+    await migratePool.end();
+  }
+
   // ── Gemini SDK ──────────────────────────────────────────────────────────
   const geminiKey = process.env.GEMINI_API_KEY;
   const genAI = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
@@ -532,7 +545,6 @@ Solve carefully:`;
 
   // ── Vector store (pgvector-backed for persistence across cold starts) ──
   let vectorStore;
-  const dbUrl = process.env.DATABASE_URL;
   if (dbUrl) {
     const pg = await import('pg');
     const pool = new pg.default.Pool({ connectionString: dbUrl, max: 5, idleTimeoutMillis: 30_000 });
