@@ -2,18 +2,17 @@
  * ProgressPage — Animated progress overview with mastery rings, count-up stats, and celebration state.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { apiFetch } from '@/hooks/useApi';
 import { useSession } from '@/hooks/useSession';
 import { trackEvent } from '@/lib/analytics';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
-import { MasteryRing } from '@/components/gate/MasteryRing';
 import { CountUp } from '@/components/gate/CountUp';
 import { Confetti } from '@/components/gate/Confetti';
 import { ExamReadinessBreakdown } from '@/components/gate/ExamReadiness';
-import { BarChart3, TrendingDown, Clock, ChevronRight, Sparkles, PartyPopper } from 'lucide-react';
+import { BarChart3, Clock, ChevronRight, PartyPopper } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface TopicStat {
@@ -48,6 +47,7 @@ export default function ProgressPage() {
   const sessionId = useSession();
   const [data, setData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAllTopics, setShowAllTopics] = useState(false);
 
   useEffect(() => {
     trackEvent('page_view', { page: 'progress' });
@@ -91,6 +91,12 @@ export default function ProgressPage() {
   const accuracy = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
   const dueToday = parseInt(overall.due_today) || 0;
   const allCaughtUp = dueToday === 0;
+
+  const weakSet = useMemo(() => new Set(data.weakTopics.map(w => w.topic)), [data.weakTopics]);
+  const sortedTopics = useMemo(() => [...data.topics].sort((a, b) => a.mastery - b.mastery), [data.topics]);
+  const WEAK_LIMIT = Math.max(weakSet.size, 3);
+  const visibleTopics = showAllTopics ? sortedTopics : sortedTopics.slice(0, WEAK_LIMIT);
+  const hasMoreTopics = sortedTopics.length > WEAK_LIMIT;
 
   return (
     <motion.div
@@ -138,44 +144,14 @@ export default function ProgressPage() {
         </motion.div>
       )}
 
-      {/* Weak Topics Alert */}
-      {data.weakTopics.length > 0 && (
-        <motion.div variants={fadeInUp} className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-amber-300">
-            <TrendingDown size={16} />
-            <span>Weak Topics</span>
-          </div>
-          {data.weakTopics.map(wt => {
-            const name = wt.topic.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-            return (
-              <Link
-                key={wt.topic}
-                to={`/topic/${wt.topic}`}
-                className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 transition-colors group"
-              >
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-surface-200">{name}</p>
-                  <p className="text-xs text-surface-500">{Math.round(wt.mastery * 100)}% accuracy</p>
-                </div>
-                {wt.due > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-amber-400">
-                    <Clock size={12} /> {wt.due} due
-                  </span>
-                )}
-                <ChevronRight size={14} className="text-surface-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
-              </Link>
-            );
-          })}
-        </motion.div>
-      )}
-
-      {/* Topic Mastery — rings + animated bars */}
+      {/* Topics — sorted by mastery (weakest first), weak topics get amber accent */}
       <motion.div variants={fadeInUp} className="space-y-2">
-        <h2 className="text-sm font-semibold text-surface-300">All Topics</h2>
+        <h2 className="text-sm font-semibold text-surface-300">Topics</h2>
         <motion.div className="space-y-2" variants={staggerContainer}>
-          {data.topics.map(topic => {
+          {visibleTopics.map(topic => {
             const name = topic.topic.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             const masteryPct = Math.round(topic.mastery * 100);
+            const isWeak = weakSet.has(topic.topic);
 
             let barColor = 'bg-red-500';
             if (masteryPct >= 70) barColor = 'bg-emerald-500';
@@ -185,16 +161,18 @@ export default function ProgressPage() {
               <motion.div key={topic.topic} variants={fadeInUp}>
                 <Link
                   to={`/topic/${topic.topic}`}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-surface-700 transition-colors group"
+                  className={clsx(
+                    'flex items-center gap-3 p-3 rounded-xl transition-colors group',
+                    isWeak
+                      ? 'bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10'
+                      : 'bg-surface-900 border border-surface-800 hover:border-surface-700',
+                  )}
                 >
-                  <MasteryRing value={masteryPct} size={36} strokeWidth={2.5}>
-                    <span className="text-[8px] font-bold text-surface-400">{masteryPct}%</span>
-                  </MasteryRing>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-surface-200 truncate">{name}</span>
                       <span className="text-xs text-surface-500 shrink-0 ml-2">
-                        {topic.correct}/{topic.attempts}
+                        {masteryPct}%
                       </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-surface-800 overflow-hidden">
@@ -206,7 +184,9 @@ export default function ProgressPage() {
                       />
                     </div>
                     {topic.due > 0 && (
-                      <span className="text-[10px] text-amber-500 mt-0.5 inline-block">{topic.due} due</span>
+                      <span className="text-[10px] text-amber-500 mt-0.5 inline-flex items-center gap-1">
+                        <Clock size={10} /> {topic.due} due
+                      </span>
                     )}
                   </div>
                   <ChevronRight size={14} className="text-surface-600 shrink-0 group-hover:text-sky-400 group-hover:translate-x-0.5 transition-all" />
@@ -215,6 +195,15 @@ export default function ProgressPage() {
             );
           })}
         </motion.div>
+        {hasMoreTopics && !showAllTopics && (
+          <button
+            onClick={() => setShowAllTopics(true)}
+            aria-expanded={showAllTopics}
+            className="w-full py-2 text-xs text-surface-400 hover:text-surface-300 transition-colors cursor-pointer touch-manipulation"
+          >
+            Show all {sortedTopics.length} topics
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );

@@ -12,7 +12,7 @@ import { useSession } from '@/hooks/useSession';
 import { trackEvent } from '@/lib/analytics';
 import { fadeInUp, celebration, tapScale, getRandomMessage } from '@/lib/animations';
 import { Confetti } from '@/components/gate/Confetti';
-import { ChevronLeft, CheckCircle, XCircle, Loader2, Clock, Zap, ArrowRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, CheckCircle, XCircle, Loader2, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Problem {
@@ -351,54 +351,26 @@ export default function PracticePage() {
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             className="space-y-4"
           >
-            {/* Result Banner */}
+            {/* Result Banner — compact single-line */}
             <motion.div
               variants={celebration}
               initial="hidden"
               animate="visible"
               className={clsx(
-                'p-4 rounded-xl border',
+                'flex items-center gap-2 px-4 py-3 rounded-xl',
                 isCorrect
-                  ? 'bg-emerald-500/10 border-emerald-500/30'
-                  : 'bg-red-500/10 border-red-500/30',
+                  ? 'bg-emerald-500/10 text-emerald-300'
+                  : 'bg-red-500/10 text-red-300',
               )}
             >
-              <div className="flex items-center gap-2">
-                {isCorrect ? (
-                  <motion.div
-                    initial={{ rotate: -180, scale: 0 }}
-                    animate={{ rotate: 0, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                  >
-                    <Sparkles size={20} className="text-emerald-400" />
-                  </motion.div>
-                ) : (
-                  <XCircle size={20} className="text-red-400" />
-                )}
-                <div>
-                  <span className={clsx('font-semibold text-sm', isCorrect ? 'text-emerald-300' : 'text-red-300')}>
-                    {isCorrect ? 'Correct!' : `Incorrect — Answer: ${problem.correct_answer})`}
-                  </span>
-                  <p className={clsx('text-xs mt-0.5', isCorrect ? 'text-emerald-400/70' : 'text-red-400/70')}>
-                    {message}
-                  </p>
-                </div>
-              </div>
-
-              {/* Verification metadata */}
-              {verifyResult && (
-                <div className="flex items-center gap-3 mt-2 text-xs text-surface-500">
-                  <span className="flex items-center gap-1">
-                    <Zap size={12} />
-                    {verifyResult.tierUsed.replace('tier1_', 'Tier 1: ').replace('tier2_', 'Tier 2: ').replace('tier3_', 'Tier 3: ')}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={12} />
-                    {verifyResult.durationMs}ms
-                  </span>
-                  <span>{Math.round(verifyResult.confidence * 100)}% confidence</span>
-                </div>
+              {isCorrect ? (
+                <CheckCircle size={18} className="text-emerald-400 shrink-0" />
+              ) : (
+                <XCircle size={18} className="text-red-400 shrink-0" />
               )}
+              <span className="font-semibold text-sm">
+                {isCorrect ? 'Correct!' : `Answer: ${problem.correct_answer}`}
+              </span>
             </motion.div>
 
             {/* Explanation */}
@@ -412,25 +384,20 @@ export default function PracticePage() {
               <p className="text-sm text-surface-400 leading-relaxed whitespace-pre-wrap">
                 {problem.explanation}
               </p>
+              <p className="text-xs text-surface-500 mt-3 italic">{message}</p>
             </motion.div>
 
-            {/* Next Actions */}
+            {/* Next Action */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex gap-3"
+              className="space-y-2"
             >
-              <Link
-                to={`/topic/${problem.topic}`}
-                className="flex-1 py-3 rounded-xl text-center text-sm font-medium bg-surface-800 text-surface-300 hover:bg-surface-700 transition-colors"
-              >
-                All Problems
-              </Link>
               {nextProblemId ? (
                 <button
                   onClick={() => navigate(`/practice/${nextProblemId}`)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-sky-500 to-emerald-500 text-white shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 transition-shadow"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-400 transition-colors cursor-pointer touch-manipulation"
                 >
                   Next Problem
                   <ArrowRight size={16} />
@@ -438,11 +405,17 @@ export default function PracticePage() {
               ) : (
                 <Link
                   to="/"
-                  className="flex-1 py-3 rounded-xl text-center text-sm font-medium bg-sky-500/10 text-sky-300 border border-sky-500/25 hover:bg-sky-500/15 transition-colors"
+                  className="block w-full py-3 rounded-xl text-center text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-400 transition-colors"
                 >
-                  All Topics
+                  Back to Home
                 </Link>
               )}
+              <Link
+                to={`/topic/${problem.topic}`}
+                className="block text-center text-xs text-surface-500 hover:text-surface-400 transition-colors py-1"
+              >
+                All {problem.topic.replace(/-/g, ' ')} problems
+              </Link>
             </motion.div>
           </motion.div>
         )}

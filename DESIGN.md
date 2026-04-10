@@ -44,7 +44,8 @@
 - **Approach:** Grid-disciplined mobile app shell
 - **Grid:** Single column on mobile (375px), 2-column topic grid, max 3xl (768px) content area
 - **Max content width:** 768px (3xl)
-- **Bottom nav:** 5 tabs expanding to 6 — Home, Tutor, Scan, Notebook, Progress (+ Settings via header)
+- **Bottom nav:** 3 tabs — Home, Notes, Progress (+ Settings via header)
+- **Tutor FAB:** 56px sky-blue floating action button (bottom-right, above nav). Always visible except on /chat. The tutor is the primary surface, not a peer tab.
 - **Border radius:** sm:6px, md:10px, lg:16px, xl:24px, full:9999px
 - **Cards:** Full-bleed on mobile with surface-1 background, surface-3 border, lg radius
 
@@ -108,12 +109,13 @@
 - Deep links to relevant app feature per content type (practice, onboard, diagnostic, chat)
 
 ## App Declutter Rules
-- **Hero:** Compact single-line bar (title left, streak+countdown right). Not centered block.
-- **Welcome banner:** Removed. Topic grid IS the welcome.
-- **Onboarding CTA:** Subtle inline row after topic grid. Not a full-width gradient banner.
-- **Daily challenge:** Only shows when >= 3 reviews due (not 1-2).
-- **Verify CTA:** Removed from home. Accessible via bottom nav (Scan tab).
-- **Principle:** Topic grid visible above the fold. That's the product.
+- **Mental model:** Anytime help portal, not a test center. Tutor is always one tap away via FAB.
+- **Header:** 48px height, "G" logo badge only (no "GATE Math" text), streak + user avatar right.
+- **Content padding:** `px-4 pt-2 pb-4` — saves 8px dead space at top of every page.
+- **Progressive disclosure:** Collapse by default, expand on demand. ProgressPage shows top 3 topics; NotebookPage hides topic summary grid.
+- **No dead ends:** Every terminal state (all done, free study day, celebration) links to the tutor.
+- **Result simplification:** PracticePage shows compact result banner (icon + verdict), no verification metadata.
+- **Onboarding:** 3-bucket tappable sort (Weak/Okay/Strong) instead of 10 individual sliders.
 
 ## Decisions Log
 | Date | Decision | Rationale |
@@ -130,3 +132,7 @@
 | 2026-04-04 | Sticky floating CTA pill on blog posts | Less intrusive than inline button. Always visible without breaking reading flow |
 | 2026-04-05 | Dark Neubrutalism blog redesign | Gen Z/Gen Alpha aesthetic. Hard borders, offset shadows, Space Grotesk. Excellent perf (WCAG AAA), zero JS, high personality. Via UI/UX Pro Max skill. |
 | 2026-04-05 | prefers-reduced-motion support | Full accessibility: all blog animations + transitions disabled when user prefers reduced motion |
+| 2026-04-10 | 3 tabs + Tutor FAB | Tutor is primary surface, not a peer tab. FAB = 1-tap access from anywhere. |
+| 2026-04-10 | Collapse-by-default on Progress + Notebook | Tired students don't need 10 topic cards. Show weakest 3, expand on demand. |
+| 2026-04-10 | 3-bucket onboarding | 10 sliders → 3 tappable buckets. Faster (10 taps vs 10 drags), more mobile-friendly. |
+| 2026-04-10 | Compact practice results | Removed verification metadata (tier, ms, confidence). Students don't learn from "Gemini solved in 2.3s". |
