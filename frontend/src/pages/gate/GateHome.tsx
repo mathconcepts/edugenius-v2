@@ -340,12 +340,18 @@ export function GateHome() {
               </p>
             </motion.div>
 
-            <motion.div variants={fadeInUp}>
+            <motion.div variants={fadeInUp} className="w-full flex gap-3">
               <Link
                 to="/progress"
-                className="text-[13px] text-sky-400 hover:text-sky-300 transition-colors"
+                className="flex-1 h-11 rounded-[10px] bg-surface-800 text-surface-200 text-[15px] font-semibold flex items-center justify-center hover:bg-surface-700 transition-colors"
               >
-                See your progress →
+                Review progress
+              </Link>
+              <Link
+                to="/chat"
+                className="flex-1 h-11 rounded-[10px] bg-sky-500 text-white text-[15px] font-semibold flex items-center justify-center hover:bg-sky-400 transition-colors"
+              >
+                Ask the tutor
               </Link>
             </motion.div>
           </motion.div>
@@ -368,9 +374,12 @@ export function GateHome() {
           <p className="text-[15px] text-surface-500">
             No tasks scheduled. Pick any topic to practice.
           </p>
+          <Link to="/chat" className="text-[13px] text-sky-400 hover:text-sky-300 transition-colors mt-1">
+            Or ask the tutor for help →
+          </Link>
         </motion.div>
 
-        <TopicGrid topics={topics} masteryMap={masteryMap} />
+        <TopicGrid topics={topics} />
       </motion.div>
     );
   }
@@ -422,6 +431,22 @@ export function GateHome() {
             >
               Start practicing <ArrowRight size={16} />
             </motion.button>
+
+            {/* Quick-help tutor chips */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-1 px-1">
+              <Link
+                to={`/chat?prompt=${encodeURIComponent(`Explain ${currentTask.topic_name}`)}`}
+                className="flex-shrink-0 px-3 py-2 rounded-full bg-surface-800 text-surface-300 text-xs hover:bg-surface-700 transition-colors"
+              >
+                Explain {currentTask.topic_name}
+              </Link>
+              <Link
+                to={`/chat?prompt=${encodeURIComponent(`Solve a ${currentTask.topic_name} problem step by step`)}`}
+                className="flex-shrink-0 px-3 py-2 rounded-full bg-surface-800 text-surface-300 text-xs hover:bg-surface-700 transition-colors"
+              >
+                Solve a problem step by step
+              </Link>
+            </div>
 
             {/* Rate error toast */}
             {rateError && (
@@ -478,48 +503,35 @@ export function GateHome() {
 
 // --- Topic Grid (fallback for empty tasks) ---
 
-function TopicGrid({ topics, masteryMap }: { topics: Topic[]; masteryMap: Record<string, TopicMastery> }) {
+function TopicGrid({ topics }: { topics: Topic[] }) {
   return (
     <motion.div
-      className="grid grid-cols-2 gap-3"
+      className="space-y-2"
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
     >
       {topics.map(topic => {
         const Icon = ICON_MAP[topic.icon] || Grid3x3;
-        const mastery = masteryMap[topic.id];
-        const masteryPct = mastery ? Math.round(mastery.mastery * 100) : 0;
-        const hasAttempts = mastery && mastery.attempts > 0;
 
         return (
           <motion.div key={topic.id} variants={fadeInUp}>
             <Link
               to={`/topic/${topic.id}`}
-              className={clsx(
-                'flex flex-col gap-2 p-4 rounded-xl border transition-all duration-200',
-                'bg-surface-900 border-surface-800 hover:border-sky-500/40 hover:bg-surface-800/80',
-                'active:scale-[0.98] group',
-              )}
+              className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-sky-500/40 hover:bg-surface-800/80 transition-all group"
             >
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 rounded-lg bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
-                  <Icon size={18} className="text-sky-400" />
-                </div>
-                {hasAttempts ? (
-                  <MasteryRing value={masteryPct} size={32} strokeWidth={2.5}>
-                    <span className="text-[9px] font-bold text-surface-300">{masteryPct}%</span>
-                  </MasteryRing>
-                ) : (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400">
-                    NEW
-                  </span>
-                )}
+              <div className="w-9 h-9 rounded-lg bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors shrink-0">
+                <Icon size={18} className="text-sky-400" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-surface-200 leading-tight">{topic.name}</p>
                 <p className="text-xs text-surface-500 mt-0.5">{topic.problemCount} problems</p>
               </div>
+              {topic.problemCount > 0 && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 shrink-0">
+                  NEW
+                </span>
+              )}
             </Link>
           </motion.div>
         );

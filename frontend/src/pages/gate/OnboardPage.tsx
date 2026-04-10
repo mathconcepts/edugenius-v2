@@ -25,13 +25,11 @@ const TOPICS = [
   { id: 'vector-calculus', name: 'Vector Calculus' },
 ];
 
-const CONFIDENCE_LABELS: Record<number, string> = {
-  1: 'Never seen it',
-  2: 'Heard of it',
-  3: 'Can solve basics',
-  4: 'Can solve most',
-  5: 'Could teach it',
-};
+const BUCKETS = [
+  { key: 'weak', label: 'Weak', value: 1, border: 'border-red-500/30', bg: 'bg-red-500/5', chip: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  { key: 'okay', label: 'Okay', value: 3, border: 'border-amber-500/30', bg: 'bg-amber-500/5', chip: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+  { key: 'strong', label: 'Strong', value: 5, border: 'border-emerald-500/30', bg: 'bg-emerald-500/5', chip: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+] as const;
 
 const STEPS = [
   { icon: Calendar, label: 'Exam Date' },
@@ -210,36 +208,39 @@ export default function OnboardPage() {
               <div className="space-y-4 px-1">
                 <div className="text-center space-y-2">
                   <Brain size={32} className="text-emerald-400 mx-auto" />
-                  <h2 className="text-xl font-bold text-surface-100">Rate your confidence</h2>
-                  <p className="text-sm text-surface-400">Be honest — this shapes your study plan</p>
+                  <h2 className="text-xl font-bold text-surface-100">Sort your topics</h2>
+                  <p className="text-sm text-surface-400">Tap a topic to cycle: Weak → Okay → Strong</p>
                 </div>
                 <div className="space-y-3 max-h-[50vh] overflow-y-auto pb-4">
-                  {TOPICS.map(topic => {
-                    const val = confidence[topic.id];
+                  {BUCKETS.map(bucket => {
+                    const topicsInBucket = TOPICS.filter(t => confidence[t.id] === bucket.value);
                     return (
-                      <div key={topic.id} className="p-3 rounded-xl bg-surface-900 border border-surface-800">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-surface-200">{topic.name}</span>
-                          <span className={clsx(
-                            'text-xs font-mono px-2 py-0.5 rounded-full',
-                            val <= 2 ? 'bg-red-500/15 text-red-400' :
-                            val <= 3 ? 'bg-amber-500/15 text-amber-400' :
-                            'bg-emerald-500/15 text-emerald-400'
-                          )}>
-                            {CONFIDENCE_LABELS[val]}
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={1}
-                          max={5}
-                          step={1}
-                          value={val}
-                          onChange={e => setConfidence(prev => ({ ...prev, [topic.id]: parseInt(e.target.value) }))}
-                          className="w-full accent-emerald-500"
-                        />
-                        <div className="flex justify-between text-[10px] text-surface-600 mt-0.5">
-                          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                      <div key={bucket.key} className={clsx('p-3 rounded-xl border', bucket.border, bucket.bg)}>
+                        <p className="text-xs font-semibold text-surface-300 mb-2">{bucket.label}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {topicsInBucket.length === 0 && (
+                            <span className="text-[11px] text-surface-600 italic">Tap topics to move here</span>
+                          )}
+                          {topicsInBucket.map(topic => {
+                            const nextLabel = bucket.value === 1 ? 'Okay' : bucket.value === 3 ? 'Strong' : 'Weak';
+                            return (
+                              <button
+                                key={topic.id}
+                                onClick={() => {
+                                  const cur = confidence[topic.id];
+                                  const next = cur === 1 ? 3 : cur === 3 ? 5 : 1;
+                                  setConfidence(prev => ({ ...prev, [topic.id]: next }));
+                                }}
+                                aria-label={`Move ${topic.name} to ${nextLabel}`}
+                                className={clsx(
+                                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer touch-manipulation active:scale-95',
+                                  bucket.chip,
+                                )}
+                              >
+                                {topic.name}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     );

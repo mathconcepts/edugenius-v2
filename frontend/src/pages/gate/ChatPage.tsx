@@ -4,8 +4,9 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader2, Sparkles, BookOpen, Target, Brain, Trash2, Camera, ImageIcon } from 'lucide-react';
+import { Send, Loader2, Sparkles, Trash2 } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
 import { CameraInput } from '@/components/gate/CameraInput';
 
@@ -17,16 +18,16 @@ interface ChatMessage {
 }
 
 const SUGGESTIONS = [
-  { icon: Target, text: 'Create a 30-day GATE math study plan', color: 'from-emerald-500 to-green-600' },
-  { icon: BookOpen, text: 'Explain eigenvalues with examples', color: 'from-sky-500 to-blue-600' },
-  { icon: Brain, text: 'What topics should I focus on for GATE 2027?', color: 'from-purple-500 to-violet-600' },
-  { icon: Sparkles, text: 'Solve: Find the rank of matrix [[1,2,3],[4,5,6],[7,8,9]]', color: 'from-amber-500 to-orange-600' },
+  { text: 'Explain eigenvalues with examples', dot: 'bg-sky-400' },
+  { text: 'What should I focus on for GATE 2027?', dot: 'bg-emerald-400' },
+  { text: 'Verify my answer to a problem', dot: 'bg-amber-400' },
 ];
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export default function ChatPage() {
   const sessionId = useSession();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -34,6 +35,16 @@ export default function ChatPage() {
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Pre-fill from URL param (e.g. /chat?prompt=Explain+eigenvalues)
+  useEffect(() => {
+    const prompt = searchParams.get('prompt');
+    if (prompt) {
+      setInput(prompt.slice(0, 500));
+      setSearchParams({}, { replace: true });
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [searchParams, setSearchParams]);
 
   // Load chat history on mount
   useEffect(() => {
@@ -168,17 +179,17 @@ export default function ChatPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center h-full gap-6"
           >
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center shadow-2xl shadow-emerald-500/30">
-              <Sparkles className="w-8 h-8 text-white" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center shadow-2xl shadow-emerald-500/30">
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div className="text-center">
               <h2 className="text-xl font-bold text-white mb-2">GATE Math Tutor</h2>
               <p className="text-surface-400 text-sm max-w-xs">
-                Ask me anything about GATE Engineering Mathematics — study plans, problem solving, concepts, exam strategy.
+                Ask me anything about GATE Engineering Mathematics.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+            <div className="flex flex-wrap justify-center gap-2 w-full max-w-lg">
               {SUGGESTIONS.map((s, i) => (
                 <motion.button
                   key={i}
@@ -186,12 +197,10 @@ export default function ChatPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + i * 0.05 }}
                   onClick={() => sendMessage(s.text)}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-surface-900/80 border border-surface-800 hover:border-surface-700 transition-all text-left group"
+                  className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-900/80 border border-surface-800 hover:border-surface-700 transition-all text-left group"
                 >
-                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center flex-shrink-0`}>
-                    <s.icon size={16} className="text-white" />
-                  </div>
-                  <span className="text-sm text-surface-300 group-hover:text-white transition-colors leading-tight">
+                  <div className={`w-2 h-2 rounded-full ${s.dot} shrink-0`} />
+                  <span className="text-xs text-surface-300 group-hover:text-white transition-colors">
                     {s.text}
                   </span>
                 </motion.button>
