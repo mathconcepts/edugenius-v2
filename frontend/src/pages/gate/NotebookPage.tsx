@@ -125,10 +125,7 @@ export default function NotebookPage() {
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-5">
       {/* Header */}
       <motion.div variants={fadeInUp}>
-        <h1 className="text-xl font-bold text-white">Smart Notebook</h1>
-        <p className="text-sm text-surface-400 mt-1">
-          {totalEntries} entries across {summary.length} topics
-        </p>
+        <h1 className="text-xl font-bold text-white">Notes</h1>
       </motion.div>
 
       {/* Topic filter pills */}
@@ -160,31 +157,6 @@ export default function NotebookPage() {
         ))}
       </motion.div>
 
-      {/* Topic completion summary (when "All" selected) */}
-      {selectedTopic === 'all' && summary.length > 0 && (
-        <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-2">
-          {summary.map(t => {
-            const pct = t.total > 0 ? Math.round((t.mastered / t.total) * 100) : 0;
-            return (
-              <button
-                key={t.topic}
-                onClick={() => setSelectedTopic(t.topic)}
-                className="bg-surface-900 border border-surface-800 rounded-xl p-3 text-left hover:border-surface-700 transition-all"
-              >
-                <p className="text-xs font-medium text-surface-300 truncate">{formatTopicName(t.topic)}</p>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <div className="flex-1 h-1.5 bg-surface-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="text-[10px] font-semibold text-surface-400">{pct}%</span>
-                </div>
-                <p className="text-[10px] text-surface-500 mt-1">{t.mastered}/{t.total} mastered</p>
-              </button>
-            );
-          })}
-        </motion.div>
-      )}
-
       {/* Entries list */}
       {entries.length === 0 ? (
         <motion.div variants={fadeInUp} className="text-center py-16">
@@ -207,18 +179,14 @@ export default function NotebookPage() {
               >
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                  className="w-full flex items-start gap-3 p-3 text-left hover:bg-surface-800/50 transition-colors"
+                  className="w-full flex items-center gap-3 p-3 text-left hover:bg-surface-800/50 transition-colors"
                 >
-                  <div className={clsx('w-2 h-2 rounded-full mt-2 flex-shrink-0', STATUS_COLORS[entry.status])} />
+                  <div className={clsx('w-2 h-2 rounded-full flex-shrink-0', STATUS_COLORS[entry.status])} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white line-clamp-2">{entry.query_text}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="text-[10px] font-mono text-sky-400">{formatTopicName(entry.topic)}</span>
-                      <SourceIcon size={10} className="text-surface-500" />
-                      <span className="text-[10px] text-surface-500">{timeAgo(entry.created_at)}</span>
-                    </div>
                   </div>
-                  {isExpanded ? <ChevronDown size={14} className="text-surface-500 mt-1" /> : <ChevronRight size={14} className="text-surface-500 mt-1" />}
+                  <span className="text-[10px] text-surface-500 shrink-0">{timeAgo(entry.created_at)}</span>
+                  {isExpanded ? <ChevronDown size={14} className="text-surface-500" /> : <ChevronRight size={14} className="text-surface-500" />}
                 </button>
 
                 <AnimatePresence>
@@ -229,6 +197,10 @@ export default function NotebookPage() {
                       exit={{ height: 0, opacity: 0 }}
                       className="border-t border-surface-800"
                     >
+                      <div className="flex items-center gap-2 px-3 pt-2">
+                        <span className="text-[10px] font-mono text-sky-400">{formatTopicName(entry.topic)}</span>
+                        <SourceIcon size={10} className="text-surface-500" />
+                      </div>
                       {entry.answer_text && (
                         <div className="px-3 py-3 text-xs text-surface-300 leading-relaxed whitespace-pre-wrap">
                           {entry.answer_text}
@@ -261,17 +233,6 @@ export default function NotebookPage() {
         </motion.div>
       )}
 
-      {/* Legend */}
-      {entries.length > 0 && (
-        <motion.div variants={fadeInUp} className="flex items-center gap-4 justify-center pt-2">
-          {Object.entries(STATUS_COLORS).map(([key, color]) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${color}`} />
-              <span className="text-[10px] text-surface-500">{STATUS_LABELS[key as keyof typeof STATUS_LABELS]}</span>
-            </div>
-          ))}
-        </motion.div>
-      )}
     </motion.div>
   );
 }

@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Camera, BarChart3, Settings, MessageCircle, User, LogOut, Shield, BookOpen } from 'lucide-react';
+import { Home, BarChart3, Settings, MessageCircle, User, LogOut, Shield, BookOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
@@ -13,9 +13,7 @@ import { StreakBadge } from '@/components/gate/StreakBadge';
 
 const NAV_ITEMS = [
   { to: '/',          icon: Home,          label: 'Home',     end: true },
-  { to: '/chat',      icon: MessageCircle, label: 'Tutor' },
-  { to: '/verify',    icon: Camera,        label: 'Scan' },
-  { to: '/notebook',  icon: BookOpen,      label: 'Notebook' },
+  { to: '/notebook',  icon: BookOpen,      label: 'Notes' },
   { to: '/progress',  icon: BarChart3,     label: 'Progress' },
 ];
 
@@ -40,14 +38,14 @@ export function GateLayout() {
     <div className="min-h-dvh bg-surface-950 text-white">
       {/* Header — shadow on scroll */}
       <header className={clsx(
-        'fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-surface-950/95 border-b backdrop-blur-md transition-all duration-200',
+        'fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-12 bg-surface-950/95 border-b backdrop-blur-md transition-all duration-200',
         scrolled ? 'border-surface-800/80 shadow-lg shadow-black/20' : 'border-transparent',
       )}>
-        <a href="/" className="flex items-center gap-2.5">
+        <a href="/" className="flex items-center gap-2.5 min-w-[44px] min-h-[44px]">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
             <span className="text-white font-black text-sm">G</span>
           </div>
-          <span className="font-bold text-white text-base tracking-tight">GATE Math</span>
+          <span className="font-bold text-white text-base tracking-tight sr-only">GATE Math</span>
         </a>
         <div className="flex items-center gap-2">
           <StreakBadge sessionId={sessionId} />
@@ -119,13 +117,26 @@ export function GateLayout() {
       </header>
 
       {/* Content */}
-      <main className="pt-14 pb-[calc(64px+env(safe-area-inset-bottom,0px))] min-h-dvh">
-        <div className="p-4 max-w-3xl mx-auto">
+      <main className="pt-12 pb-[calc(64px+env(safe-area-inset-bottom,0px))] min-h-dvh">
+        <div className="px-4 pt-2 pb-4 max-w-3xl mx-auto">
           <Outlet />
         </div>
       </main>
 
-      {/* Bottom Nav — 5 items with animated active indicator */}
+      {/* Floating Tutor FAB — hidden on /chat */}
+      {location.pathname !== '/chat' && (
+        <motion.button
+          onClick={() => navigate('/chat')}
+          className="fixed z-50 right-4 w-14 h-14 rounded-full bg-sky-500 text-white shadow-lg shadow-sky-500/25 flex items-center justify-center hover:bg-sky-400 transition-colors cursor-pointer touch-manipulation"
+          style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)' }}
+          whileTap={{ scale: 0.9 }}
+          aria-label="Ask the tutor"
+        >
+          <MessageCircle size={20} />
+        </motion.button>
+      )}
+
+      {/* Bottom Nav — 3 tabs with animated active indicator */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch bg-surface-950/95 border-t border-surface-800/80 backdrop-blur-md"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
