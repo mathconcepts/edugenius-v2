@@ -139,16 +139,10 @@ export interface Message {
     manimTopic?: string;     // e.g. 'eigenvalue', 'integration' — triggers ManimViz render
     manimLatex?: string;     // primary LaTeX expression extracted from response
     manimTitle?: string;     // human-readable label for the visualisation
-    // Lens Engine hints (set by personalization layer)
-    lensNextTopic?: import('../services/lensEngine').NextContentSuggestion;
-    lensExamRoute?: string;  // e.g. 'gate-em', 'cat' — for NextConceptCard routing
     // Topper intelligence hints
     topperTopicId?: string;  // e.g. 'linear-algebra' — for TopperInsightCard
     topperExamId?: string;   // e.g. 'gate-engineering-maths'
   };
-
-  // Visual Math Framework — customer-centric visual concept card
-  visualCard?: import('../services/visualMathService').VisualConceptCardData;
 
   // Traceability
   traceId?: string;        // rootTraceId of the TraceTree for this message
