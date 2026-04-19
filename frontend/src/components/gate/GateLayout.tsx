@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, BarChart3, Settings, MessageCircle, User, LogOut, Shield, BookOpen } from 'lucide-react';
+import { Home, BarChart3, Settings, MessageCircle, User, LogOut, Shield, BookOpen, Brain } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
@@ -85,6 +85,14 @@ export function GateLayout() {
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-surface-300 hover:bg-surface-800 transition-colors"
                     >
                       <Shield size={14} /> Admin
+                    </button>
+                  )}
+                  {(user.role === 'teacher' || user.role === 'admin') && (
+                    <button
+                      onClick={() => navigate('/admin/gbrain')}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-surface-300 hover:bg-surface-800 transition-colors"
+                    >
+                      <Brain size={14} /> GBrain Admin
                     </button>
                   )}
                   <button

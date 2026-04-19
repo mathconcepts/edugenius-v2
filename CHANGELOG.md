@@ -2,6 +2,63 @@
 
 All notable changes to GATE Math are documented here.
 
+## [2.0.0] - 2026-04-19
+
+### 🧠 GBrain Cognitive Architecture — Major Release
+
+Transforms EduGenius from a practice app into a cognitive learning platform. GBrain is a 6-pillar architecture that models how a student thinks, not just what they answer.
+
+### Added — Backend Cognitive Architecture (~2,878 LOC)
+- **Pillar 1: Student Model v2** — 15-attribute live profile (mastery vector, speed profile, cognitive style, abstraction comfort, working memory, motivation state, confidence calibration, frustration threshold, exam strategy). Bayesian updates on every attempt.
+- **Pillar 2: Error Taxonomy** — 7-type classifier (conceptual/procedural/notation/misread/time-pressure/arithmetic/overconfidence-skip) with Gemini-powered misconception explanations and corrective problem generation.
+- **Pillar 3: Concept Graph** — 82 GATE concepts organized as a prerequisite DAG with 112 edges. `traceWeakestPrerequisite()` auto-routes foundation repair.
+- **Pillar 4: Adaptive Problem Generator** — Infinite calibrated practice targeting specific (concept × error-type × difficulty) gaps. Self-verified, cached.
+- **Pillar 5: Exam Strategy Optimizer** — Personalized playbooks: attempt order, time budgets, confidence-calibrated skip threshold, score maximization planner.
+- **Pillar 6: Task Reasoner (Layer 2)** — 5-node decision tree (intent → action → difficulty → format → verification) runs before every chat completion.
+- **Migration 011** — 7 new tables, auto-applies on server startup.
+
+### Added — MOAT Operations (~970 LOC)
+- `/api/gbrain/audit/:sessionId` — 360° student audit with markdown export
+- `/api/gbrain/cohort` — population insights (admin/teacher gated)
+- `/api/gbrain/content-gap/{scan,fill}` — inventory scan + auto-fill
+- `/api/gbrain/health` — 6-check system health
+- `/api/gbrain/daily-intelligence` — nightly refresh (CRON_SECRET gated)
+- `/api/gbrain/mock-exam/:sessionId` — full-length timed calibrated exam
+- `/api/gbrain/weekly-digest/:sessionId` — tone-calibrated progress report
+- `/api/gbrain/misconceptions` — mined misconceptions (admin/teacher gated)
+- `/api/gbrain/seed-rag` — pre-seed RAG cache (CRON_SECRET gated)
+- `/api/gbrain/verify-sweep` — re-verify problems to catch model drift
+
+### Added — Frontend Pages
+- `/practice/:id` — integrated `ErrorDiagnosis` on wrong answers
+- `/exam-strategy` — personalized playbook + score maximization
+- `/error-patterns` — weekly error digest with trends
+- `/audit` — 360° audit with mastery heatmap, action plan, markdown export
+- `/digest` — student-facing weekly report
+- `/mock-exam` — full-length timed exam UI with live timer
+- `/admin/gbrain` — unified admin dashboard (Cohort/Health/Content tabs)
+- `/gbrain` — marketing landing page showcasing the architecture
+
+### Added — Infrastructure
+- `.github/workflows/gbrain-cron.yml` — 4 scheduled cron jobs (daily-intelligence, seed-rag, verify-sweep, content-gap-fill) with `workflow_dispatch` for manual runs
+- `src/api/auth-middleware.ts` — `requireRole('admin', 'teacher')` wraps admin endpoints
+- `.claude/bootstrap-skills.sh` — teammate onboarding script for vendored gstack
+- 10 MOAT skills in `.claude/skills/` (student-audit, cohort-analysis, content-gap, gbrain-health, daily-intelligence, mock-exam, weekly-digest, misconception-miner, seed-rag, verify-sweep)
+
+### Changed
+- `/api/chat` SSE runs Task Reasoner before Gemini; streams `reasoner` event first with `{intent, action, concept, motivation}`
+- `ProgressPage` expanded GBrain Intelligence section with 5 MOAT links
+- `CLAUDE.md` updated with full MOAT skill catalog and routing rules
+
+### Fixed
+- 36 broken skill symlinks in `.claude/skills/` that pointed to a hardcoded macOS path. Vendored gstack; replaced with relative symlinks so teammates on any OS can use skills.
+
+### Security
+- Admin endpoints gated via `requireRole('admin', 'teacher')`
+- Cron endpoints require `Bearer $CRON_SECRET`
+
+---
+
 ## [0.3.0.0] - 2026-04-10
 
 ### Changed

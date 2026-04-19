@@ -1,0 +1,108 @@
+name: GBrain Cron Jobs
+
+on:
+  schedule:
+    # Daily intelligence — every night at 2am UTC (7:30am IST)
+    - cron: '0 2 * * *'
+    # Seed RAG cache — weekly on Sunday at 3am UTC
+    - cron: '0 3 * * 0'
+    # Verify sweep — weekly on Monday at 4am UTC
+    - cron: '0 4 * * 1'
+    # Content gap fill — every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which job to run'
+        required: true
+        type: choice
+        options:
+          - daily-intelligence
+          - seed-rag
+          - verify-sweep
+          - content-gap-fill
+          - all
+
+env:
+  API_URL: ${{ secrets.APP_URL || 'https://gate-math-api.onrender.com' }}
+
+jobs:
+  daily-intelligence:
+    # Runs on the 0 2 * * * schedule, OR if manually dispatched with job=daily-intelligence or job=all
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.job == 'daily-intelligence' || github.event.inputs.job == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily intelligence
+        run: |
+          echo "Triggering daily intelligence refresh at $API_URL/api/gbrain/daily-intelligence"
+          RESPONSE=$(curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 300 \
+            "$API_URL/api/gbrain/daily-intelligence")
+          echo "Response: $RESPONSE"
+          echo "$RESPONSE" | jq -e '.processed >= 0' > /dev/null || { echo "Failed"; exit 1; }
+
+  seed-rag:
+    if: github.event.schedule == '0 3 * * 0' || github.event.inputs.job == 'seed-rag' || github.event.inputs.job == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger RAG seed
+        run: |
+          echo "Seeding RAG cache at $API_URL/api/gbrain/seed-rag"
+          RESPONSE=$(curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 600 \
+            -d '{"source":"all","budget":500}' \
+            "$API_URL/api/gbrain/seed-rag")
+          echo "Response: $RESPONSE"
+
+  verify-sweep:
+    if: github.event.schedule == '0 4 * * 1' || github.event.inputs.job == 'verify-sweep' || github.event.inputs.job == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger verify sweep
+        run: |
+          echo "Running verify sweep at $API_URL/api/gbrain/verify-sweep"
+          RESPONSE=$(curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 900 \
+            -d '{"limit":100}' \
+            "$API_URL/api/gbrain/verify-sweep")
+          echo "Response: $RESPONSE"
+
+  content-gap-fill:
+    if: github.event.schedule == '0 */6 * * *' || github.event.inputs.job == 'content-gap-fill' || github.event.inputs.job == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger content gap fill
+        run: |
+          echo "Filling content gaps at $API_URL/api/gbrain/content-gap/fill"
+          RESPONSE=$(curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 600 \
+            -d '{"budget":10}' \
+            "$API_URL/api/gbrain/content-gap/fill")
+          echo "Response: $RESPONSE"
+
+  existing-jobs:
+    # Daily Telegram problem + content flywheel (moved here from README)
+    if: github.event.schedule == '0 2 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Daily Telegram problem
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --max-time 60 \
+            "$API_URL/telegram/daily-problem" || echo "Telegram job failed (non-fatal)"
+
+      - name: Content flywheel
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --max-time 300 \
+            "$API_URL/api/flywheel/generate" || echo "Flywheel job failed (non-fatal)"

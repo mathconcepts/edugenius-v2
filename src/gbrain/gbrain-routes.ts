@@ -39,6 +39,7 @@ import {
   EXAM_CONFIGS,
 } from './exam-strategy';
 import { getConceptsForTopic, traceWeakestPrerequisite, CONCEPT_MAP, ALL_CONCEPTS } from '../constants/concept-graph';
+import { requireRole } from '../api/auth-middleware';
 import {
   cohortAnalysis,
   findContentGaps,
@@ -390,6 +391,8 @@ async function handleAudit(req: ParsedRequest, res: ServerResponse): Promise<voi
 }
 
 async function handleCohort(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const user = await requireRole(req, res, 'admin', 'teacher');
+  if (!user) return;
   const days = parseInt(req.query.get('days') || '30');
   try {
     const result = await cohortAnalysis(days);
@@ -397,7 +400,9 @@ async function handleCohort(req: ParsedRequest, res: ServerResponse): Promise<vo
   } catch (err) { sendError(res, 500, (err as Error).message); }
 }
 
-async function handleContentGapScan(_req: ParsedRequest, res: ServerResponse): Promise<void> {
+async function handleContentGapScan(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const user = await requireRole(req, res, 'admin', 'teacher');
+  if (!user) return;
   try {
     const gaps = await findContentGaps();
     sendJSON(res, { total_gaps: gaps.length, gaps: gaps.slice(0, 50) });
@@ -405,6 +410,8 @@ async function handleContentGapScan(_req: ParsedRequest, res: ServerResponse): P
 }
 
 async function handleContentGapFill(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const user = await requireRole(req, res, 'admin');
+  if (!user) return;
   const body = (req.body as any) || {};
   try {
     const result = await fillContentGaps(body.budget || 10, body.topic);
@@ -412,7 +419,9 @@ async function handleContentGapFill(req: ParsedRequest, res: ServerResponse): Pr
   } catch (err) { sendError(res, 500, (err as Error).message); }
 }
 
-async function handleGbrainHealth(_req: ParsedRequest, res: ServerResponse): Promise<void> {
+async function handleGbrainHealth(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const user = await requireRole(req, res, 'admin', 'teacher');
+  if (!user) return;
   try {
     const result = await gbrainHealthCheck();
     sendJSON(res, result);
@@ -451,6 +460,8 @@ async function handleWeeklyDigest(req: ParsedRequest, res: ServerResponse): Prom
 }
 
 async function handleMineMisconceptions(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const user = await requireRole(req, res, 'admin', 'teacher');
+  if (!user) return;
   const topN = parseInt(req.query.get('top') || '20');
   try {
     const result = await mineMisconceptions(topN);
