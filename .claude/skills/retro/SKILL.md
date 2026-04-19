@@ -1,1 +1,1 @@
-/Users/girimsp/conductor/workspaces/edugenius-v2/tehran/.claude/skills/gstack/retro/SKILL.md
+../gstack/retro/SKILL.md

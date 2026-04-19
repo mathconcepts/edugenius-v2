@@ -57,9 +57,33 @@ In QA mode, flag any code that doesn't match DESIGN.md.
 Use the `/browse` skill from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
 
 ### Available gstack skills
-/office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review, /design-consultation, /design-shotgun, /design-html, /review, /ship, /land-and-deploy, /canary, /benchmark, /browse, /connect-chrome, /qa, /qa-only, /design-review, /setup-browser-cookies, /setup-deploy, /retro, /investigate, /document-release, /codex, /cso, /autoplan, /plan-devex-review, /devex-review, /careful, /freeze, /guard, /unfreeze, /gstack-upgrade, /learn
+/office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review, /design-consultation, /design-shotgun, /design-html, /review, /ship, /land-and-deploy, /canary, /benchmark, /browse, /connect-chrome, /qa, /qa-only, /design-review, /setup-browser-cookies, /setup-deploy, /retro, /investigate, /document-release, /codex, /cso, /autoplan, /plan-devex-review, /devex-review, /careful, /freeze, /guard, /unfreeze, /gstack-upgrade, /learn, /context-save, /context-restore
 
-If gstack skills aren't working, run `cd .claude/skills/gstack && ./setup` to build the binary and register skills.
+Skills are vendored at `.claude/skills/gstack/` (cloned from github.com/garrytan/gstack). All skill directories in `.claude/skills/<name>/SKILL.md` are relative symlinks into the vendored gstack. If a skill isn't resolving, run `cd .claude/skills/gstack && ./setup` to rebuild binaries.
+
+## GBrain MOAT Skills
+
+Custom skills that compound GBrain's cognitive architecture into defensible advantage. Each wraps a MOAT operation (in `src/gbrain/operations/`) exposed via both CLI (`npx tsx`) and REST API (`/api/gbrain/*`).
+
+### Student-facing intelligence
+- `/student-audit` — Deep 360° analysis of one student (mastery heatmap, error patterns, prerequisite alerts, cognitive profile, motivation trajectory, 3-session action plan)
+- `/weekly-digest` — Student-facing weekly email with streak, errors fixed, growth proof, one concrete action
+- `/mock-exam` — Full-length timed mock exam calibrated to the student's mastery
+
+### Population-level intelligence
+- `/cohort-analysis` — Top misconceptions, bottleneck concepts, error distribution across all students
+- `/misconception-miner` — Mine top misconceptions with impact scores, feeds into corrective content
+
+### Content pipeline
+- `/content-gap` — Find (concept × difficulty × error-type) combos with no cached problems, auto-fill via generator
+- `/seed-rag` — Pre-seed RAG cache with PYQ + generated problem embeddings for zero-cost Tier 1 hits
+- `/verify-sweep` — Re-verify all generated problems to catch model drift; demote failures
+
+### Platform health
+- `/gbrain-health` — Full subsystem health report (student_model rows, verification rates, Gemini latency, concept graph integrity)
+- `/daily-intelligence` — Nightly cron: refresh prerequisite alerts, recompute exam strategies, flag frustrated students, prune old data
+
+All MOAT skills have SKILL.md at `.claude/skills/<name>/` and backing TypeScript at `src/gbrain/operations/`. Each is invocable via CLI, REST API (`/api/gbrain/*`), or as a Claude Code slash command.
 
 ## Skill routing
 
@@ -80,3 +104,10 @@ Key routing rules:
 - Architecture review → invoke plan-eng-review
 - Design variants → invoke design-shotgun
 - DevEx audit → invoke devex-review
+- "Why is student X struggling?" / parent report → invoke student-audit
+- "What's everyone struggling with?" / systemic patterns → invoke cohort-analysis
+- "Fill problem bank" / "add more problems" → invoke content-gap
+- "Is gbrain healthy?" / "check system" → invoke gbrain-health
+- Mine/aggregate misconceptions → invoke misconception-miner
+- Generate mock exam / full practice test → invoke mock-exam
+- Weekly student email / progress report → invoke weekly-digest

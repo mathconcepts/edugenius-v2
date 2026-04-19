@@ -39,6 +39,19 @@ import {
   EXAM_CONFIGS,
 } from './exam-strategy';
 import { getConceptsForTopic, traceWeakestPrerequisite, CONCEPT_MAP, ALL_CONCEPTS } from '../constants/concept-graph';
+import {
+  cohortAnalysis,
+  findContentGaps,
+  fillContentGaps,
+  gbrainHealthCheck,
+  dailyIntelligence,
+  generateMockExam,
+  weeklyDigest,
+  mineMisconceptions,
+  seedRagCache,
+  verifySweep,
+} from './operations/moat-operations';
+import { auditStudent, formatAuditMarkdown } from './operations/student-audit';
 
 const { Pool } = pg;
 
@@ -356,10 +369,125 @@ async function handleConfidence(req: ParsedRequest, res: ServerResponse): Promis
 }
 
 // ============================================================================
+// MOAT OPERATIONS — Handlers
+// ============================================================================
+
+async function handleAudit(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const { sessionId } = req.params;
+  if (!sessionId) return sendError(res, 400, 'sessionId required');
+  try {
+    const report = await auditStudent(sessionId);
+    const format = req.query.get('format');
+    if (format === 'markdown') {
+      res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+      res.end(formatAuditMarkdown(report));
+    } else {
+      sendJSON(res, { report });
+    }
+  } catch (err) {
+    sendError(res, 500, (err as Error).message);
+  }
+}
+
+async function handleCohort(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const days = parseInt(req.query.get('days') || '30');
+  try {
+    const result = await cohortAnalysis(days);
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleContentGapScan(_req: ParsedRequest, res: ServerResponse): Promise<void> {
+  try {
+    const gaps = await findContentGaps();
+    sendJSON(res, { total_gaps: gaps.length, gaps: gaps.slice(0, 50) });
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleContentGapFill(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const body = (req.body as any) || {};
+  try {
+    const result = await fillContentGaps(body.budget || 10, body.topic);
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleGbrainHealth(_req: ParsedRequest, res: ServerResponse): Promise<void> {
+  try {
+    const result = await gbrainHealthCheck();
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleDailyIntelligence(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  // Protected by CRON_SECRET
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  try {
+    const result = await dailyIntelligence();
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleMockExam(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const { sessionId } = req.params;
+  const exam = req.query.get('exam') || 'gate';
+  if (!sessionId) return sendError(res, 400, 'sessionId required');
+  try {
+    const result = await generateMockExam(sessionId, exam);
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleWeeklyDigest(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const { sessionId } = req.params;
+  if (!sessionId) return sendError(res, 400, 'sessionId required');
+  try {
+    const result = await weeklyDigest(sessionId);
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleMineMisconceptions(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const topN = parseInt(req.query.get('top') || '20');
+  try {
+    const result = await mineMisconceptions(topN);
+    sendJSON(res, { misconceptions: result, total: result.length });
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleSeedRag(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  const body = (req.body as any) || {};
+  try {
+    const result = await seedRagCache(body.source || 'pyq', body.budget || 500);
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+async function handleVerifySweep(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+    return sendError(res, 401, 'Unauthorized');
+  }
+  const body = (req.body as any) || {};
+  try {
+    const result = await verifySweep({ topic: body.topic, strict: body.strict, limit: body.limit || 100 });
+    sendJSON(res, result);
+  } catch (err) { sendError(res, 500, (err as Error).message); }
+}
+
+// ============================================================================
 // Route Export
 // ============================================================================
 
 export const gbrainRoutes: RouteDefinition[] = [
+  // Core GBrain
   { method: 'GET', path: '/api/gbrain/model/:sessionId', handler: handleGetModel },
   { method: 'POST', path: '/api/gbrain/attempt', handler: handleAttempt },
   { method: 'GET', path: '/api/gbrain/errors/:sessionId', handler: handleGetErrors },
@@ -369,4 +497,17 @@ export const gbrainRoutes: RouteDefinition[] = [
   { method: 'GET', path: '/api/gbrain/score-plan/:sessionId', handler: handleGetScorePlan },
   { method: 'GET', path: '/api/gbrain/concepts/:topic', handler: handleGetConcepts },
   { method: 'POST', path: '/api/gbrain/confidence', handler: handleConfidence },
+
+  // MOAT Operations
+  { method: 'GET', path: '/api/gbrain/audit/:sessionId', handler: handleAudit },
+  { method: 'GET', path: '/api/gbrain/cohort', handler: handleCohort },
+  { method: 'GET', path: '/api/gbrain/content-gap/scan', handler: handleContentGapScan },
+  { method: 'POST', path: '/api/gbrain/content-gap/fill', handler: handleContentGapFill },
+  { method: 'GET', path: '/api/gbrain/health', handler: handleGbrainHealth },
+  { method: 'POST', path: '/api/gbrain/daily-intelligence', handler: handleDailyIntelligence },
+  { method: 'GET', path: '/api/gbrain/mock-exam/:sessionId', handler: handleMockExam },
+  { method: 'GET', path: '/api/gbrain/weekly-digest/:sessionId', handler: handleWeeklyDigest },
+  { method: 'GET', path: '/api/gbrain/misconceptions', handler: handleMineMisconceptions },
+  { method: 'POST', path: '/api/gbrain/seed-rag', handler: handleSeedRag },
+  { method: 'POST', path: '/api/gbrain/verify-sweep', handler: handleVerifySweep },
 ];

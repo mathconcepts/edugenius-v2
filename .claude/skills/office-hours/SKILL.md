@@ -1,1 +1,1 @@
-/Users/girimsp/conductor/workspaces/edugenius-v2/tehran/.claude/skills/gstack/office-hours/SKILL.md
+../gstack/office-hours/SKILL.md

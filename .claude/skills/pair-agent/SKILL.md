@@ -1,1 +1,1 @@
-/Users/girimsp/conductor/workspaces/edugenius-v2/tehran/.claude/skills/gstack/pair-agent/SKILL.md
+../gstack/pair-agent/SKILL.md

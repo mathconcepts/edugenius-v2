@@ -1,1 +1,1 @@
-/Users/girimsp/conductor/workspaces/edugenius-v2/tehran/.claude/skills/gstack/benchmark/SKILL.md
+../gstack/benchmark/SKILL.md

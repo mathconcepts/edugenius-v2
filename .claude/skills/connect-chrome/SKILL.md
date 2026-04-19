@@ -1,1 +1,1 @@
-/Users/girimsp/conductor/workspaces/edugenius-v2/tehran/.claude/skills/gstack/connect-chrome/SKILL.md
+../gstack/connect-chrome/SKILL.md
