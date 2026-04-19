@@ -12,6 +12,7 @@ import { useSession } from '@/hooks/useSession';
 import { trackEvent } from '@/lib/analytics';
 import { fadeInUp, celebration, tapScale, getRandomMessage } from '@/lib/animations';
 import { Confetti } from '@/components/gate/Confetti';
+import { ErrorDiagnosis } from '@/components/gate/ErrorDiagnosis';
 import { ChevronLeft, CheckCircle, XCircle, Loader2, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -56,6 +57,7 @@ export default function PracticePage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [message, setMessage] = useState('');
   const [nextProblemId, setNextProblemId] = useState<string | null>(null);
+  const [errorDiagnosis, setErrorDiagnosis] = useState<any>(null);
   const startTime = useRef(Date.now());
 
   useEffect(() => {
@@ -65,6 +67,7 @@ export default function PracticePage() {
     setSelected(null);
     setVerifyResult(null);
     setShowConfetti(false);
+    setErrorDiagnosis(null);
     setVerifyStageIndex(0);
     setLoading(true);
 
@@ -154,6 +157,29 @@ export default function PracticePage() {
       // Update streak on correct
       if (isCorrect) {
         await apiFetch(`/api/streak/${sessionId}`, { method: 'POST' }).catch(() => {});
+      }
+
+      // GBrain: Record attempt for cognitive model + error diagnosis
+      try {
+        const gbrainResult = await apiFetch<any>('/api/gbrain/attempt', {
+          method: 'POST',
+          body: JSON.stringify({
+            sessionId,
+            problem: problem.question_text,
+            studentAnswer: answerText,
+            correctAnswer: problem.correct_answer,
+            conceptId: problem.topic, // topic-level for PYQ problems
+            isCorrect,
+            difficulty: problem.difficulty === 'hard' ? 0.8 : problem.difficulty === 'medium' ? 0.5 : 0.3,
+            timeTakenMs: Date.now() - startTime.current,
+            problemId: problem.id,
+          }),
+        });
+        if (!isCorrect && gbrainResult?.error_diagnosis) {
+          setErrorDiagnosis(gbrainResult);
+        }
+      } catch {
+        // Non-fatal: GBrain diagnosis is supplemental
       }
     } catch {
       setPhase('result');
@@ -386,6 +412,16 @@ export default function PracticePage() {
               </p>
               <p className="text-xs text-surface-500 mt-3 italic">{message}</p>
             </motion.div>
+
+            {/* GBrain Error Diagnosis — only shown on wrong answers */}
+            {!isCorrect && errorDiagnosis?.error_diagnosis && (
+              <ErrorDiagnosis
+                diagnosis={errorDiagnosis.error_diagnosis}
+                prerequisiteAlerts={errorDiagnosis.prerequisite_alerts}
+                motivationState={errorDiagnosis.motivation_state}
+                consecutiveFailures={errorDiagnosis.consecutive_failures}
+              />
+            )}
 
             {/* Next Action */}
             <motion.div

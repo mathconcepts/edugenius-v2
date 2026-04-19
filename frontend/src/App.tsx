@@ -33,6 +33,8 @@ const LoginPage = lazy(() => import('@/pages/gate/LoginPage'));
 const AdminPage = lazy(() => import('@/pages/gate/AdminPage'));
 const OnboardPage = lazy(() => import('@/pages/gate/OnboardPage'));
 const DiagnosticPage = lazy(() => import('@/pages/gate/DiagnosticPage'));
+const ExamStrategyPage = lazy(() => import('@/pages/gate/ExamStrategyPage'));
+const ErrorPatternsPage = lazy(() => import('@/pages/gate/ErrorPatternsPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -65,6 +67,8 @@ export default function App() {
           <Route path="admin" element={<AdminPage />} />
           <Route path="onboard" element={<OnboardPage />} />
           <Route path="diagnostic" element={<DiagnosticPage />} />
+          <Route path="exam-strategy" element={<ExamStrategyPage />} />
+          <Route path="error-patterns" element={<ErrorPatternsPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

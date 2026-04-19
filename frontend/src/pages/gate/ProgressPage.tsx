@@ -12,7 +12,7 @@ import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { CountUp } from '@/components/gate/CountUp';
 import { Confetti } from '@/components/gate/Confetti';
 import { ExamReadinessBreakdown } from '@/components/gate/ExamReadiness';
-import { BarChart3, Clock, ChevronRight, PartyPopper } from 'lucide-react';
+import { BarChart3, Clock, ChevronRight, PartyPopper, Target, Brain } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface TopicStat {
@@ -204,6 +204,37 @@ export default function ProgressPage() {
             Show all {sortedTopics.length} topics
           </button>
         )}
+      </motion.div>
+
+      {/* GBrain Intelligence */}
+      <motion.div variants={fadeInUp} className="space-y-2">
+        <h2 className="text-sm font-semibold text-surface-300">GBrain Intelligence</h2>
+        <Link
+          to="/exam-strategy"
+          className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-sky-500/30 transition-colors group"
+        >
+          <div className="p-2 rounded-lg bg-sky-500/10">
+            <Target size={16} className="text-sky-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-surface-200">Exam Strategy</p>
+            <p className="text-xs text-surface-500">Personalized playbook, time budgets, skip thresholds</p>
+          </div>
+          <ChevronRight size={14} className="text-surface-600 group-hover:text-sky-400 transition-colors" />
+        </Link>
+        <Link
+          to="/error-patterns"
+          className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-amber-500/30 transition-colors group"
+        >
+          <div className="p-2 rounded-lg bg-amber-500/10">
+            <Brain size={16} className="text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-surface-200">Error Patterns</p>
+            <p className="text-xs text-surface-500">Weekly error digest, misconceptions, recommendations</p>
+          </div>
+          <ChevronRight size={14} className="text-surface-600 group-hover:text-amber-400 transition-colors" />
+        </Link>
       </motion.div>
     </motion.div>
   );
