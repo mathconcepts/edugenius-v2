@@ -12,7 +12,7 @@ import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { CountUp } from '@/components/gate/CountUp';
 import { Confetti } from '@/components/gate/Confetti';
 import { ExamReadinessBreakdown } from '@/components/gate/ExamReadiness';
-import { BarChart3, Clock, ChevronRight, PartyPopper, Target, Brain, Sparkles, Calendar, FileText } from 'lucide-react';
+import { BarChart3, Clock, ChevronRight, PartyPopper, Target, Brain, Sparkles, Calendar, FileText, BookOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface TopicStat {
@@ -209,6 +209,19 @@ export default function ProgressPage() {
       {/* GBrain Intelligence */}
       <motion.div variants={fadeInUp} className="space-y-2">
         <h2 className="text-sm font-semibold text-surface-300">GBrain Intelligence</h2>
+        <Link
+          to="/materials"
+          className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-emerald-500/30 transition-colors group"
+        >
+          <div className="p-2 rounded-lg bg-emerald-500/10">
+            <BookOpen size={16} className="text-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-surface-200">Your Materials</p>
+            <p className="text-xs text-surface-500">Upload notes, textbooks — GBrain learns from them</p>
+          </div>
+          <ChevronRight size={14} className="text-surface-600 group-hover:text-emerald-400 transition-colors" />
+        </Link>
         <Link
           to="/audit"
           className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-emerald-500/30 transition-colors group"

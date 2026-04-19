@@ -2,6 +2,95 @@
 
 All notable changes to GATE Math are documented here.
 
+## [2.1.0-beta] — 2026-04-19
+
+### 🗄️ DB-less GBrain (major architecture shift)
+
+Transforms the runtime from server-DB to **local-first with stateless edge proxy**.
+All student state lives in IndexedDB on-device. Static knowledge ships as JSON bundles.
+Server becomes a pure LLM/vision/embedding relay with zero persistence.
+
+Introduces **student-uploaded materials** as a first-class feature — the headline use
+case for the new architecture. Privacy-first: materials are parsed, embedded, and stored
+entirely client-side.
+
+### Added
+
+**Pure-function GBrain core**
+- `src/gbrain/gbrain-core.ts` — pure Bayesian updates, mastery aggregation, ZPD selection,
+  exam strategy computation, task reasoner — all side-effect-free. Runs on server or client.
+- `frontend/src/lib/gbrain/core.ts` — async mirror for browser (loads concept graph lazily).
+
+**Client-side IndexedDB store** (`frontend/src/lib/gbrain/db.ts`)
+- 8 object stores: student, errors, attempts, confidence, materials, chunks, embeddings, generated
+- Full CRUD + indexes (by-session, by-concept, by-date, by-material, by-source)
+- Cosine similarity search over embeddings
+- Export/import JSON for backup/restore
+
+**Client-side embeddings** (`frontend/src/lib/gbrain/embedder.ts`)
+- `@xenova/transformers` wrapper for `all-MiniLM-L6-v2` (384-dim)
+- Lazy-loaded (~22 MB one-time, browser-cached)
+- First embed ~500 ms cold, ~50 ms warm
+
+**Materials parsing pipeline** (`frontend/src/lib/gbrain/materials.ts`)
+- PDF parser via pdfjs-dist
+- DOCX parser via mammoth
+- Markdown/TXT direct
+- Image OCR via Gemini Vision proxy (`/api/gemini/vision-ocr`)
+- Chunking (~500 words with sentence overlap)
+- Full ingestion: parse → chunk → embed → persist
+
+**Static knowledge bundles** (`frontend/public/data/`)
+- `concept-graph.json` — 82 concepts + prerequisites (generated from `ALL_CONCEPTS`)
+- `pyq-bank.json` — 12 seed PYQs (extensible from DB via `scripts/export-bundles.ts`)
+- Build script: `npx tsx scripts/export-bundles.ts` (CI-ready)
+
+**Stateless Gemini proxy** (`src/api/gemini-proxy.ts`)
+- `POST /api/gemini/classify-error` — error classification, no DB
+- `POST /api/gemini/generate-problem` — generate + self-verify
+- `POST /api/gemini/embed` — server-side embedding (fallback)
+- `POST /api/gemini/vision-ocr` — OCR handwritten images
+- `POST /api/gemini/chat` — SSE stream with grounding
+- Graceful fallback when `GEMINI_API_KEY` is absent
+- Zero database. Zero persistence. Portable to any edge runtime.
+
+**Client GBrain controller** (`frontend/src/lib/gbrain/client.ts`)
+- `recordAttempt()` — full pipeline: Bayesian update + classify + log, all client-side
+- `getExamStrategy()` — instant from local model
+- `getErrorReport()` — client-side aggregation over IndexedDB
+- `generateProblemClient()` — with local cache
+- `streamGroundedChat()` — retrieves top-K material chunks, streams Gemini with grounding
+
+**Materials UX** (`frontend/src/pages/gate/MaterialsPage.tsx`, route `/materials`)
+- Drag-drop upload (PDF, DOCX, MD, TXT, images)
+- Live progress bar (parse → chunk → embed)
+- Materials library with chunk counts
+- Privacy banner, grounding indicator
+- Delete with confirmation (cleans up chunks + embeddings)
+
+**Concept loader** (`frontend/src/lib/gbrain/concept-loader.ts`)
+- Lazy-loads concept graph JSON
+- `getAllConcepts()`, `getConcept(id)`, `getConceptsForTopicClient(topic)`
+- Client-side `traceWeakestPrerequisiteClient()` for prereq repair
+
+### Changed
+- `src/gate-server.ts` — registers new `geminiProxyRoutes` alongside existing gbrain routes
+- `frontend/src/App.tsx` — `/materials` route added
+- `frontend/src/pages/gate/ProgressPage.tsx` — "Your Materials" link at top of GBrain section
+- `frontend/package.json` — added `mammoth`, `@xenova/transformers`
+
+### Architecture
+- Existing DB-mode endpoints remain fully functional (backward compat)
+- IndexedDB mode runs in parallel as opt-in
+- No migration required; new users auto-get IndexedDB on browsers, logged-in users keep DB
+
+### Deferred to Phase 7
+- Opt-in anonymous cohort aggregation
+- Fully removing Postgres from production server
+- Re-embedding PYQ bundle at 384-dim (currently 3072-dim from Gemini)
+
+---
+
 ## [2.0.0] - 2026-04-19
 
 ### 🧠 GBrain Cognitive Architecture — Major Release

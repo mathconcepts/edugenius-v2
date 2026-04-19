@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "exported_at": "2026-04-19T10:22:09.585Z",
+  "problems": [
+    {
+      "id": "gate-la-2023-1",
+      "year": 2023,
+      "question_text": "If A is a 3x3 matrix with eigenvalues 1, 2, 3, then det(A) is:",
+      "options": {
+        "A": "6",
+        "B": "5",
+        "C": "9",
+        "D": "0"
+      },
+      "correct_answer": "A",
+      "explanation": "det(A) = product of eigenvalues = 1×2×3 = 6.",
+      "topic": "linear-algebra",
+      "difficulty": "easy",
+      "marks": 1,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-la-2023-2",
+      "year": 2023,
+      "question_text": "The rank of the matrix [[1,2,3],[2,4,6],[1,1,1]] is:",
+      "options": {
+        "A": "1",
+        "B": "2",
+        "C": "3",
+        "D": "0"
+      },
+      "correct_answer": "B",
+      "explanation": "Row reduce → two non-zero rows → rank 2.",
+      "topic": "linear-algebra",
+      "difficulty": "medium",
+      "marks": 2,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-la-2022-1",
+      "year": 2022,
+      "question_text": "If A is orthogonal, det(A) equals:",
+      "options": {
+        "A": "+1 or -1",
+        "B": "0",
+        "C": "1 only",
+        "D": "Cannot be determined"
+      },
+      "correct_answer": "A",
+      "explanation": "A^T·A = I → (det A)^2 = 1 → det A = ±1.",
+      "topic": "linear-algebra",
+      "difficulty": "easy",
+      "marks": 1,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-calc-2023-1",
+      "year": 2023,
+      "question_text": "Value of lim(x→0) (sin x)/x is:",
+      "options": {
+        "A": "0",
+        "B": "1",
+        "C": "∞",
+        "D": "Does not exist"
+      },
+      "correct_answer": "B",
+      "explanation": "Fundamental limit = 1.",
+      "topic": "calculus",
+      "difficulty": "easy",
+      "marks": 1,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-calc-2023-2",
+      "year": 2023,
+      "question_text": "The integral ∫₀¹ x·eˣ dx equals:",
+      "options": {
+        "A": "1",
+        "B": "e-1",
+        "C": "e",
+        "D": "2e-1"
+      },
+      "correct_answer": "A",
+      "explanation": "By parts: [x·eˣ]₀¹ - ∫₀¹ eˣ dx = e - (e-1) = 1.",
+      "topic": "calculus",
+      "difficulty": "medium",
+      "marks": 2,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-calc-2022-1",
+      "year": 2022,
+      "question_text": "If f(x) = x³ - 3x + 2, the number of real roots is:",
+      "options": {
+        "A": "1",
+        "B": "2",
+        "C": "3",
+        "D": "0"
+      },
+      "correct_answer": "C",
+      "explanation": "f(x) = (x-1)²(x+2). Three real roots.",
+      "topic": "calculus",
+      "difficulty": "medium",
+      "marks": 2,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-prob-2023-1",
+      "year": 2023,
+      "question_text": "If X follows Poisson with mean 2, P(X=0) is:",
+      "options": {
+        "A": "e⁻²",
+        "B": "2e⁻²",
+        "C": "1-e⁻²",
+        "D": "0"
+      },
+      "correct_answer": "A",
+      "explanation": "P(X=0) = e^(-λ)·λ^0/0! = e^(-2).",
+      "topic": "probability-statistics",
+      "difficulty": "easy",
+      "marks": 1,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-prob-2023-2",
+      "year": 2023,
+      "question_text": "Two dice thrown. P(sum = 7) is:",
+      "options": {
+        "A": "1/6",
+        "B": "5/36",
+        "C": "1/12",
+        "D": "7/36"
+      },
+      "correct_answer": "A",
+      "explanation": "6 favorable outcomes / 36 total = 1/6.",
+      "topic": "probability-statistics",
+      "difficulty": "easy",
+      "marks": 1,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-de-2023-1",
+      "year": 2023,
+      "question_text": "Solution of dy/dx + y = eˣ with y(0)=1:",
+      "options": {
+        "A": "y = (eˣ+e⁻ˣ)/2",
+        "B": "y = eˣ/2+e⁻ˣ/2",
+        "C": "y = eˣ-e⁻ˣ",
+        "D": "y = eˣ+e⁻ˣ"
+      },
+      "correct_answer": "B",
+      "explanation": "IF=eˣ. y·eˣ=e²ˣ/2+C. y(0)=1→C=1/2.",
+      "topic": "differential-equations",
+      "difficulty": "medium",
+      "marks": 2,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-de-2022-1",
+      "year": 2022,
+      "question_text": "Order and degree of (d²y/dx²)³ + (dy/dx)² + y = 0:",
+      "options": {
+        "A": "2 and 3",
+        "B": "3 and 2",
+        "C": "2 and 2",
+        "D": "3 and 3"
+      },
+      "correct_answer": "A",
+      "explanation": "Order=2 (highest derivative). Degree=3 (power of highest order).",
+      "topic": "differential-equations",
+      "difficulty": "easy",
+      "marks": 1,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-cv-2023-1",
+      "year": 2023,
+      "question_text": "If f(z)=u+iv is analytic and u=x²-y², then v=",
+      "options": {
+        "A": "2xy+C",
+        "B": "x²+y²+C",
+        "C": "-2xy+C",
+        "D": "xy+C"
+      },
+      "correct_answer": "A",
+      "explanation": "Cauchy-Riemann: ∂u/∂x=2x=∂v/∂y, so v=2xy+C.",
+      "topic": "complex-variables",
+      "difficulty": "medium",
+      "marks": 2,
+      "source": "GATE"
+    },
+    {
+      "id": "gate-nm-2023-1",
+      "year": 2023,
+      "question_text": "Newton-Raphson on x²-2=0 starting x₀=1, after one iteration:",
+      "options": {
+        "A": "1.5",
+        "B": "1.414",
+        "C": "1.333",
+        "D": "2.0"
+      },
+      "correct_answer": "A",
+      "explanation": "x₁ = 1 - (1-2)/(2·1) = 1.5.",
+      "topic": "numerical-methods",
+      "difficulty": "easy",
+      "marks": 1,
+      "source": "GATE"
+    }
+  ],
+  "total": 12
+}
