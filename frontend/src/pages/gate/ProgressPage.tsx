@@ -12,7 +12,7 @@ import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { CountUp } from '@/components/gate/CountUp';
 import { Confetti } from '@/components/gate/Confetti';
 import { ExamReadinessBreakdown } from '@/components/gate/ExamReadiness';
-import { BarChart3, Clock, ChevronRight, PartyPopper, Target, Brain } from 'lucide-react';
+import { BarChart3, Clock, ChevronRight, PartyPopper, Target, Brain, Sparkles, Calendar, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface TopicStat {
@@ -209,6 +209,45 @@ export default function ProgressPage() {
       {/* GBrain Intelligence */}
       <motion.div variants={fadeInUp} className="space-y-2">
         <h2 className="text-sm font-semibold text-surface-300">GBrain Intelligence</h2>
+        <Link
+          to="/audit"
+          className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-emerald-500/30 transition-colors group"
+        >
+          <div className="p-2 rounded-lg bg-emerald-500/10">
+            <FileText size={16} className="text-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-surface-200">Your Audit</p>
+            <p className="text-xs text-surface-500">360° analysis: mastery, cognition, action plan</p>
+          </div>
+          <ChevronRight size={14} className="text-surface-600 group-hover:text-emerald-400 transition-colors" />
+        </Link>
+        <Link
+          to="/digest"
+          className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-purple-500/30 transition-colors group"
+        >
+          <div className="p-2 rounded-lg bg-purple-500/10">
+            <Calendar size={16} className="text-purple-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-surface-200">Weekly Digest</p>
+            <p className="text-xs text-surface-500">This week's progress, growth proof, one action</p>
+          </div>
+          <ChevronRight size={14} className="text-surface-600 group-hover:text-purple-400 transition-colors" />
+        </Link>
+        <Link
+          to="/mock-exam"
+          className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-red-500/30 transition-colors group"
+        >
+          <div className="p-2 rounded-lg bg-red-500/10">
+            <Sparkles size={16} className="text-red-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-surface-200">Mock Exam</p>
+            <p className="text-xs text-surface-500">Full-length, timed, GBrain-calibrated</p>
+          </div>
+          <ChevronRight size={14} className="text-surface-600 group-hover:text-red-400 transition-colors" />
+        </Link>
         <Link
           to="/exam-strategy"
           className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-sky-500/30 transition-colors group"
