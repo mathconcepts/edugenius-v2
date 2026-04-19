@@ -14,6 +14,8 @@ import { detectTopic } from '../utils/topic-detection';
 import { composeSystemContext } from '../content-pipeline/prompt-modifiers';
 import type { UserContext } from '../content-pipeline/prompt-modifiers';
 import type { VectorStore, VectorSearchResult } from '../data/vector-store';
+import { getOrCreateStudentModel, saveStudentModel } from '../gbrain/student-model';
+import { runTaskReasoner, buildContentGeneratorPrompt } from '../gbrain/task-reasoner';
 
 const { Pool } = pg;
 
@@ -218,6 +220,30 @@ async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void
 
   const enrichedSystemPrompt = SYSTEM_PROMPT + groundingContext + studentContext;
 
+  // ── GBrain Layer 2: Task Reasoner ─────────────────────────────────────
+  // Run the 5-node decision tree to determine pedagogical action
+  let gbrainPrompt = enrichedSystemPrompt;
+  try {
+    const studentModel = await getOrCreateStudentModel(sessionId);
+    const reasonerInstructions = await runTaskReasoner(message, studentModel, history);
+    gbrainPrompt = buildContentGeneratorPrompt(reasonerInstructions, studentModel) +
+      groundingContext;
+    // Send reasoner metadata via SSE before streaming starts
+    // (frontend can use this for UI adaptation)
+    const reasonerMeta = {
+      intent: reasonerInstructions.intent,
+      action: reasonerInstructions.action,
+      concept: reasonerInstructions.selected_concept,
+      motivation: studentModel.motivation_state,
+    };
+    // Will be sent as first SSE event below
+    var _reasonerMeta = reasonerMeta;
+  } catch (gbrainErr) {
+    console.error('[chat] GBrain Task Reasoner error, using fallback prompt:', (gbrainErr as Error).message);
+    // Non-fatal: fall back to flat prompt
+    var _reasonerMeta = null;
+  }
+
   // Set up SSE
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -227,11 +253,16 @@ async function handleChat(req: ParsedRequest, res: ServerResponse): Promise<void
   });
 
   try {
-    // Start chat with history
+    // Send reasoner metadata as first SSE event (frontend can use for UI adaptation)
+    if (_reasonerMeta) {
+      res.write(`data: ${JSON.stringify({ type: 'reasoner', ...(_reasonerMeta) })}\n\n`);
+    }
+
+    // Start chat with history — uses GBrain layered prompt (Layer 0 + 1 + 2 instructions)
     const chat = model.startChat({
       history: [
-        { role: 'user', parts: [{ text: 'System instructions: ' + enrichedSystemPrompt }] },
-        { role: 'model', parts: [{ text: 'Understood! I\'m your GATE Engineering Mathematics tutor. I\'m here to help with problem solving, concept explanations, study plans, and exam strategy. How can I help you today?' }] },
+        { role: 'user', parts: [{ text: 'System instructions: ' + gbrainPrompt }] },
+        { role: 'model', parts: [{ text: 'Understood! I\'m GBrain, your GATE Engineering Mathematics tutor. I adapt to your learning style, diagnose your specific gaps, and help you maximize your exam score. How can I help you today?' }] },
         ...chatHistory,
       ],
     });
