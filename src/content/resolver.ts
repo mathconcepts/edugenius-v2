@@ -142,11 +142,24 @@ function tier0(req: ResolveRequest, bundle: ContentBundle): ResolvedContent | nu
     }
   }
 
-  if (req.intent === 'practice' && req.concept_id) {
+  if (req.intent === 'practice' && (req.concept_id || req.topic)) {
     const difficulty = req.difficulty ?? 0.5;
-    const tolerance = 0.15;
-    const matches = bundle.problems.filter(p => {
-      if (p.concept_id !== req.concept_id && p.topic !== req.concept_id) return false;
+    const tolerance = 0.25;
+
+    // Predicate: matches target by concept_id OR topic (legacy problems may lack concept_id)
+    const targetMatch = (p: any) => {
+      if (req.concept_id) {
+        if (p.concept_id === req.concept_id) return true;
+        if (!p.concept_id && p.topic === req.concept_id) return true;
+        if (p.topic === req.concept_id) return true;
+      }
+      if (req.topic && p.topic === req.topic) return true;
+      return false;
+    };
+
+    // Primary pass: match concept + difficulty within tolerance
+    let matches = bundle.problems.filter(p => {
+      if (!targetMatch(p)) return false;
       const pDiff = typeof p.difficulty === 'number' ? p.difficulty
         : p.difficulty === 'easy' ? 0.25
         : p.difficulty === 'hard' ? 0.75
@@ -155,6 +168,15 @@ function tier0(req: ResolveRequest, bundle: ContentBundle): ResolvedContent | nu
       if (req.target_error_type && p.target_error_type && p.target_error_type !== req.target_error_type) return false;
       return true;
     });
+
+    // Fallback: if difficulty-filter eliminated everything, return any problem for this concept
+    if (matches.length === 0) {
+      matches = bundle.problems.filter(p => {
+        if (!targetMatch(p)) return false;
+        if (req.target_error_type && p.target_error_type && p.target_error_type !== req.target_error_type) return false;
+        return true;
+      });
+    }
     if (matches.length > 0) {
       // Prefer Wolfram-verified, then high verification confidence
       matches.sort((a, b) => {

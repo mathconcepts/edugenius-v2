@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-04-20T04:53:27.024Z",
+  "generated_at": "2026-04-20T05:04:13.583Z",
   "problems": [
     {
       "id": "gate-la-2023-1",
@@ -18,6 +18,7 @@
       "difficulty": 0.25,
       "marks": 1,
       "source": "GATE",
+      "concept_id": "linear-algebra",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "d60ae7e8fb3c98f0"
@@ -38,6 +39,7 @@
       "difficulty": 0.5,
       "marks": 2,
       "source": "GATE",
+      "concept_id": "linear-algebra",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "d1c47a156eb8f5b4"
@@ -58,6 +60,7 @@
       "difficulty": 0.25,
       "marks": 1,
       "source": "GATE",
+      "concept_id": "linear-algebra",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "3f0b33362230bf04"
@@ -78,6 +81,7 @@
       "difficulty": 0.25,
       "marks": 1,
       "source": "GATE",
+      "concept_id": "calculus",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "115e6409c7573eea"
@@ -98,6 +102,7 @@
       "difficulty": 0.5,
       "marks": 2,
       "source": "GATE",
+      "concept_id": "calculus",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "390d08bc1abe1077"
@@ -118,6 +123,7 @@
       "difficulty": 0.5,
       "marks": 2,
       "source": "GATE",
+      "concept_id": "calculus",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "522b854d0049e2ce"
@@ -138,6 +144,7 @@
       "difficulty": 0.25,
       "marks": 1,
       "source": "GATE",
+      "concept_id": "probability-statistics",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "9fbf2f15ead9b2b0"
@@ -158,6 +165,7 @@
       "difficulty": 0.25,
       "marks": 1,
       "source": "GATE",
+      "concept_id": "probability-statistics",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "631df0ed9febc174"
@@ -178,6 +186,7 @@
       "difficulty": 0.5,
       "marks": 2,
       "source": "GATE",
+      "concept_id": "differential-equations",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "156f4888cfc9eca6"
@@ -198,6 +207,7 @@
       "difficulty": 0.25,
       "marks": 1,
       "source": "GATE",
+      "concept_id": "differential-equations",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "5d2bbccb86245725"
@@ -218,6 +228,7 @@
       "difficulty": 0.5,
       "marks": 2,
       "source": "GATE",
+      "concept_id": "complex-variables",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "e92fb4210f2a4cf4"
@@ -238,6 +249,7 @@
       "difficulty": 0.25,
       "marks": 1,
       "source": "GATE",
+      "concept_id": "numerical-methods",
       "verified": true,
       "wolfram_verified": false,
       "fingerprint": "bf083c6b52848032"

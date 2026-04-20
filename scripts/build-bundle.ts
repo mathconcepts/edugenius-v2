@@ -57,6 +57,8 @@ function collectProblems(): any[] {
         seen.add(fp);
         problems.push({
           ...p,
+          // Legacy problems often lack concept_id — use topic as fallback so they're discoverable
+          concept_id: p.concept_id || p.topic,
           difficulty: normalizeDifficulty(p.difficulty),
           source: p.source || 'pyq-bank',
           verified: true,

@@ -121,22 +121,38 @@ function tier0(req: ResolveRequest, bundle: ContentBundle): ResolvedContent | nu
     }
   }
 
-  if (req.intent === 'practice') {
+  if (req.intent === 'practice' && (req.concept_id || req.topic)) {
     const difficulty = req.difficulty ?? 0.5;
-    const tolerance = 0.2;
-    const matches = bundle.problems.filter(p => {
-      // Match on concept_id OR topic — many legacy problems only have topic
-      const targetMatch = req.concept_id
-        ? (p.concept_id === req.concept_id || p.topic === req.concept_id)
-        : req.topic
-        ? p.topic === req.topic
-        : false;
-      if (!targetMatch) return false;
+    const tolerance = 0.25;
+
+    const targetMatch = (p: any) => {
+      if (req.concept_id) {
+        if (p.concept_id === req.concept_id) return true;
+        if (!p.concept_id && p.topic === req.concept_id) return true;
+        if (p.topic === req.concept_id) return true;
+      }
+      if (req.topic && p.topic === req.topic) return true;
+      return false;
+    };
+
+    // Primary: concept + difficulty within tolerance
+    let matches = bundle.problems.filter(p => {
+      if (!targetMatch(p)) return false;
       const pDiff = normalizeDifficulty(p.difficulty);
       if (Math.abs(pDiff - difficulty) > tolerance) return false;
       if (req.target_error_type && p.target_error_type && p.target_error_type !== req.target_error_type) return false;
       return true;
     });
+
+    // Fallback: any difficulty for this concept
+    if (matches.length === 0) {
+      matches = bundle.problems.filter(p => {
+        if (!targetMatch(p)) return false;
+        if (req.target_error_type && p.target_error_type && p.target_error_type !== req.target_error_type) return false;
+        return true;
+      });
+    }
+
     if (matches.length > 0) {
       matches.sort((a, b) => {
         const av = (a.wolfram_verified ? 2 : 0) + (a.verified ? 1 : 0);
@@ -244,6 +260,31 @@ async function serverResolve(req: ResolveRequest): Promise<ResolvedContent | nul
 // ============================================================================
 
 /**
+ * Fire-and-forget telemetry ping to server. Client-side tier-0/1 hits never
+ * touch the resolve endpoint, so without this they'd be invisible to admin.
+ * Use keepalive so in-flight requests survive page unload.
+ */
+function pingTelemetry(result: ResolvedContent, req: ResolveRequest): void {
+  try {
+    const payload = {
+      source: result.source,
+      latency_ms: result.latency_ms,
+      cost_usd: result.cost_estimate_usd,
+      topic: req.topic,
+      concept_id: req.concept_id,
+      tier_requested: req.max_tier,
+      wolfram_verified: result.wolfram_verified,
+    };
+    fetch('/api/content/telemetry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {}); // swallow — telemetry must never break the user path
+  } catch {}
+}
+
+/**
  * Resolve a content request. Walks tiers 0 → 3, short-circuiting on first hit.
  * Returns a `miss` if no tier succeeds (e.g., offline with no bundle match).
  */
@@ -255,33 +296,35 @@ export async function resolve(req: ResolveRequest): Promise<ResolvedContent> {
   if (maxTier >= 0) {
     const bundle = await getBundle();
     const t0 = tier0(req, bundle);
-    if (t0) return t0;
+    if (t0) { pingTelemetry(t0, req); return t0; }
   }
 
   // Tier 0b — per-device cache
   if (maxTier >= 0) {
     const cache = await clientCache(req);
-    if (cache) return cache;
+    if (cache) { pingTelemetry(cache, req); return cache; }
   }
 
   // Tier 1 — materials
   if (maxTier >= 1) {
     const t1 = await tier1(req);
-    if (t1) return t1;
+    if (t1) { pingTelemetry(t1, req); return t1; }
   }
 
-  // Tier 2+ — server
+  // Tier 2+ — server (server auto-records its own telemetry, skip client ping)
   if (maxTier >= 2) {
     const server = await serverResolve(req);
     if (server && server.source !== 'miss') return server;
   }
 
-  return {
+  const missResult: ResolvedContent = {
     source: 'miss',
     confidence: 0,
     latency_ms: Date.now() - start,
     cost_estimate_usd: 0,
   };
+  pingTelemetry(missResult, req);
+  return missResult;
 }
 
 /**
