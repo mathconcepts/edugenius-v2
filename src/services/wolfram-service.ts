@@ -167,21 +167,67 @@ function parseWolframResponse(json: any, query: string, latency_ms: number): Wol
 
 /**
  * Compare two answers tolerating whitespace, LaTeX, and small numerical deltas.
+ *
+ * Wolfram's answers are often verbose ("integral x^2 dx = x^3/3 + constant")
+ * while expected answers are terse ("x^3/3"). We accept a match if:
+ *   1. The normalized strings are equal, OR
+ *   2. The normalized expected is a substring of the normalized Wolfram answer, OR
+ *   3. Both parse to numbers within 0.1% relative error.
  */
-export function answersAgree(a: string, b: string): boolean {
-  if (!a || !b) return false;
+export function answersAgree(expected: string, wolframAnswer: string): boolean {
+  if (!expected || !wolframAnswer) return false;
+
   const normalize = (s: string) =>
     s.replace(/\\[a-zA-Z]+\{/g, '')
-     .replace(/[\s$\\{}()[\]]/g, '')
+     .replace(/\\[a-zA-Z]+/g, '')
+     .replace(/[\s$\\{}()[\]|]/g, '')
      .toLowerCase();
-  if (normalize(a) === normalize(b)) return true;
 
-  const numA = parseFloat(a.replace(/[^\d.\-e]/g, ''));
-  const numB = parseFloat(b.replace(/[^\d.\-e]/g, ''));
-  if (!isNaN(numA) && !isNaN(numB)) {
-    const scale = Math.max(Math.abs(numA), Math.abs(numB), 1);
-    return Math.abs(numA - numB) / scale < 0.001;
+  const nExp = normalize(expected);
+  const nWolf = normalize(wolframAnswer);
+
+  // Exact match
+  if (nExp === nWolf) return true;
+
+  // Substring — the expected answer appears inside Wolfram's verbose response
+  // e.g. expected="x^3/3", wolfram="integralx^2dx=x^3/3+constant" → match
+  // For single-char expected, require it be numeric + preceded by '=' or end-of-string
+  const isSingleNumeric = /^-?\d+(\.\d+)?$/.test(expected.trim());
+  if (isSingleNumeric) {
+    // Look for "=<number>" or "<number>$" pattern in wolfram answer
+    const escaped = nExp.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const numRe = new RegExp(`(?:^|=)${escaped}(?:[^0-9.]|$)`);
+    if (numRe.test(nWolf)) return true;
+  } else {
+    if (nExp.length >= 2 && nWolf.includes(nExp)) return true;
+    if (nWolf.length >= 2 && nExp.includes(nWolf)) return true;
   }
+
+  // Scalar numeric comparison — only when each side has exactly one number
+  // (otherwise "1 and 3" would strip to "13" and false-match "13.5")
+  const singleNumberRe = /^-?\d+\.?\d*(?:[eE][+-]?\d+)?$/;
+  const expSingle = singleNumberRe.test(expected.trim()) ? parseFloat(expected.trim()) : NaN;
+  const wolfTrimmed = wolframAnswer.trim();
+  const wolfSingle = singleNumberRe.test(wolfTrimmed) ? parseFloat(wolfTrimmed) : NaN;
+  if (!isNaN(expSingle) && !isNaN(wolfSingle) && isFinite(expSingle) && isFinite(wolfSingle)) {
+    const scale = Math.max(Math.abs(expSingle), Math.abs(wolfSingle), 1);
+    if (Math.abs(expSingle - wolfSingle) / scale < 0.001) return true;
+  }
+
+  // Wolfram sometimes returns "λ_1 = 3, λ_2 = 1" for "1 and 3" — try word matches
+  // Extract all numbers from each and compare as sorted sets.
+  // Strip subscript indices like "_1", "_2" before extraction to avoid polluting the set.
+  const stripSubscripts = (s: string) => s.replace(/_\d+/g, '');
+  const numsExp = (stripSubscripts(expected).match(/-?\d+\.?\d*/g) || []).map(Number).filter(n => !isNaN(n)).sort();
+  const numsWolf = (stripSubscripts(wolframAnswer).match(/-?\d+\.?\d*/g) || []).map(Number).filter(n => !isNaN(n)).sort();
+  if (numsExp.length >= 2 && numsExp.length === numsWolf.length) {
+    const allMatch = numsExp.every((v, i) => {
+      const scale = Math.max(Math.abs(v), Math.abs(numsWolf[i]), 1);
+      return Math.abs(v - numsWolf[i]) / scale < 0.001;
+    });
+    if (allMatch) return true;
+  }
+
   return false;
 }
 
