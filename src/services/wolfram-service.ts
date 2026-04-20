@@ -197,13 +197,16 @@ export function answersAgree(expected: string, wolframAnswer: string): boolean {
   const normalize = (s: string) => {
     let out = asciiize(s)
       .replace(/\\[a-zA-Z]+\{/g, '')
-      .replace(/\\[a-zA-Z]+/g, '')
+      .replace(/\\[a-zA-Z]+/g, '');
+    // Strip function-of-variable notation BEFORE generic paren strip:
+    // 'y(x)' → 'y', 'f(x,y)' → 'f', 'z(t)' → 'z'
+    // Matches: single letter followed by (<vars>) where vars are single letters / commas / spaces
+    out = out.replace(/([a-zA-Z])\s*\(\s*[a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\)/g, '$1');
+    out = out
       .replace(/[\s$\\{}()[\]|]/g, '')
       .toLowerCase();
-    // Strip implicit-multiplication stars: "2*x" → "2x", "x*cos" → "xcos"
+    // Strip implicit-multiplication stars: "2*x" → "2x"
     out = out.replace(/\*/g, '');
-    // Strip function-of-x notation: "y(x)" becomes "y" (but only after paren strip
-    // already happened, so this applies to the rare case where parens survived)
     return out;
   };
 
