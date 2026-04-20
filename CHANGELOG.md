@@ -2,17 +2,75 @@
 
 All notable changes to GATE Math are documented here.
 
-## [2.1.0-beta] — 2026-04-19
+## [2.1.0] — 2026-04-19
 
-### 🗄️ DB-less GBrain (major architecture shift)
+### 🗄️ DB-less GBrain (complete — all 7 phases)
 
 Transforms the runtime from server-DB to **local-first with stateless edge proxy**.
 All student state lives in IndexedDB on-device. Static knowledge ships as JSON bundles.
-Server becomes a pure LLM/vision/embedding relay with zero persistence.
+Server becomes a pure LLM/vision/embedding relay plus opt-in aggregation.
 
-Introduces **student-uploaded materials** as a first-class feature — the headline use
-case for the new architecture. Privacy-first: materials are parsed, embedded, and stored
-entirely client-side.
+Promotes `v2.1.0-beta` to stable by adding **Phase 7 — opt-in anonymous cohort
+aggregation** so the MOAT cohort analytics work again without re-introducing
+any Postgres dependency.
+
+### Added (Phase 7 — new in this release)
+
+**Server: opt-in aggregation** (`src/api/aggregate.ts`)
+- `POST /api/aggregate` — batched anonymized events (max 100/request)
+- `POST /api/aggregate/event` — single event API (simpler client path)
+- `GET /api/aggregate/cohort` — detailed cohort report (admin/teacher only)
+- `GET /api/aggregate/stats` — public summary
+- Strict input sanitization: regex-bounded concept/topic/error_type, motivation whitelist,
+  200-char cap on descriptions, no session_id or free text
+- File-backed storage (`.data/aggregate.json`), atomic writes via temp+rename
+- Day rollover, 50k/day rate limit, v1→v2 schema migration
+- Topic accuracy tracking (attempts × correct) per concept
+
+**Client: opt-in queue** (`frontend/src/lib/gbrain/aggregate.ts`)
+- `localStorage` persisted queue (key: `gbrain_aggregate_queue`)
+- Auto-flush every 5 min OR 20 events, whichever first
+- Requeue on network failure, flush on page unload
+- Exported: `isOptedIn()`, `setOptIn(v)`, `trackAggregate(event)`, `flush()`
+
+**UX: Settings page toggle**
+- "Help improve GBrain" panel with clear privacy copy
+- Single-click toggle persists to localStorage
+- Starts/stops periodic flush automatically
+
+**Hooks into `recordAttempt()`**
+- After error classification completes, auto-fires `trackAggregate()` with
+  sanitized fields (concept_id, error_type, topic, motivation_state,
+  misconception_id, misconception_description)
+- No-op when user hasn't opted in
+
+### Phases 1-6 (shipped in v2.1.0-beta, included here for completeness)
+
+- **Phase 1**: Pure-function GBrain core (`src/gbrain/gbrain-core.ts`, `frontend/src/lib/gbrain/core.ts`)
+- **Phase 2**: IndexedDB store with 8 object stores, cosine similarity search, export/import
+- **Phase 3**: Static knowledge bundles (concept-graph.json, pyq-bank.json + build script)
+- **Phase 4**: Stateless Gemini proxy (5 endpoints, no DB, graceful fallback)
+- **Phase 5**: Client-side embeddings via transformers.js (all-MiniLM-L6-v2, 384-dim, lazy-loaded)
+- **Phase 6**: Student materials UX at `/materials` (drag-drop upload, parse, chunk, embed, retrieve)
+
+### Verified end-to-end
+- Batch ingest accepts valid events, rejects malicious payloads (regex filter)
+- Sanitization confirmed: `<script>` payloads → HTTP 400 rejected
+- Admin auth wall confirmed: unauthenticated → HTTP 401
+- Topic accuracy aggregation working (e.g., calculus: 1 correct / 2 attempts)
+- Frontend build clean in 36s, all new modules compile
+
+### Architecture status
+- DB-less mode is fully functional alongside DB mode
+- Materials-first users get entirely local storage
+- Cohort intelligence survives without Postgres (file-backed aggregates)
+- Server retains backward compat — no migrations, no breaking changes
+
+---
+
+## [2.1.0-beta] — 2026-04-19
+
+### 🗄️ DB-less GBrain (beta — Phases 1-6 of PLAN-dbless-gbrain.md)
 
 ### Added
 

@@ -6,9 +6,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Send, Loader2, Sparkles, Trash2, BookOpen } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
+import { useStorageMode } from '@/hooks/useStorageMode';
 import { CameraInput } from '@/components/gate/CameraInput';
+import { streamGroundedChat } from '@/lib/gbrain/client';
 
 interface ChatMessage {
   id: string;
@@ -27,6 +29,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export default function ChatPage() {
   const sessionId = useSession();
+  const { effectiveMode, groundingCount } = useStorageMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -92,6 +95,30 @@ export default function ChatPage() {
     setIsStreaming(true);
 
     try {
+      // IndexedDB mode: use client-side GBrain with material grounding.
+      if (effectiveMode === 'indexeddb') {
+        await streamGroundedChat(
+          sessionId,
+          text.trim(),
+          messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+          (chunk) => {
+            setMessages(prev => {
+              const updated = [...prev];
+              const last = updated[updated.length - 1];
+              if (last.role === 'assistant') {
+                updated[updated.length - 1] = { ...last, content: last.content + chunk };
+              }
+              return updated;
+            });
+          },
+          () => { /* done handled by finally */ },
+          (err) => { throw new Error(err); },
+        );
+        setIsStreaming(false);
+        return;
+      }
+
+      // DB mode: original server chat endpoint.
       const chatBody: any = {
         sessionId,
         message: text.trim(),
@@ -154,7 +181,7 @@ export default function ChatPage() {
     }
 
     setIsStreaming(false);
-  }, [sessionId, isStreaming, messages, attachedImage]);
+  }, [sessionId, isStreaming, messages, attachedImage, effectiveMode]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -171,6 +198,15 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-128px)] -m-4">
+      {/* Grounding indicator */}
+      {effectiveMode === 'indexeddb' && groundingCount > 0 && (
+        <div className="mx-4 mt-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2">
+          <BookOpen size={11} className="text-emerald-400 shrink-0" />
+          <p className="text-[10px] text-emerald-300">
+            Grounded in your materials — {groundingCount} chunk{groundingCount === 1 ? '' : 's'} available
+          </p>
+        </div>
+      )}
       {/* Messages or Welcome */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isEmpty ? (

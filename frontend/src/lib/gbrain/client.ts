@@ -15,6 +15,7 @@ import {
   getChunksForMaterial,
 } from './db';
 import { embed } from './embedder';
+import { trackAggregate } from './aggregate';
 import {
   createEmptyStudentModel, updateMasteryPure, updateConfidenceCalibrationPure,
   getMasterySummaryPure, getTopicMasteryPure, getZPDConceptPure,
@@ -118,6 +119,15 @@ export async function recordAttempt(input: AttemptInput): Promise<AttemptResult>
           correct_answer: input.correctAnswer,
           time_taken_ms: input.timeTakenMs,
           confidence_before: input.confidenceBefore,
+        });
+        // Fire anonymized aggregate if user opted in
+        trackAggregate({
+          concept_id: errorDiagnosis.concept_id || input.conceptId,
+          topic: input.conceptId,
+          error_type: errorDiagnosis.error_type,
+          misconception_id: errorDiagnosis.misconception_id,
+          misconception_description: errorDiagnosis.diagnosis,
+          motivation_state: model.motivation_state,
         });
       }
     } catch {

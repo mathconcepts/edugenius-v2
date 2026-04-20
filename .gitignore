@@ -51,3 +51,4 @@ temp/
 .netlify
 .gstack/
 .claude/skills/gstack/
+.data/

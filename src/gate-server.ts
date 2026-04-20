@@ -30,6 +30,7 @@ import { contentPrioritizerRoutes } from './jobs/content-prioritizer';
 import { feedbackScorerRoutes } from './jobs/feedback-scorer';
 import { gbrainRoutes } from './gbrain/gbrain-routes';
 import { geminiProxyRoutes } from './api/gemini-proxy';
+import { aggregateRoutes } from './api/aggregate';
 import { getAuth, migrateSession } from './api/auth-middleware';
 import { TieredVerificationOrchestrator } from './verification/tiered-orchestrator';
 import { InMemoryVectorStore, PgVectorStore } from './data/vector-store';
@@ -141,6 +142,9 @@ for (const route of gbrainRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
 for (const route of geminiProxyRoutes) {
+  registerRoute(route.method, route.path, route.handler);
+}
+for (const route of aggregateRoutes) {
   registerRoute(route.method, route.path, route.handler);
 }
 
