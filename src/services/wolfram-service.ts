@@ -130,20 +130,22 @@ function parseWolframResponse(json: any, query: string, latency_ms: number): Wol
     return { title: p.title || '', plaintext: subpodText };
   });
 
-  // Extract principal result: look for "Result", "Solution", "Exact result", "Decimal form"
-  const preferredTitles = ['Result', 'Exact result', 'Solution', 'Decimal form', 'Decimal approximation', 'Definite integral'];
+  // Extract principal result. Preferred pods first, also Eigenvalues/Solutions which may span multiple lines.
+  const preferredTitles = ['Result', 'Results', 'Exact result', 'Solution', 'Solutions', 'Eigenvalues', 'Roots', 'Decimal form', 'Decimal approximation', 'Definite integral', 'Indefinite integral'];
   let answer: string | null = null;
   for (const title of preferredTitles) {
     const pod = pods.find((p: any) => p.title === title);
     if (pod && pod.plaintext) {
-      answer = pod.plaintext.trim().split('\n')[0];
+      // Collapse multi-line pod into a single answer string so multi-value
+      // results (eigenvalues, root sets) survive into answersAgree's number-set matcher.
+      answer = pod.plaintext.trim().replace(/\n+/g, ' | ');
       break;
     }
   }
   // Fallback: first non-input pod
   if (!answer) {
     const firstNonInput = pods.find((p: any) => !/^Input/i.test(p.title) && p.plaintext);
-    if (firstNonInput) answer = firstNonInput.plaintext.trim().split('\n')[0];
+    if (firstNonInput) answer = firstNonInput.plaintext.trim().replace(/\n+/g, ' | ');
   }
 
   // Extract steps from "Step-by-step solution" pod
@@ -242,6 +244,6 @@ export async function verifyProblemWithWolfram(
   if (!result.available) return { verified: false, wolfram_answer: null, latency_ms: 0, error: result.error };
   if (!result.answer) return { verified: false, wolfram_answer: null, latency_ms: result.latency_ms, error: 'Wolfram returned no answer' };
 
-  const verified = answersAgree(result.answer, expectedAnswer);
+  const verified = answersAgree(expectedAnswer, result.answer);
   return { verified, wolfram_answer: result.answer, latency_ms: result.latency_ms };
 }
