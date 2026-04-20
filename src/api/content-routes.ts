@@ -15,6 +15,8 @@
 import { ServerResponse } from 'http';
 import { resolveContent, bundleStats } from '../content/resolver';
 import { verifyProblemWithWolfram } from '../services/wolfram-service';
+import { recordTelemetry, getTelemetrySummary } from '../content/telemetry';
+import { requireRole } from './auth-middleware';
 
 interface ParsedRequest {
   pathname: string;
@@ -40,7 +42,33 @@ async function handleResolve(req: ParsedRequest, res: ServerResponse): Promise<v
   if (!body.intent) return sendError(res, 400, 'intent required (practice|explain|verify)');
   try {
     const result = await resolveContent(body);
+    // Auto-record telemetry (server-side, no extra client round-trip)
+    recordTelemetry({
+      source: result.source,
+      latency_ms: result.latency_ms,
+      cost_usd: result.cost_estimate_usd,
+      topic: body.topic,
+      concept_id: body.concept_id,
+      tier_requested: body.max_tier,
+      wolfram_verified: result.wolfram_verified,
+    });
     sendJSON(res, result);
+  } catch (err) {
+    sendError(res, 500, (err as Error).message);
+  }
+}
+
+async function handleTelemetryIngest(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const body = (req.body as any) || {};
+  const result = recordTelemetry(body);
+  sendJSON(res, result);
+}
+
+async function handleTelemetrySummary(req: ParsedRequest, res: ServerResponse): Promise<void> {
+  const user = await requireRole(req, res, 'admin', 'teacher');
+  if (!user) return;
+  try {
+    sendJSON(res, getTelemetrySummary());
   } catch (err) {
     sendError(res, 500, (err as Error).message);
   }
@@ -85,4 +113,6 @@ export const contentRoutes: Array<{ method: string; path: string; handler: Route
   { method: 'POST', path: '/api/content/verify', handler: handleVerify },
   { method: 'GET', path: '/api/content/stats', handler: handleStats },
   { method: 'GET', path: '/api/content/explainer/:conceptId', handler: handleExplainer },
+  { method: 'POST', path: '/api/content/telemetry', handler: handleTelemetryIngest },
+  { method: 'GET', path: '/api/content/telemetry/summary', handler: handleTelemetrySummary },
 ];

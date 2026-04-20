@@ -95,6 +95,14 @@ export function GateLayout() {
                       <Brain size={14} /> GBrain Admin
                     </button>
                   )}
+                  {(user.role === 'teacher' || user.role === 'admin') && (
+                    <button
+                      onClick={() => navigate('/admin/content')}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-surface-300 hover:bg-surface-800 transition-colors"
+                    >
+                      <BookOpen size={14} /> Content Engine
+                    </button>
+                  )}
                   <button
                     onClick={() => { signOut(); setShowMenu(false); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-surface-800 transition-colors"
