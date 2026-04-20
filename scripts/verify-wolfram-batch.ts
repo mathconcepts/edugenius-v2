@@ -46,10 +46,22 @@ function shouldSkip(p: any): string | null {
   const ans = p.correct_answer.trim();
   if (ans.length === 0) return 'empty-answer';
   if (ans.length > 100) return 'answer-too-long';
-  // Narrative answers like "Tree" or "Even" are valid MCQ answers but Wolfram
-  // can't verify them semantically. Skip if answer contains no numbers or math symbols.
-  const looksNumeric = /[0-9]|[+\-*/^=√π]|sin|cos|tan|log|exp|e\^|lim/.test(ans);
-  if (!looksNumeric) return 'non-numeric-answer';
+
+  // MCQ narrative answers: "Yes", "No", "Tree", "Even", "Only conditionally" etc.
+  // If answer has no digits AND no standard math operators, it's a narrative answer
+  // and Wolfram can't verify it without understanding the question semantically.
+  const hasDigits = /\d/.test(ans);
+  const hasMathOps = /[+\-*/^=√πΣ∫∂∇]|sin|cos|tan|log|exp|e\^|lim|sqrt|det|rank|Σ/.test(ans);
+  if (!hasDigits && !hasMathOps) return 'narrative-answer';
+
+  // Question is MCQ-style with narrative options — skip because Wolfram can't
+  // reproduce choices, only raw computation. Heuristic: question text contains
+  // "is:" or "requires" or "equals" followed by a short set of labels.
+  const qText = (p.question_text || '').toLowerCase();
+  if (/requires|must be|are( the)?:|equals\b/.test(qText) && ans.length < 20 && !hasDigits) {
+    return 'mcq-narrative';
+  }
+
   return null;
 }
 

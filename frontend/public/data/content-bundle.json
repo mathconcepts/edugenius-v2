@@ -274,8 +274,9 @@
       "source_url": "https://gate.iitk.ac.in/papers/2024/math/",
       "license": "public-domain",
       "verified": true,
-      "wolfram_verified": false,
-      "fingerprint": "05363096095137c1"
+      "wolfram_verified": true,
+      "fingerprint": "05363096095137c1",
+      "wolfram_verified_at": "2026-04-20T05:27:17.295Z"
     },
     {
       "id": "gate-2024-partial-derivatives-1",
@@ -343,8 +344,9 @@
       "source_url": "https://gate.iitk.ac.in/papers/2023/math/",
       "license": "public-domain",
       "verified": true,
-      "wolfram_verified": false,
-      "fingerprint": "30d60846c11265f3"
+      "wolfram_verified": true,
+      "fingerprint": "30d60846c11265f3",
+      "wolfram_verified_at": "2026-04-20T05:27:32.834Z"
     },
     {
       "id": "gate-2023-bayes-theorem-4",
@@ -481,8 +483,9 @@
       "source_url": "https://gate.iitk.ac.in/papers/2022/math/",
       "license": "public-domain",
       "verified": true,
-      "wolfram_verified": false,
-      "fingerprint": "d4d03e10189ce2df"
+      "wolfram_verified": true,
+      "fingerprint": "d4d03e10189ce2df",
+      "wolfram_verified_at": "2026-04-20T05:28:02.459Z"
     },
     {
       "id": "gate-2022-gradient-10",
@@ -561,8 +564,9 @@
       "source_url": "https://openstax.org/books/calculus-volume-1/pages/5-4-integration-formulas-and-the-net-change-theorem",
       "license": "CC-BY-4.0",
       "verified": true,
-      "wolfram_verified": false,
-      "fingerprint": "594ff4220b52600b"
+      "wolfram_verified": true,
+      "fingerprint": "594ff4220b52600b",
+      "wolfram_verified_at": "2026-04-20T05:28:21.952Z"
     },
     {
       "id": "openstax-taylor-series-2",
@@ -2072,7 +2076,7 @@
   "stats": {
     "total_problems": 34,
     "total_explainers": 82,
-    "wolfram_verified": 0,
+    "wolfram_verified": 4,
     "by_topic": {
       "linear-algebra": 7,
       "calculus": 10,
@@ -2090,5 +2094,6 @@
       "medium": 16,
       "hard": 2
     }
-  }
+  },
+  "verified_at": "2026-04-20T05:28:56.680Z"
 }

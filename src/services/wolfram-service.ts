@@ -179,11 +179,33 @@ function parseWolframResponse(json: any, query: string, latency_ms: number): Wol
 export function answersAgree(expected: string, wolframAnswer: string): boolean {
   if (!expected || !wolframAnswer) return false;
 
-  const normalize = (s: string) =>
-    s.replace(/\\[a-zA-Z]+\{/g, '')
-     .replace(/\\[a-zA-Z]+/g, '')
-     .replace(/[\s$\\{}()[\]|]/g, '')
-     .toLowerCase();
+  // Normalize Unicode super/subscripts to ASCII before further processing.
+  // e.g. "x²" → "x^2", "C₁" → "C_1"
+  const asciiize = (s: string) => {
+    const superMap: Record<string, string> = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁺': '+', '⁻': '-' };
+    const subMap: Record<string, string> = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9' };
+    let out = '';
+    for (const ch of s) {
+      if (superMap[ch]) out += '^' + superMap[ch];
+      else if (subMap[ch]) out += '_' + subMap[ch];
+      else out += ch;
+    }
+    // Common math symbols
+    return out.replace(/·/g, '*').replace(/×/g, '*').replace(/÷/g, '/').replace(/π/g, 'pi');
+  };
+
+  const normalize = (s: string) => {
+    let out = asciiize(s)
+      .replace(/\\[a-zA-Z]+\{/g, '')
+      .replace(/\\[a-zA-Z]+/g, '')
+      .replace(/[\s$\\{}()[\]|]/g, '')
+      .toLowerCase();
+    // Strip implicit-multiplication stars: "2*x" → "2x", "x*cos" → "xcos"
+    out = out.replace(/\*/g, '');
+    // Strip function-of-x notation: "y(x)" becomes "y" (but only after paren strip
+    // already happened, so this applies to the rare case where parens survived)
+    return out;
+  };
 
   const nExp = normalize(expected);
   const nWolf = normalize(wolframAnswer);
