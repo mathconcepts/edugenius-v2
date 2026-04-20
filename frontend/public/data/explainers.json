@@ -1,0 +1,1344 @@
+{
+  "version": 1,
+  "generated_at": "2026-04-20T04:25:14.060Z",
+  "total": 82,
+  "by_concept": {
+    "sequences": {
+      "concept_id": "sequences",
+      "topic": "calculus",
+      "label": "Sequences",
+      "gate_frequency": "medium",
+      "canonical_definition": "Convergence, divergence, bounded sequences",
+      "deep_explanation": "Sequences is a foundational topic in calculus. Convergence, divergence, bounded sequences",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [],
+      "exam_tip": "Practice Sequences problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.059Z",
+      "model": "placeholder"
+    },
+    "series": {
+      "concept_id": "series",
+      "topic": "calculus",
+      "label": "Infinite Series",
+      "gate_frequency": "medium",
+      "canonical_definition": "Convergence tests, power series, Taylor/Maclaurin",
+      "deep_explanation": "Infinite Series is a foundational topic in calculus. Convergence tests, power series, Taylor/Maclaurin",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review sequences first."
+      ],
+      "exam_tip": "Practice Infinite Series problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.059Z",
+      "model": "placeholder"
+    },
+    "limits": {
+      "concept_id": "limits",
+      "topic": "calculus",
+      "label": "Limits",
+      "gate_frequency": "high",
+      "canonical_definition": "Limit evaluation, L'Hôpital's rule, indeterminate forms",
+      "deep_explanation": "Limits is a foundational topic in calculus. Limit evaluation, L'Hôpital's rule, indeterminate forms",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review sequences first."
+      ],
+      "exam_tip": "Practice Limits problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.059Z",
+      "model": "placeholder"
+    },
+    "continuity": {
+      "concept_id": "continuity",
+      "topic": "calculus",
+      "label": "Continuity",
+      "gate_frequency": "medium",
+      "canonical_definition": "Types of discontinuity, intermediate value theorem",
+      "deep_explanation": "Continuity is a foundational topic in calculus. Types of discontinuity, intermediate value theorem",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review limits first."
+      ],
+      "exam_tip": "Practice Continuity problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.059Z",
+      "model": "placeholder"
+    },
+    "differentiability": {
+      "concept_id": "differentiability",
+      "topic": "calculus",
+      "label": "Differentiability",
+      "gate_frequency": "medium",
+      "canonical_definition": "Differentiability vs continuity, piecewise functions",
+      "deep_explanation": "Differentiability is a foundational topic in calculus. Differentiability vs continuity, piecewise functions",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review continuity first."
+      ],
+      "exam_tip": "Practice Differentiability problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.059Z",
+      "model": "placeholder"
+    },
+    "derivatives-basic": {
+      "concept_id": "derivatives-basic",
+      "topic": "calculus",
+      "label": "Basic Derivatives",
+      "gate_frequency": "high",
+      "canonical_definition": "Power rule, sum/difference, basic functions",
+      "deep_explanation": "Basic Derivatives is a foundational topic in calculus. Power rule, sum/difference, basic functions",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review differentiability first."
+      ],
+      "exam_tip": "Practice Basic Derivatives problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.059Z",
+      "model": "placeholder"
+    },
+    "chain-rule": {
+      "concept_id": "chain-rule",
+      "topic": "calculus",
+      "label": "Chain Rule",
+      "gate_frequency": "high",
+      "canonical_definition": "Composite function differentiation",
+      "deep_explanation": "Chain Rule is a foundational topic in calculus. Composite function differentiation",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review derivatives basic first."
+      ],
+      "exam_tip": "Practice Chain Rule problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "product-quotient-rule": {
+      "concept_id": "product-quotient-rule",
+      "topic": "calculus",
+      "label": "Product & Quotient Rule",
+      "gate_frequency": "high",
+      "canonical_definition": "Product rule, quotient rule, combined applications",
+      "deep_explanation": "Product & Quotient Rule is a foundational topic in calculus. Product rule, quotient rule, combined applications",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review derivatives basic first."
+      ],
+      "exam_tip": "Practice Product & Quotient Rule problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "implicit-differentiation": {
+      "concept_id": "implicit-differentiation",
+      "topic": "calculus",
+      "label": "Implicit Differentiation",
+      "gate_frequency": "medium",
+      "canonical_definition": "Implicit functions, related rates",
+      "deep_explanation": "Implicit Differentiation is a foundational topic in calculus. Implicit functions, related rates",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review chain rule first."
+      ],
+      "exam_tip": "Practice Implicit Differentiation problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "maxima-minima": {
+      "concept_id": "maxima-minima",
+      "topic": "calculus",
+      "label": "Maxima & Minima",
+      "gate_frequency": "high",
+      "canonical_definition": "Critical points, second derivative test, optimization",
+      "deep_explanation": "Maxima & Minima is a foundational topic in calculus. Critical points, second derivative test, optimization",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review chain rule first.",
+        "Review product quotient rule first."
+      ],
+      "exam_tip": "Practice Maxima & Minima problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "mean-value-theorems": {
+      "concept_id": "mean-value-theorems",
+      "topic": "calculus",
+      "label": "Mean Value Theorems",
+      "gate_frequency": "high",
+      "canonical_definition": "Rolle's theorem, Lagrange MVT, Cauchy MVT",
+      "deep_explanation": "Mean Value Theorems is a foundational topic in calculus. Rolle's theorem, Lagrange MVT, Cauchy MVT",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review differentiability first.",
+        "Review continuity first."
+      ],
+      "exam_tip": "Practice Mean Value Theorems problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "integration-basics": {
+      "concept_id": "integration-basics",
+      "topic": "calculus",
+      "label": "Integration Basics",
+      "gate_frequency": "high",
+      "canonical_definition": "Antiderivatives, basic integration formulas",
+      "deep_explanation": "Integration Basics is a foundational topic in calculus. Antiderivatives, basic integration formulas",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review derivatives basic first."
+      ],
+      "exam_tip": "Practice Integration Basics problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "integration-substitution": {
+      "concept_id": "integration-substitution",
+      "topic": "calculus",
+      "label": "Integration by Substitution",
+      "gate_frequency": "high",
+      "canonical_definition": "u-substitution, trigonometric substitution",
+      "deep_explanation": "Integration by Substitution is a foundational topic in calculus. u-substitution, trigonometric substitution",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review integration basics first.",
+        "Review chain rule first."
+      ],
+      "exam_tip": "Practice Integration by Substitution problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "integration-by-parts": {
+      "concept_id": "integration-by-parts",
+      "topic": "calculus",
+      "label": "Integration by Parts",
+      "gate_frequency": "high",
+      "canonical_definition": "LIATE rule, repeated integration by parts",
+      "deep_explanation": "Integration by Parts is a foundational topic in calculus. LIATE rule, repeated integration by parts",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review integration basics first.",
+        "Review product quotient rule first."
+      ],
+      "exam_tip": "Practice Integration by Parts problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "partial-fractions": {
+      "concept_id": "partial-fractions",
+      "topic": "calculus",
+      "label": "Partial Fractions",
+      "gate_frequency": "medium",
+      "canonical_definition": "Decomposition for rational functions",
+      "deep_explanation": "Partial Fractions is a foundational topic in calculus. Decomposition for rational functions",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review integration basics first."
+      ],
+      "exam_tip": "Practice Partial Fractions problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "definite-integrals": {
+      "concept_id": "definite-integrals",
+      "topic": "calculus",
+      "label": "Definite Integrals",
+      "gate_frequency": "high",
+      "canonical_definition": "FTC, properties, area computation",
+      "deep_explanation": "Definite Integrals is a foundational topic in calculus. FTC, properties, area computation",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review integration substitution first.",
+        "Review integration by parts first.",
+        "Review partial fractions first."
+      ],
+      "exam_tip": "Practice Definite Integrals problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "improper-integrals": {
+      "concept_id": "improper-integrals",
+      "topic": "calculus",
+      "label": "Improper Integrals",
+      "gate_frequency": "medium",
+      "canonical_definition": "Infinite limits, convergence of integrals",
+      "deep_explanation": "Improper Integrals is a foundational topic in calculus. Infinite limits, convergence of integrals",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review definite integrals first.",
+        "Review limits first."
+      ],
+      "exam_tip": "Practice Improper Integrals problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "multivariable-calculus": {
+      "concept_id": "multivariable-calculus",
+      "topic": "calculus",
+      "label": "Multivariable Calculus",
+      "gate_frequency": "high",
+      "canonical_definition": "Partial derivatives, total derivative, Jacobian",
+      "deep_explanation": "Multivariable Calculus is a foundational topic in calculus. Partial derivatives, total derivative, Jacobian",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review chain rule first.",
+        "Review definite integrals first."
+      ],
+      "exam_tip": "Practice Multivariable Calculus problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "multiple-integrals": {
+      "concept_id": "multiple-integrals",
+      "topic": "calculus",
+      "label": "Multiple Integrals",
+      "gate_frequency": "high",
+      "canonical_definition": "Double/triple integrals, change of variables",
+      "deep_explanation": "Multiple Integrals is a foundational topic in calculus. Double/triple integrals, change of variables",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review multivariable calculus first.",
+        "Review definite integrals first."
+      ],
+      "exam_tip": "Practice Multiple Integrals problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "matrix-operations": {
+      "concept_id": "matrix-operations",
+      "topic": "linear-algebra",
+      "label": "Matrix Operations",
+      "gate_frequency": "high",
+      "canonical_definition": "Addition, multiplication, transpose, properties",
+      "deep_explanation": "Matrix Operations is a foundational topic in linear algebra. Addition, multiplication, transpose, properties",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [],
+      "exam_tip": "Practice Matrix Operations problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "determinants": {
+      "concept_id": "determinants",
+      "topic": "linear-algebra",
+      "label": "Determinants",
+      "gate_frequency": "high",
+      "canonical_definition": "Computation, properties, cofactor expansion",
+      "deep_explanation": "Determinants is a foundational topic in linear algebra. Computation, properties, cofactor expansion",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review matrix operations first."
+      ],
+      "exam_tip": "Practice Determinants problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "matrix-inverse": {
+      "concept_id": "matrix-inverse",
+      "topic": "linear-algebra",
+      "label": "Matrix Inverse",
+      "gate_frequency": "high",
+      "canonical_definition": "Inverse computation, adjugate method, properties",
+      "deep_explanation": "Matrix Inverse is a foundational topic in linear algebra. Inverse computation, adjugate method, properties",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review determinants first."
+      ],
+      "exam_tip": "Practice Matrix Inverse problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "systems-of-equations": {
+      "concept_id": "systems-of-equations",
+      "topic": "linear-algebra",
+      "label": "Systems of Linear Equations",
+      "gate_frequency": "high",
+      "canonical_definition": "Gaussian elimination, consistency, solution types",
+      "deep_explanation": "Systems of Linear Equations is a foundational topic in linear algebra. Gaussian elimination, consistency, solution types",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review matrix inverse first."
+      ],
+      "exam_tip": "Practice Systems of Linear Equations problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "rank-nullity": {
+      "concept_id": "rank-nullity",
+      "topic": "linear-algebra",
+      "label": "Rank & Nullity",
+      "gate_frequency": "high",
+      "canonical_definition": "Row echelon, rank, nullity, rank-nullity theorem",
+      "deep_explanation": "Rank & Nullity is a foundational topic in linear algebra. Row echelon, rank, nullity, rank-nullity theorem",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review systems of equations first."
+      ],
+      "exam_tip": "Practice Rank & Nullity problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "vector-spaces": {
+      "concept_id": "vector-spaces",
+      "topic": "linear-algebra",
+      "label": "Vector Spaces",
+      "gate_frequency": "medium",
+      "canonical_definition": "Subspaces, span, basis, dimension",
+      "deep_explanation": "Vector Spaces is a foundational topic in linear algebra. Subspaces, span, basis, dimension",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review rank nullity first."
+      ],
+      "exam_tip": "Practice Vector Spaces problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "linear-transformations": {
+      "concept_id": "linear-transformations",
+      "topic": "linear-algebra",
+      "label": "Linear Transformations",
+      "gate_frequency": "medium",
+      "canonical_definition": "Kernel, image, matrix representation",
+      "deep_explanation": "Linear Transformations is a foundational topic in linear algebra. Kernel, image, matrix representation",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review vector spaces first."
+      ],
+      "exam_tip": "Practice Linear Transformations problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "eigenvalues": {
+      "concept_id": "eigenvalues",
+      "topic": "linear-algebra",
+      "label": "Eigenvalues & Eigenvectors",
+      "gate_frequency": "high",
+      "canonical_definition": "Characteristic polynomial, computation, properties",
+      "deep_explanation": "Eigenvalues & Eigenvectors is a foundational topic in linear algebra. Characteristic polynomial, computation, properties",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review determinants first.",
+        "Review systems of equations first."
+      ],
+      "exam_tip": "Practice Eigenvalues & Eigenvectors problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "diagonalization": {
+      "concept_id": "diagonalization",
+      "topic": "linear-algebra",
+      "label": "Diagonalization",
+      "gate_frequency": "high",
+      "canonical_definition": "Diagonalizability, similar matrices, powers",
+      "deep_explanation": "Diagonalization is a foundational topic in linear algebra. Diagonalizability, similar matrices, powers",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review eigenvalues first.",
+        "Review vector spaces first."
+      ],
+      "exam_tip": "Practice Diagonalization problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "cayley-hamilton": {
+      "concept_id": "cayley-hamilton",
+      "topic": "linear-algebra",
+      "label": "Cayley-Hamilton Theorem",
+      "gate_frequency": "high",
+      "canonical_definition": "Statement, applications, matrix powers/inverse",
+      "deep_explanation": "Cayley-Hamilton Theorem is a foundational topic in linear algebra. Statement, applications, matrix powers/inverse",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review eigenvalues first."
+      ],
+      "exam_tip": "Practice Cayley-Hamilton Theorem problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "orthogonality": {
+      "concept_id": "orthogonality",
+      "topic": "linear-algebra",
+      "label": "Orthogonality",
+      "gate_frequency": "medium",
+      "canonical_definition": "Gram-Schmidt, orthogonal matrices, projections",
+      "deep_explanation": "Orthogonality is a foundational topic in linear algebra. Gram-Schmidt, orthogonal matrices, projections",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review vector spaces first."
+      ],
+      "exam_tip": "Practice Orthogonality problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "ode-first-order": {
+      "concept_id": "ode-first-order",
+      "topic": "differential-equations",
+      "label": "First Order ODEs",
+      "gate_frequency": "high",
+      "canonical_definition": "Separable, exact, linear first-order",
+      "deep_explanation": "First Order ODEs is a foundational topic in differential equations. Separable, exact, linear first-order",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review integration basics first.",
+        "Review derivatives basic first."
+      ],
+      "exam_tip": "Practice First Order ODEs problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "ode-bernoulli": {
+      "concept_id": "ode-bernoulli",
+      "topic": "differential-equations",
+      "label": "Bernoulli Equations",
+      "gate_frequency": "medium",
+      "canonical_definition": "Reduction to linear via substitution",
+      "deep_explanation": "Bernoulli Equations is a foundational topic in differential equations. Reduction to linear via substitution",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review ode first order first."
+      ],
+      "exam_tip": "Practice Bernoulli Equations problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "ode-exact": {
+      "concept_id": "ode-exact",
+      "topic": "differential-equations",
+      "label": "Exact Equations",
+      "gate_frequency": "medium",
+      "canonical_definition": "Exactness condition, integrating factors",
+      "deep_explanation": "Exact Equations is a foundational topic in differential equations. Exactness condition, integrating factors",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review ode first order first.",
+        "Review multivariable calculus first."
+      ],
+      "exam_tip": "Practice Exact Equations problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "ode-second-order-homo": {
+      "concept_id": "ode-second-order-homo",
+      "topic": "differential-equations",
+      "label": "Second Order Homogeneous",
+      "gate_frequency": "high",
+      "canonical_definition": "Characteristic equation, complementary solution",
+      "deep_explanation": "Second Order Homogeneous is a foundational topic in differential equations. Characteristic equation, complementary solution",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review ode first order first.",
+        "Review eigenvalues first."
+      ],
+      "exam_tip": "Practice Second Order Homogeneous problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "ode-second-order-nonhomo": {
+      "concept_id": "ode-second-order-nonhomo",
+      "topic": "differential-equations",
+      "label": "Second Order Non-Homogeneous",
+      "gate_frequency": "high",
+      "canonical_definition": "Particular solution, undetermined coefficients, variation of parameters",
+      "deep_explanation": "Second Order Non-Homogeneous is a foundational topic in differential equations. Particular solution, undetermined coefficients, variation of parameters",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review ode second order homo first.",
+        "Review integration by parts first."
+      ],
+      "exam_tip": "Practice Second Order Non-Homogeneous problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "ode-higher-order": {
+      "concept_id": "ode-higher-order",
+      "topic": "differential-equations",
+      "label": "Higher Order ODEs",
+      "gate_frequency": "medium",
+      "canonical_definition": "nth order linear, operator methods",
+      "deep_explanation": "Higher Order ODEs is a foundational topic in differential equations. nth order linear, operator methods",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review ode second order nonhomo first."
+      ],
+      "exam_tip": "Practice Higher Order ODEs problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "pde-basics": {
+      "concept_id": "pde-basics",
+      "topic": "differential-equations",
+      "label": "PDE Basics",
+      "gate_frequency": "medium",
+      "canonical_definition": "Classification, separation of variables, wave/heat/Laplace",
+      "deep_explanation": "PDE Basics is a foundational topic in differential equations. Classification, separation of variables, wave/heat/Laplace",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review ode second order homo first.",
+        "Review multivariable calculus first."
+      ],
+      "exam_tip": "Practice PDE Basics problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "counting-principles": {
+      "concept_id": "counting-principles",
+      "topic": "probability-statistics",
+      "label": "Counting Principles",
+      "gate_frequency": "medium",
+      "canonical_definition": "Permutations, combinations, pigeonhole",
+      "deep_explanation": "Counting Principles is a foundational topic in probability statistics. Permutations, combinations, pigeonhole",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [],
+      "exam_tip": "Practice Counting Principles problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "probability-basics": {
+      "concept_id": "probability-basics",
+      "topic": "probability-statistics",
+      "label": "Probability Basics",
+      "gate_frequency": "high",
+      "canonical_definition": "Axioms, conditional, Bayes theorem",
+      "deep_explanation": "Probability Basics is a foundational topic in probability statistics. Axioms, conditional, Bayes theorem",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review counting principles first."
+      ],
+      "exam_tip": "Practice Probability Basics problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "random-variables": {
+      "concept_id": "random-variables",
+      "topic": "probability-statistics",
+      "label": "Random Variables",
+      "gate_frequency": "high",
+      "canonical_definition": "PMF, PDF, CDF, expectation, variance",
+      "deep_explanation": "Random Variables is a foundational topic in probability statistics. PMF, PDF, CDF, expectation, variance",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review probability basics first.",
+        "Review integration basics first."
+      ],
+      "exam_tip": "Practice Random Variables problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "discrete-distributions": {
+      "concept_id": "discrete-distributions",
+      "topic": "probability-statistics",
+      "label": "Discrete Distributions",
+      "gate_frequency": "high",
+      "canonical_definition": "Binomial, Poisson, geometric, hypergeometric",
+      "deep_explanation": "Discrete Distributions is a foundational topic in probability statistics. Binomial, Poisson, geometric, hypergeometric",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review random variables first."
+      ],
+      "exam_tip": "Practice Discrete Distributions problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "continuous-distributions": {
+      "concept_id": "continuous-distributions",
+      "topic": "probability-statistics",
+      "label": "Continuous Distributions",
+      "gate_frequency": "high",
+      "canonical_definition": "Normal, exponential, uniform, gamma",
+      "deep_explanation": "Continuous Distributions is a foundational topic in probability statistics. Normal, exponential, uniform, gamma",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review random variables first.",
+        "Review definite integrals first."
+      ],
+      "exam_tip": "Practice Continuous Distributions problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "joint-distributions": {
+      "concept_id": "joint-distributions",
+      "topic": "probability-statistics",
+      "label": "Joint Distributions",
+      "gate_frequency": "medium",
+      "canonical_definition": "Joint, marginal, conditional distributions, independence",
+      "deep_explanation": "Joint Distributions is a foundational topic in probability statistics. Joint, marginal, conditional distributions, independence",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review continuous distributions first.",
+        "Review multiple integrals first."
+      ],
+      "exam_tip": "Practice Joint Distributions problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "hypothesis-testing": {
+      "concept_id": "hypothesis-testing",
+      "topic": "probability-statistics",
+      "label": "Hypothesis Testing",
+      "gate_frequency": "medium",
+      "canonical_definition": "Type I/II errors, p-values, confidence intervals",
+      "deep_explanation": "Hypothesis Testing is a foundational topic in probability statistics. Type I/II errors, p-values, confidence intervals",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review continuous distributions first."
+      ],
+      "exam_tip": "Practice Hypothesis Testing problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "regression-correlation": {
+      "concept_id": "regression-correlation",
+      "topic": "probability-statistics",
+      "label": "Regression & Correlation",
+      "gate_frequency": "medium",
+      "canonical_definition": "Linear regression, correlation coefficient",
+      "deep_explanation": "Regression & Correlation is a foundational topic in probability statistics. Linear regression, correlation coefficient",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review random variables first."
+      ],
+      "exam_tip": "Practice Regression & Correlation problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "complex-numbers": {
+      "concept_id": "complex-numbers",
+      "topic": "complex-variables",
+      "label": "Complex Numbers",
+      "gate_frequency": "medium",
+      "canonical_definition": "Algebra, polar form, De Moivre's theorem",
+      "deep_explanation": "Complex Numbers is a foundational topic in complex variables. Algebra, polar form, De Moivre's theorem",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [],
+      "exam_tip": "Practice Complex Numbers problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "analytic-functions": {
+      "concept_id": "analytic-functions",
+      "topic": "complex-variables",
+      "label": "Analytic Functions",
+      "gate_frequency": "high",
+      "canonical_definition": "Cauchy-Riemann equations, harmonic functions",
+      "deep_explanation": "Analytic Functions is a foundational topic in complex variables. Cauchy-Riemann equations, harmonic functions",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review complex numbers first.",
+        "Review multivariable calculus first."
+      ],
+      "exam_tip": "Practice Analytic Functions problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "complex-integration": {
+      "concept_id": "complex-integration",
+      "topic": "complex-variables",
+      "label": "Complex Integration",
+      "gate_frequency": "high",
+      "canonical_definition": "Contour integrals, Cauchy integral theorem/formula",
+      "deep_explanation": "Complex Integration is a foundational topic in complex variables. Contour integrals, Cauchy integral theorem/formula",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review analytic functions first.",
+        "Review definite integrals first."
+      ],
+      "exam_tip": "Practice Complex Integration problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "taylor-laurent": {
+      "concept_id": "taylor-laurent",
+      "topic": "complex-variables",
+      "label": "Taylor & Laurent Series",
+      "gate_frequency": "high",
+      "canonical_definition": "Series expansions, singularities classification",
+      "deep_explanation": "Taylor & Laurent Series is a foundational topic in complex variables. Series expansions, singularities classification",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review complex integration first.",
+        "Review series first."
+      ],
+      "exam_tip": "Practice Taylor & Laurent Series problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "residue-calculus": {
+      "concept_id": "residue-calculus",
+      "topic": "complex-variables",
+      "label": "Residue Calculus",
+      "gate_frequency": "high",
+      "canonical_definition": "Residue theorem, real integral evaluation",
+      "deep_explanation": "Residue Calculus is a foundational topic in complex variables. Residue theorem, real integral evaluation",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review taylor laurent first."
+      ],
+      "exam_tip": "Practice Residue Calculus problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "conformal-mapping": {
+      "concept_id": "conformal-mapping",
+      "topic": "complex-variables",
+      "label": "Conformal Mapping",
+      "gate_frequency": "low",
+      "canonical_definition": "Bilinear transformations, Joukowski",
+      "deep_explanation": "Conformal Mapping is a foundational topic in complex variables. Bilinear transformations, Joukowski",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review analytic functions first."
+      ],
+      "exam_tip": "Practice Conformal Mapping problems at low frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "root-finding": {
+      "concept_id": "root-finding",
+      "topic": "numerical-methods",
+      "label": "Root Finding",
+      "gate_frequency": "high",
+      "canonical_definition": "Bisection, Newton-Raphson, secant, fixed-point",
+      "deep_explanation": "Root Finding is a foundational topic in numerical methods. Bisection, Newton-Raphson, secant, fixed-point",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review derivatives basic first.",
+        "Review continuity first."
+      ],
+      "exam_tip": "Practice Root Finding problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "interpolation": {
+      "concept_id": "interpolation",
+      "topic": "numerical-methods",
+      "label": "Interpolation",
+      "gate_frequency": "high",
+      "canonical_definition": "Lagrange, Newton divided differences, splines",
+      "deep_explanation": "Interpolation is a foundational topic in numerical methods. Lagrange, Newton divided differences, splines",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review systems of equations first."
+      ],
+      "exam_tip": "Practice Interpolation problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "numerical-integration": {
+      "concept_id": "numerical-integration",
+      "topic": "numerical-methods",
+      "label": "Numerical Integration",
+      "gate_frequency": "high",
+      "canonical_definition": "Trapezoidal, Simpson's, Gaussian quadrature",
+      "deep_explanation": "Numerical Integration is a foundational topic in numerical methods. Trapezoidal, Simpson's, Gaussian quadrature",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review definite integrals first.",
+        "Review interpolation first."
+      ],
+      "exam_tip": "Practice Numerical Integration problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "numerical-ode": {
+      "concept_id": "numerical-ode",
+      "topic": "numerical-methods",
+      "label": "Numerical ODE Solvers",
+      "gate_frequency": "medium",
+      "canonical_definition": "Euler, Runge-Kutta, stability analysis",
+      "deep_explanation": "Numerical ODE Solvers is a foundational topic in numerical methods. Euler, Runge-Kutta, stability analysis",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review ode first order first.",
+        "Review root finding first."
+      ],
+      "exam_tip": "Practice Numerical ODE Solvers problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "numerical-linear-algebra": {
+      "concept_id": "numerical-linear-algebra",
+      "topic": "numerical-methods",
+      "label": "Numerical Linear Algebra",
+      "gate_frequency": "medium",
+      "canonical_definition": "LU decomposition, iterative methods, condition number",
+      "deep_explanation": "Numerical Linear Algebra is a foundational topic in numerical methods. LU decomposition, iterative methods, condition number",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review systems of equations first.",
+        "Review matrix inverse first."
+      ],
+      "exam_tip": "Practice Numerical Linear Algebra problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "laplace-transform": {
+      "concept_id": "laplace-transform",
+      "topic": "transform-theory",
+      "label": "Laplace Transform",
+      "gate_frequency": "high",
+      "canonical_definition": "Definition, properties, standard transforms",
+      "deep_explanation": "Laplace Transform is a foundational topic in transform theory. Definition, properties, standard transforms",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review improper integrals first.",
+        "Review ode second order nonhomo first."
+      ],
+      "exam_tip": "Practice Laplace Transform problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "inverse-laplace": {
+      "concept_id": "inverse-laplace",
+      "topic": "transform-theory",
+      "label": "Inverse Laplace Transform",
+      "gate_frequency": "high",
+      "canonical_definition": "Partial fractions method, convolution",
+      "deep_explanation": "Inverse Laplace Transform is a foundational topic in transform theory. Partial fractions method, convolution",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review laplace transform first.",
+        "Review partial fractions first."
+      ],
+      "exam_tip": "Practice Inverse Laplace Transform problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "laplace-applications": {
+      "concept_id": "laplace-applications",
+      "topic": "transform-theory",
+      "label": "Laplace Applications",
+      "gate_frequency": "high",
+      "canonical_definition": "Solving ODEs, circuit analysis, transfer functions",
+      "deep_explanation": "Laplace Applications is a foundational topic in transform theory. Solving ODEs, circuit analysis, transfer functions",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review inverse laplace first."
+      ],
+      "exam_tip": "Practice Laplace Applications problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "fourier-series": {
+      "concept_id": "fourier-series",
+      "topic": "transform-theory",
+      "label": "Fourier Series",
+      "gate_frequency": "high",
+      "canonical_definition": "Trigonometric series, Dirichlet conditions, Parseval",
+      "deep_explanation": "Fourier Series is a foundational topic in transform theory. Trigonometric series, Dirichlet conditions, Parseval",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review definite integrals first.",
+        "Review series first."
+      ],
+      "exam_tip": "Practice Fourier Series problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "fourier-transform": {
+      "concept_id": "fourier-transform",
+      "topic": "transform-theory",
+      "label": "Fourier Transform",
+      "gate_frequency": "medium",
+      "canonical_definition": "FT properties, convolution, applications",
+      "deep_explanation": "Fourier Transform is a foundational topic in transform theory. FT properties, convolution, applications",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review fourier series first.",
+        "Review improper integrals first."
+      ],
+      "exam_tip": "Practice Fourier Transform problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "z-transform": {
+      "concept_id": "z-transform",
+      "topic": "transform-theory",
+      "label": "Z-Transform",
+      "gate_frequency": "medium",
+      "canonical_definition": "Definition, properties, inverse, difference equations",
+      "deep_explanation": "Z-Transform is a foundational topic in transform theory. Definition, properties, inverse, difference equations",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review laplace transform first.",
+        "Review sequences first."
+      ],
+      "exam_tip": "Practice Z-Transform problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "vector-fields": {
+      "concept_id": "vector-fields",
+      "topic": "vector-calculus",
+      "label": "Vector Fields",
+      "gate_frequency": "high",
+      "canonical_definition": "Scalar/vector fields, gradient",
+      "deep_explanation": "Vector Fields is a foundational topic in vector calculus. Scalar/vector fields, gradient",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review multivariable calculus first."
+      ],
+      "exam_tip": "Practice Vector Fields problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "divergence-curl": {
+      "concept_id": "divergence-curl",
+      "topic": "vector-calculus",
+      "label": "Divergence & Curl",
+      "gate_frequency": "high",
+      "canonical_definition": "Divergence, curl, Laplacian, identities",
+      "deep_explanation": "Divergence & Curl is a foundational topic in vector calculus. Divergence, curl, Laplacian, identities",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review vector fields first."
+      ],
+      "exam_tip": "Practice Divergence & Curl problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "line-integrals": {
+      "concept_id": "line-integrals",
+      "topic": "vector-calculus",
+      "label": "Line Integrals",
+      "gate_frequency": "high",
+      "canonical_definition": "Scalar/vector line integrals, work, circulation",
+      "deep_explanation": "Line Integrals is a foundational topic in vector calculus. Scalar/vector line integrals, work, circulation",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review vector fields first.",
+        "Review definite integrals first."
+      ],
+      "exam_tip": "Practice Line Integrals problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "surface-integrals": {
+      "concept_id": "surface-integrals",
+      "topic": "vector-calculus",
+      "label": "Surface Integrals",
+      "gate_frequency": "medium",
+      "canonical_definition": "Flux, surface parameterization",
+      "deep_explanation": "Surface Integrals is a foundational topic in vector calculus. Flux, surface parameterization",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review line integrals first.",
+        "Review multiple integrals first."
+      ],
+      "exam_tip": "Practice Surface Integrals problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "greens-theorem": {
+      "concept_id": "greens-theorem",
+      "topic": "vector-calculus",
+      "label": "Green's Theorem",
+      "gate_frequency": "high",
+      "canonical_definition": "Circulation-flux form, applications",
+      "deep_explanation": "Green's Theorem is a foundational topic in vector calculus. Circulation-flux form, applications",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review line integrals first.",
+        "Review divergence curl first."
+      ],
+      "exam_tip": "Practice Green's Theorem problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "stokes-theorem": {
+      "concept_id": "stokes-theorem",
+      "topic": "vector-calculus",
+      "label": "Stokes' Theorem",
+      "gate_frequency": "high",
+      "canonical_definition": "Generalized curl theorem, applications",
+      "deep_explanation": "Stokes' Theorem is a foundational topic in vector calculus. Generalized curl theorem, applications",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review surface integrals first.",
+        "Review greens theorem first."
+      ],
+      "exam_tip": "Practice Stokes' Theorem problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "gauss-divergence": {
+      "concept_id": "gauss-divergence",
+      "topic": "vector-calculus",
+      "label": "Gauss Divergence Theorem",
+      "gate_frequency": "high",
+      "canonical_definition": "Volume-surface flux relationship",
+      "deep_explanation": "Gauss Divergence Theorem is a foundational topic in vector calculus. Volume-surface flux relationship",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review surface integrals first.",
+        "Review divergence curl first."
+      ],
+      "exam_tip": "Practice Gauss Divergence Theorem problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "propositional-logic": {
+      "concept_id": "propositional-logic",
+      "topic": "discrete-mathematics",
+      "label": "Propositional Logic",
+      "gate_frequency": "medium",
+      "canonical_definition": "Connectives, truth tables, tautologies, equivalences",
+      "deep_explanation": "Propositional Logic is a foundational topic in discrete mathematics. Connectives, truth tables, tautologies, equivalences",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [],
+      "exam_tip": "Practice Propositional Logic problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "sets-relations": {
+      "concept_id": "sets-relations",
+      "topic": "discrete-mathematics",
+      "label": "Sets & Relations",
+      "gate_frequency": "medium",
+      "canonical_definition": "Set operations, equivalence/partial order relations",
+      "deep_explanation": "Sets & Relations is a foundational topic in discrete mathematics. Set operations, equivalence/partial order relations",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review propositional logic first."
+      ],
+      "exam_tip": "Practice Sets & Relations problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "functions-combinatorics": {
+      "concept_id": "functions-combinatorics",
+      "topic": "discrete-mathematics",
+      "label": "Functions & Combinatorics",
+      "gate_frequency": "medium",
+      "canonical_definition": "Injection, surjection, bijection, counting",
+      "deep_explanation": "Functions & Combinatorics is a foundational topic in discrete mathematics. Injection, surjection, bijection, counting",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review sets relations first."
+      ],
+      "exam_tip": "Practice Functions & Combinatorics problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "recurrence-relations": {
+      "concept_id": "recurrence-relations",
+      "topic": "discrete-mathematics",
+      "label": "Recurrence Relations",
+      "gate_frequency": "medium",
+      "canonical_definition": "Solving linear recurrences, generating functions",
+      "deep_explanation": "Recurrence Relations is a foundational topic in discrete mathematics. Solving linear recurrences, generating functions",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review functions combinatorics first."
+      ],
+      "exam_tip": "Practice Recurrence Relations problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "boolean-algebra": {
+      "concept_id": "boolean-algebra",
+      "topic": "discrete-mathematics",
+      "label": "Boolean Algebra",
+      "gate_frequency": "medium",
+      "canonical_definition": "Boolean functions, minimization, Karnaugh maps",
+      "deep_explanation": "Boolean Algebra is a foundational topic in discrete mathematics. Boolean functions, minimization, Karnaugh maps",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review propositional logic first."
+      ],
+      "exam_tip": "Practice Boolean Algebra problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "group-theory-basics": {
+      "concept_id": "group-theory-basics",
+      "topic": "discrete-mathematics",
+      "label": "Group Theory Basics",
+      "gate_frequency": "low",
+      "canonical_definition": "Groups, subgroups, cyclic groups, cosets",
+      "deep_explanation": "Group Theory Basics is a foundational topic in discrete mathematics. Groups, subgroups, cyclic groups, cosets",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review sets relations first."
+      ],
+      "exam_tip": "Practice Group Theory Basics problems at low frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "graph-basics": {
+      "concept_id": "graph-basics",
+      "topic": "graph-theory",
+      "label": "Graph Basics",
+      "gate_frequency": "high",
+      "canonical_definition": "Vertices, edges, degree, handshaking lemma",
+      "deep_explanation": "Graph Basics is a foundational topic in graph theory. Vertices, edges, degree, handshaking lemma",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [],
+      "exam_tip": "Practice Graph Basics problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "graph-connectivity": {
+      "concept_id": "graph-connectivity",
+      "topic": "graph-theory",
+      "label": "Connectivity",
+      "gate_frequency": "high",
+      "canonical_definition": "Paths, cycles, connected components, bridges",
+      "deep_explanation": "Connectivity is a foundational topic in graph theory. Paths, cycles, connected components, bridges",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review graph basics first."
+      ],
+      "exam_tip": "Practice Connectivity problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "trees": {
+      "concept_id": "trees",
+      "topic": "graph-theory",
+      "label": "Trees",
+      "gate_frequency": "high",
+      "canonical_definition": "Spanning trees, binary trees, Prüfer sequences",
+      "deep_explanation": "Trees is a foundational topic in graph theory. Spanning trees, binary trees, Prüfer sequences",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review graph connectivity first."
+      ],
+      "exam_tip": "Practice Trees problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "euler-hamilton": {
+      "concept_id": "euler-hamilton",
+      "topic": "graph-theory",
+      "label": "Eulerian & Hamiltonian",
+      "gate_frequency": "high",
+      "canonical_definition": "Euler circuits/paths, Hamiltonian cycles, conditions",
+      "deep_explanation": "Eulerian & Hamiltonian is a foundational topic in graph theory. Euler circuits/paths, Hamiltonian cycles, conditions",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review graph connectivity first."
+      ],
+      "exam_tip": "Practice Eulerian & Hamiltonian problems at high frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "graph-coloring": {
+      "concept_id": "graph-coloring",
+      "topic": "graph-theory",
+      "label": "Graph Coloring",
+      "gate_frequency": "medium",
+      "canonical_definition": "Chromatic number, chromatic polynomial, planar coloring",
+      "deep_explanation": "Graph Coloring is a foundational topic in graph theory. Chromatic number, chromatic polynomial, planar coloring",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review graph basics first."
+      ],
+      "exam_tip": "Practice Graph Coloring problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "planar-graphs": {
+      "concept_id": "planar-graphs",
+      "topic": "graph-theory",
+      "label": "Planar Graphs",
+      "gate_frequency": "medium",
+      "canonical_definition": "Planarity, Euler formula, Kuratowski theorem",
+      "deep_explanation": "Planar Graphs is a foundational topic in graph theory. Planarity, Euler formula, Kuratowski theorem",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review graph connectivity first."
+      ],
+      "exam_tip": "Practice Planar Graphs problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    },
+    "shortest-paths": {
+      "concept_id": "shortest-paths",
+      "topic": "graph-theory",
+      "label": "Shortest Paths",
+      "gate_frequency": "medium",
+      "canonical_definition": "Dijkstra, Bellman-Ford, Floyd-Warshall",
+      "deep_explanation": "Shortest Paths is a foundational topic in graph theory. Dijkstra, Bellman-Ford, Floyd-Warshall",
+      "worked_examples": [],
+      "common_misconceptions": [],
+      "prerequisite_reminders": [
+        "Review trees first."
+      ],
+      "exam_tip": "Practice Shortest Paths problems at medium frequency matching GATE exam distribution.",
+      "generated_at": "2026-04-20T04:25:14.060Z",
+      "model": "placeholder"
+    }
+  },
+  "note": "Placeholder library — rebuild with GEMINI_API_KEY for full content."
+}

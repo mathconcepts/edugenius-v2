@@ -223,6 +223,19 @@ export default function ProgressPage() {
           <ChevronRight size={14} className="text-surface-600 group-hover:text-emerald-400 transition-colors" />
         </Link>
         <Link
+          to="/smart-practice"
+          className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-sky-500/30 transition-colors group"
+        >
+          <div className="p-2 rounded-lg bg-sky-500/10">
+            <Sparkles size={16} className="text-sky-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-surface-200">Smart Practice</p>
+            <p className="text-xs text-surface-500">Four-tier cost-optimized delivery</p>
+          </div>
+          <ChevronRight size={14} className="text-surface-600 group-hover:text-sky-400 transition-colors" />
+        </Link>
+        <Link
           to="/audit"
           className="flex items-center gap-3 p-3 rounded-xl bg-surface-900 border border-surface-800 hover:border-emerald-500/30 transition-colors group"
         >

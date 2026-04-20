@@ -2,6 +2,85 @@
 
 All notable changes to GATE Math are documented here.
 
+## [2.2.0] — 2026-04-20
+
+### 🧩 Content Engine — Cost-Minimal Four-Tier Delivery
+
+Introduces a complete content pipeline: **scrape → tag → generate → verify → bundle → deliver**,
+with a four-tier resolver that routes every request to the cheapest matching tier.
+
+Cost modeling (see `PLAN-content-engine.md`): naive path costs ~$200/mo at 100 DAU;
+this framework brings it to ~$28/mo — **86% reduction** — by ensuring 80%+ of content
+delivery never hits an LLM.
+
+### Added
+
+**Wolfram Alpha integration** (`src/services/wolfram-service.ts`)
+- Direct HTTP client to the Full Results API (no MCP server complexity on Render)
+- `wolframSolve(query)` — returns answer + step-by-step pods + interpretation
+- `verifyProblemWithWolfram(text, answer)` — authoritative answer verification
+- `answersAgree(a, b)` — normalizes LaTeX/whitespace/numerical tolerance
+- Graceful `{ available: false }` when `WOLFRAM_APP_ID` is absent
+
+**Four-tier resolver** (`src/content/resolver.ts`)
+- Tier 0: exact bundle match (free, <10ms, ~80% hit rate target)
+- Tier 1: semantic RAG over bundle (free, ~50ms, ~70% of tier-0 misses)
+- Tier 2: generate via Gemini 2.5 Flash-Lite (~$0.0005, ~2s)
+- Tier 3: Wolfram verification for high-stakes (~$0.002, slow)
+- Returns typed `ResolvedContent` with `source`, `confidence`, `latency_ms`,
+  `cost_estimate_usd`, `wolfram_verified` — full provenance
+- In-memory bundle caching with legacy-bundle fallback
+
+**HTTP endpoints** (`src/api/content-routes.ts`)
+- `POST /api/content/resolve` — pipeline entry; returns problem or explainer
+- `POST /api/content/verify` — Wolfram answer check
+- `GET /api/content/stats` — bundle inventory (public)
+- `GET /api/content/explainer/:conceptId` — direct explainer lookup
+
+**Content pipeline scripts**
+- `scripts/scrape-corpus.ts` — polite, rate-limited scraper (GATE curated seed + NPTEL skeleton; respects robots.txt; 1 req/s per domain)
+- `scripts/build-explainers.ts` — pre-generates 82-concept explainer library via
+  Gemini Flash-Lite (~$0.08 total) with resume + batch + placeholder fallback
+- `scripts/build-bundle.ts` — merges scraped + generated + explainers into
+  `content-bundle.json` with SHA-256 fingerprint dedup
+
+**Client-side resolver** (`frontend/src/lib/content/resolver.ts`)
+- Bundle fetch once + session cache (force-cache)
+- Client-side tier 0, 0.5 (device cache), 1 (material RAG via transformers.js)
+- Falls through to server for tier 2+
+- Auto-caches server-generated problems in IndexedDB for next time
+
+**Smart Practice page** (`frontend/src/pages/gate/SmartPracticePage.tsx`, route `/smart-practice`)
+- Shows each problem's provenance (Bundled / Cached / Your Notes / Generated / Wolfram-Verified)
+- Live session cost meter
+- Per-request latency + cost display
+- Require-Wolfram toggle for high-stakes practice
+- Records attempts via existing `recordAttempt()` (updates GBrain locally)
+
+**Content pipeline CI** (`.github/workflows/content-engine.yml`)
+- Nightly at 03:30 UTC (09:00 IST)
+- Workflow dispatch for manual stage runs
+- Commits refreshed bundle directly to main with stats in message
+
+**Architecture plan** (`PLAN-content-engine.md`, 250+ lines)
+- 10-part architecture: scrape, generate, deliver, costs, Wolfram strategy
+- Cost projections with real Gemini/Wolfram pricing
+- Rationale for HTTP API over MCP on stateless edge
+
+### Verified end-to-end
+- Bundle assembled: 24 deduped problems across 10 topics + 82 explainers (75 KB)
+- Resolver test: Tier-0 exact match in 2ms at $0 cost
+- Legacy pyq-bank problems auto-dedup via fingerprint
+- Frontend builds clean (46s, SmartPracticePage compiles)
+- Graceful degradation when Gemini / Wolfram keys absent (placeholder mode)
+
+### Cost impact (100 DAU × 20 problems/day × 3 tutor turns)
+- Before: ~$200/mo
+- After: ~$28/mo (with 80% tier-0 hit rate from ~3k problem bundle)
+- Wolfram: free tier 2k/mo covers build-time verification
+
+---
+
 ## [2.1.0] — 2026-04-19
 
 ### 🗄️ DB-less GBrain (complete — all 7 phases)

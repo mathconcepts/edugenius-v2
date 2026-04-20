@@ -41,6 +41,7 @@ const MockExamPage = lazy(() => import('@/pages/gate/MockExamPage'));
 const GBrainAdminPage = lazy(() => import('@/pages/gate/GBrainAdminPage'));
 const MarketingLanding = lazy(() => import('@/pages/gate/MarketingLanding'));
 const MaterialsPage = lazy(() => import('@/pages/gate/MaterialsPage'));
+const SmartPracticePage = lazy(() => import('@/pages/gate/SmartPracticePage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="admin/gbrain" element={<GBrainAdminPage />} />
           <Route path="gbrain" element={<MarketingLanding />} />
           <Route path="materials" element={<MaterialsPage />} />
+          <Route path="smart-practice" element={<SmartPracticePage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
