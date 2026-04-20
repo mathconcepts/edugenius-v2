@@ -1,0 +1,115 @@
+{
+  "ran_at": "2026-04-20T05:48:45.984Z",
+  "via": "production /api/content/verify",
+  "processed": 19,
+  "verified": 6,
+  "disagreed": 2,
+  "errors": 11,
+  "details": [
+    {
+      "id": "gate-2024-eigenvalues-0",
+      "concept_id": "eigenvalues",
+      "verified": true,
+      "wolfram_answer": "λ_1 = 3 | λ_2 = 1"
+    },
+    {
+      "id": "gate-2024-partial-derivatives-1",
+      "concept_id": "partial-derivatives",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "gate-2024-first-order-linear-2",
+      "concept_id": "first-order-linear",
+      "verified": false,
+      "wolfram_answer": "(y'(x))/(1 - 2 y(x)) = x",
+      "expected": "e^(x²)"
+    },
+    {
+      "id": "gate-2023-matrix-rank-3",
+      "concept_id": "matrix-rank",
+      "verified": true,
+      "wolfram_answer": "2"
+    },
+    {
+      "id": "gate-2023-bayes-theorem-4",
+      "concept_id": "bayes-theorem",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "gate-2023-cauchy-riemann-5",
+      "concept_id": "cauchy-riemann",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "gate-2023-laplace-transform-6",
+      "concept_id": "laplace-transform",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "gate-2022-combinatorics-8",
+      "concept_id": "combinatorics",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "gate-2022-graph-coloring-9",
+      "concept_id": "graph-coloring",
+      "verified": true,
+      "wolfram_answer": "5"
+    },
+    {
+      "id": "gate-2022-gradient-10",
+      "concept_id": "gradient",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "gate-2022-taylor-series-11",
+      "concept_id": "taylor-series",
+      "verified": true,
+      "wolfram_answer": "x - x^3/6 + O(x^4) | (Taylor series)"
+    },
+    {
+      "id": "openstax-derivatives-basic-0",
+      "concept_id": "derivatives-basic",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "openstax-definite-integrals-1",
+      "concept_id": "definite-integrals",
+      "verified": true,
+      "wolfram_answer": "integral_0^2 (3 x^2 + 2) dx = 12"
+    },
+    {
+      "id": "openstax-taylor-series-2",
+      "concept_id": "taylor-series",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "openstax-partial-derivatives-3",
+      "concept_id": "partial-derivatives",
+      "verified": false,
+      "wolfram_answer": "x (cos(x y) + x)",
+      "expected": "x² + x·cos(xy)"
+    },
+    {
+      "id": "ocw-determinants-0",
+      "concept_id": "determinants",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "ocw-diagonalization-1",
+      "concept_id": "diagonalization",
+      "error": "Wolfram returned no answer"
+    },
+    {
+      "id": "ocw-second-order-linear-2",
+      "concept_id": "second-order-linear",
+      "verified": true,
+      "wolfram_answer": "y(x) = c_1 e^x + c_2 e^(2 x)"
+    },
+    {
+      "id": "ocw-counting-principles-3",
+      "concept_id": "counting-principles",
+      "error": "Wolfram returned no answer"
+    }
+  ]
+}

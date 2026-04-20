@@ -264,7 +264,7 @@
       "verified": true,
       "fingerprint": "05363096095137c1",
       "wolfram_verified": true,
-      "wolfram_verified_at": "2026-04-20T05:41:32.205Z"
+      "wolfram_verified_at": "2026-04-20T05:47:07.231Z"
     },
     {
       "id": "gate-2024-partial-derivatives-1",
@@ -332,7 +332,7 @@
       "verified": true,
       "fingerprint": "30d60846c11265f3",
       "wolfram_verified": true,
-      "wolfram_verified_at": "2026-04-20T05:41:47.069Z"
+      "wolfram_verified_at": "2026-04-20T05:47:22.227Z"
     },
     {
       "id": "gate-2023-bayes-theorem-4",
@@ -466,7 +466,7 @@
       "verified": true,
       "fingerprint": "d4d03e10189ce2df",
       "wolfram_verified": true,
-      "wolfram_verified_at": "2026-04-20T05:42:16.950Z"
+      "wolfram_verified_at": "2026-04-20T05:47:51.985Z"
     },
     {
       "id": "gate-2022-gradient-10",
@@ -512,7 +512,7 @@
       "verified": true,
       "fingerprint": "02a3d21e980aa137",
       "wolfram_verified": true,
-      "wolfram_verified_at": "2026-04-20T05:42:27.017Z"
+      "wolfram_verified_at": "2026-04-20T05:48:02.155Z"
     },
     {
       "id": "openstax-derivatives-basic-0",
@@ -546,7 +546,7 @@
       "verified": true,
       "fingerprint": "594ff4220b52600b",
       "wolfram_verified": true,
-      "wolfram_verified_at": "2026-04-20T05:42:36.334Z"
+      "wolfram_verified_at": "2026-04-20T05:48:11.337Z"
     },
     {
       "id": "openstax-taylor-series-2",
@@ -666,7 +666,9 @@
       "source_url": "https://ocw.mit.edu/courses/18-03-differential-equations-spring-2010",
       "license": "CC-BY-NC-SA-4.0",
       "verified": true,
-      "fingerprint": "8336b342cd5427d5"
+      "fingerprint": "8336b342cd5427d5",
+      "wolfram_verified": true,
+      "wolfram_verified_at": "2026-04-20T05:48:39.561Z"
     },
     {
       "id": "ocw-counting-principles-3",
@@ -2048,7 +2050,7 @@
   "stats": {
     "total_problems": 34,
     "total_explainers": 82,
-    "wolfram_verified": 5,
+    "wolfram_verified": 6,
     "by_topic": {
       "linear-algebra": 7,
       "calculus": 10,
@@ -2067,5 +2069,5 @@
       "hard": 2
     }
   },
-  "verified_at": "2026-04-20T05:43:11.128Z"
+  "verified_at": "2026-04-20T05:48:45.982Z"
 }
